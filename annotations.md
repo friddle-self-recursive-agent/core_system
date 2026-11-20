@@ -79,6 +79,7 @@
 | A56 | R14.2 反馈闭环 | "报错→agent→提议→批准→pull→发布→验收"是否需要新概念 | **零新概念**：=core-loop 系 Workflow 实例（feedback-remediation-loop）+ 既有 Event/Agent(AUTOLEVEL)/Proposal(P6)/AwaitingApproval/Notification/developer-system/deploy-system/VerifyDoc 的串联；新增物只有对象实例（Workflow/Agent/ConnectorOps）与三个 Connector watch 事件源 | instance 仓 impl/feedback-workflow.md | ✅ | 待裁决 |
 | A57 | R14.1 双 profile | 两个 dsh profile 的分工与自举方向 | core-system profile=自举开发（developer-system 闭环跑 core_system 三仓），**唯一交付=更新 kube-inner profile 所用 plugin**（经 developer_system 产物链发布）；kube-inner profile=接入运行时（onedev + 内网集群纳管）。这是 bootstrap（P9）之后的第一对 agent 实例 | instance 仓 runtime/agent-pool-machine.md | ⚠️ 自举依赖 plugin 首版 | 待裁决 |
 | A58 | R14.3 模块划分 | 内网系统"页面功能模块"在文档面的归属 | 门户服务注册表（90 项，六类）=**公司 git 存实物**；文档面只存模块分类注册（每模块=WorkService 或其 Instance/Ref，按边界决策树 Q2 判定）；清单本身是数据不是文档（Q1），投影进 WorkService 六面体 | instance 仓 impl/kube-inner-integration.md | ✅ | 待裁决 |
+| A59 | R14.8 四项接入 | LDAP/飞书/OneDev/Kafka/SSH 接入是否需要新概念 | **零新概念**：user-system 接 LDAP+飞书=Provider+Instance（账号映射=数据投影）；developer-system 接 OneDev=既有设计落地；deploy-system 多渠道=ConnectorOps 并集按业务 DeployDesign 裁剪（规则不写死）；Kafka=Notification 的传输通道实现（一 Scheme 一 Instance 不变），飞书=Provider，通知落账号=user-system 映射 | instance 仓 impl/user-system.md、impl/deploy-system.md、runtime/event-bus.md | ✅ | 待裁决 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

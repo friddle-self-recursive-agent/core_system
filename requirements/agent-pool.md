@@ -45,3 +45,19 @@ feedback 监测的修复闭环：
 
 - **GitHub（公开 org）不允许出现任何现有公司信息**：真实域名、内网地址、系统名、凭据一律不进 GitHub 仓。
 - 真实的公司需求与公司代码都存公司 git（OneDev，agent_pool 前缀仓）。
+
+## 第三批补充（同日追加）
+
+## R14.7 dsh 地址转发（已配置）
+
+- 公司真实环境中，agent_pool 机器的 dsh web 以**公司内网 agent 域名**对外（真实域名见公司 git 报告仓 evidence）；经既有反代面（NPM，通配证书 + websocket）指向 agent_pool 机器的 core-system profile（:3081），dsh 以 systemd 常驻。
+- 本条为配置事实存档；公司侧细节在报告仓。
+
+## R14.8 四项接入（继续完善可行性报告）
+
+1. **user-system**：instance 接入 LDAP（经公司 ldap 管理面/同步通道）与飞书；账号映射（LDAP 用户 ↔ 飞书 userid）是通知路由的前提。
+2. **developer-system**：接入公司 OneDev 实例（API 已实测：鉴权/分页/建项目/列表）。
+3. **deploy-system**：做部署；接入内网集群（kube 渠道）与入口宿主 SSH（:2222）渠道；**每一个业务的部署方式不同**，按各业务 DeployDesign 声明，机制不写死。
+4. **内置 event 扩展**：经内网集群挂 Kafka 作提醒分发通道；Provider 接入飞书，通知落到具体账号（依赖 1 的账号映射）。
+
+以上均为既有概念的实例化（零新概念，A59），可行性见 instance 仓对应文档与 feasibility.md §18。
