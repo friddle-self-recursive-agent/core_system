@@ -276,6 +276,17 @@
 1. ❶ dispatch 表按类型+owner 枚举：系统多了以后路由表规模怎么办（通配 owner:* 是否够）？
 2. ❷ labels 作为纯注释要不要留 Lint（防又悄悄长出选择语义）？
 
+## workservice（v0.13 六面体后）
+
+1. ❶ 六面的内容深度下限：观测/数据/流程三面写多细才算"纳管完整"（Lint 阈值）？
+2. ❷ bug-management 这类业务系统的六面体由谁首批编写（人写 or Agent 起草+人审）？
+3. ❸ tool 型 WorkService（dsh/http）与 ConnectorOps 的默认挂载关系要不要写进 builtin 模板？
+
+## role（A49 并入后）
+
+1. ❶ Role.on 挂载的粒度：单个对象 or scope 模式（systems/x/*）？
+2. ❷ holders 投影的刷新时机：user-system 变更即刷 or 每日对账？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

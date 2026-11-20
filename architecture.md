@@ -49,8 +49,8 @@ Q1 它是"意图/描述"还是"现实/数据"？
 
 Q2 它是本系统内的还是外部第三方的？
     本系统意图 ────────► ServiceDesc 下的文档（继续 Q3 定类型）
-    外部系统且常驻管理 ► WorkService + Connector
-    外部资源仅临时指路 ► Ref
+    外部系统且常驻管理 ► WorkService（六面体：连接/观测/数据/流程/运行状态/工具，A53）
+    外部资源仅临时指路 ► Ref（逻辑声明，A46）
 
 Q3 声明侧还是实现侧？
     "应该是什么" ──────► ServiceDesc/docs（Goal/Rule/...）
@@ -80,13 +80,13 @@ Q4 它是类型还是实例？
 | ServiceInstance | Pod | 含实现侧 Docs 与 MetricsInfo |
 | Agent | Pod 内执行体 + controller 意识 | Agent 是全局对象，Instance 引用而非内嵌（A3） |
 | WorkService | Node / External Provider | 声明"外部有能力的东西" |
-| ConnectorProvider/ConnectorOps | CSI driver + Attachment | v0.3 拆类型层/使用层；统一 get/plan/apply/verify/watch 契约 |
+| WorkService（六面体）/ConnectorOps | Node+exporter / 已装工具入口 | v0.13：Provider 并入 WorkService 连接面；层级判例 deploy_system→sybran 实例→jenkins/onedev/bugmgmt（A53） |
 | Ref | ObjectReference/ExternalName | 增加 TTL/owner，明确"临时"语义 |
 | Event | Event + watch | 只触发不修改，消费按 P3 |
 | Apply | kubectl apply / SSA | 同时是系统间调用的唯一形态 |
 | Loop | Controller/Reconciler | 一等对象，可配置触发源与升级策略 |
 | 权限系统 | Admission Webhook | 文档即权限，准入必选 |
-| Finalizer | Finalizer | 两阶段删除外部副作用 |
+| ~~Finalizer~~ | ~~Finalizer~~ | 已删除（A51）：清理=WorkService tools/flows 成对声明 |
 | Bind | RBAC Binding + scheduler binding | 人也是一等被绑定对象 |
 | Builtin | kube-system（仅"自带"类比） | v0.5：仅起源标记，无强制要求（A37） |
 

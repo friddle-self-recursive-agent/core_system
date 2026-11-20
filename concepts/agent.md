@@ -48,9 +48,8 @@ spec:
   providers:                            # Provider 绑定：API 账号/接口（concepts/provider.md）
     - provider/llm-main
   refs: [ref/jenkins-docs]
-  binds:                              # v0.4：Bind=role（人归用户系统，A34）
-    - bind/ci-approver-bind             # 持有者可处理本 agent（与 root 并行，A35）
-  escalate: root                        # 默认上溯 root agent；有 bind 则双通道同达
+  roles: [role/ci-approver]             # v0.13 A49：对象挂 role（Role.on 反向引用；此处为提示性冗余）
+  escalate: root                        # 默认上溯 root agent；挂了 role 则双通道同达（A35）
   docs权限系统:
     read:  [{scope: systems/developer-system/*}]
     onDemand: true                      # 按需加载：dsh 会话自实现（R2）

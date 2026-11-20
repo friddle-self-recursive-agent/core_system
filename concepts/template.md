@@ -48,14 +48,14 @@ spec:
     storage: {nas: "nfs://nas/services/onedev", oss: "oss://services/onedev"}
     ports: [6610]
     min: {cpu: "2", mem: 4Gi}
-  connectorOps: {ops: onedev-ci}          # v0.3：装完即挂的 ops（Provider 类型在 impl 里声明）
+  workservice: {template: onedev-six-facet}   # v0.13：产出 WorkService 六面体骨架（A53）；Ops 由使用方挂载
   install:                          # 确定性步骤（deploy-system 执行）
     - {action: pull-image,  from: images[0], verify: digest}
     - {action: render-config, template: config.tmpl, with: asks}
     - {action: start-service, check: {httpGet: "/api/server-info", timeout: 120s}}
   postInstall:
-    - {action: register-workservice, as: workservice/onedev}
-    - {action: inject-finalizer, name: core/wipe-workservice-side-effects}
+    - {action: register-workservice, as: workservice/onedev}   # 六面体骨架（A53）
+    # v0.13 A51：无 Finalizer——外部清理职责写入产出物的 tools/flows（成对清理 op，Lint）
   asks:                             # 安装时必须询问的项
     - {field: endpoint.host, question: "服务绑定主机名？"}
     - {field: auth.provider, kind: provider-ref, question: "管理员账号用哪个 Provider？（v0.8，A40）"}

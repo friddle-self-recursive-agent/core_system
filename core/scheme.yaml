@@ -1,5 +1,6 @@
-# core/scheme.yaml —— 首版 Scheme（类型注册 + 事件路由）
-# 概念依据：concepts/scheme.md；v0.3：Connector 拆 Ops/Provider，新增 Workflow/Provider/Notification（A25–A28）
+# core/scheme.yaml —— 完整类型注册表（v0.13，R12 补全）
+# 依据：concepts/ 全部概念文档 §3。标注：! = 必填；? = 可选；a|b = 枚举；已采纳的墓碑概念不注册。
+# 层级判例（A53）：System=deploy_system → 实例=sybran 开发实例 → WorkService=jenkins/onedev/bug-management
 apiVersion: core/v1
 kind: Scheme
 metadata:
@@ -7,57 +8,314 @@ metadata:
   scope: builtin
 spec:
   version: core/v1
-  kinds:                        # 对象类型（storage 路径按 instance 仓 layout.md）
-    - {kind: ServiceDesc,     builtin: true,  storage: systems/<name>/system.yaml}
-    - {kind: ServiceInstance, builtin: true,  storage: systems/<s>/instances/<name>/instance.yaml}
-    - {kind: Agent,           builtin: true,  storage: global/agents/<name>/agent.yaml}
-    - {kind: WorkService,     builtin: true,  storage: workservices/<name>/workservice.yaml}
-    - {kind: ConnectorProvider, builtin: true, storage: global/connectors/<name>/provider.yaml}  # v0.3 类型层
-    - {kind: Skill,          builtin: true,  storage: systems/<s>/instances/<i>/skills/<name>.yaml} # v0.6 工具使用缓存
-    - {kind: ConnectorOps,    builtin: true,  storage: global|systems/<s>/…/connector-ops/<name>.yaml}  # v0.3 使用层
-    - {kind: Workflow,        builtin: true,  storage: global|systems/<s>/workflows/<name>.yaml}  # v0.8：吸收 Loop（触发规则+态机+刹车+成本+回归，A41）
-    - {kind: Provider,        builtin: true,  storage: global/providers/<name>.yaml}            # v0.3 账号包
-    - {kind: Notification,    builtin: true,  storage: global/notifications/<name>.yaml}        # v0.3 通知
-    - {kind: User,           builtin: true,  storage: global/users/<name>.yaml}                       # v0.4 用户系统
-    - {kind: Ref,             builtin: true,  storage: global/refs/<name>.yaml}
-    - {kind: Bind,            builtin: true,  storage: global/binds/<name>.yaml}
-    - {kind: Role,  builtin: true, storage: global/roles/<name>.yaml}   # v0.9 权限系统（A44/A45）
-    - {kind: Group, builtin: true, storage: global/groups/<name>.yaml} # v0.9 权限系统    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}
-    - {kind: WorkServiceTemplate, builtin: true, storage: global/templates/<name>.yaml}
-  docTypes:                      # 展开定义见 doctypes/README.md
-    [Goal, Desc, Rule, WorkflowDesign, Metrics, DataDesign, DataMetrics, Auth,
-     DeployDesign, CodeDesign, ImplDoc, VerifyDoc, DriftReport, Runbook, Requirements,
-     PlanDoc, SessionLog]        # v0.3：Agent Plan/Session 记录（A29）
+
+  # ============================================================
+  # 一、对象类型（kinds，19 项）
+  # ============================================================
+  kinds:
+
+    - kind: Scheme                    # 自注册
+      builtin: true
+      storage: core/scheme.yaml
+      spec: {version: "!string", kinds: "[]KindReg", docTypes: "[]DocTypeReg",
+             eventTypes: "[]EventTypeReg", dispatch: "[]DispatchRule", runtime: "?RuntimeReg",
+             conventions: "?{status, cascade}"}
+
+    - kind: DocType                   # 文档类型注册（本系统的 CRD 机制）
+      builtin: true
+      storage: doctypes/<name>.yaml
+      spec:
+        appliesTo: "{kinds: []string, scopes: []string}!"
+        requiredSections: "[]string"          # ≤3（doctype.md 规则 2）
+        writers: "[]string"                   # 默认最窄
+        admission: "normal|strict"
+        mandatory: "required|default|optional"  # 注册级；Service 可加严（A37）
+
+    - kind: ServiceDesc
+      builtin: true
+      storage: systems/<name>/system.yaml
+      spec:
+        goalRef: "!ref"
+        descRef: "!ref"
+        docs: "?[]ref"
+        externalRefs: "?[]{capabilities: []string}"     # 按能力引用 WorkService
+        instances: "[]{name: string, agentRefs: []ref}"
+        builtinServices: "?[]ref"                        # 仅根 core_system
+      status: {}                                          # Desc 无 Status（P2）
+      relations: {owns: ServiceInstance, workflows: Workflow}
+
+    - kind: ServiceInstance
+      builtin: true
+      storage: systems/<s>/instances/<name>/instance.yaml
+      spec: {}                                            # v1 跟随 owner Desc
+      fields:
+        agentRefs: "[]ref"
+        docs: "{impl: ref, verify: ref}"
+        metricsInfo: "{store: ref, queries: map}"
+      status:
+        observedGeneration: "int"
+        phase: "InSync|Drifting|Remediating|Failed|Escalated"
+        conditions: "[]{type, status, reason, message, lastTransitionTime}"
+        drift: "{summary, reportRef}"
+      cascade: 删 systems/<s>/ 目录即级联（目录即对象，A51）
+
+    - kind: Agent
+      builtin: true
+      storage: global/agents/<name>/agent.yaml
+      spec:
+        runtime: "?string (=dsh 外部运行时)"
+        autoLevel: "?ask|auto|all"                # A30；默认见 runtime.autoLevels
+        connectorOps: "[]{ops: ref, as: string}"  # A25：默认挂 Ops
+        providers: "?[]ref"                       # A27
+        refs: "?[]ref"
+        roles: "?[]ref"                           # A49：对象挂 role（Role.on 反向）
+        docsPolicy: "{read: []scopePattern, onDemand: bool}"
+        subAgents: "[]{name, spawn: machine-instance}"   # A31 机器级进程
+        retry: "{maxAttempts, backoff, escalateTo: root}" # A35
+      status:
+        phase: "Idle|Analyzing|Planning|AwaitingApproval|Executing|Verifying|Reporting|Failed"
+        workflow: "?string"
+        currentSession: "{id, startedAt, docsLoaded}"
+        conditions: "[]Condition"
+
+    - kind: WorkService              # 六面体（A53；层级判例的外部系统侧）
+      builtin: true
+      storage: workservices/<name>/workservice.yaml
+      spec:
+        category: "developer|storage|tool|business|…"   # tool 型=本机工具（dsh/http）
+        connector:                                  # 连接面（原 ConnectorProvider 并入）
+          types: "[]string"
+          impl: "{kind: tool|image|source, ref: ref}"
+          download: "!string"                       # image:// git:// pkg://
+          scheme: "{ops: []string, params: map}"
+          usage: "?string"
+          llmPrompt: "!string"
+          nameResolution: "无前缀=默认org | 带前缀=github.com/<org>/<name>"   # A38
+        observation:                                # 观测面（意图；数据在 MetricsInfo）
+          metrics: "[]{name, query}"
+          logs: "?{ref: ref}"
+        data:                                       # 数据面（Ref 解析权威之一）
+          entities: "[]{name, store: ref, access}"
+        flows:                                      # 流程面
+          "[]{name, stages: []string}"
+        runtime:                                    # 运行状态观测面
+          probes: "[]{httpGet|tcp|version, period}"
+        tools:                                      # 工具与调用描述面（Ops 的描述来源）
+          "[]{op, params, idempotent, undo: full|partial|none, cleanup: ?op}"  # cleanup 成对（A51）
+      status: {conditions: "[]Condition"}           # runtime 面探针回写
+
+    - kind: ConnectorOps             # 工具调用面（v0.13 收窄：描述全在 WorkService）
+      builtin: true
+      storage: "global|systems/<s>/…/connector-ops/<name>.yaml"
+      spec:
+        workservice: "!ref"                          # A53：指向 WorkService
+        workflow: "?string (=default-task)"
+        config: "?map"                               # 逻辑声明（endpointRef 等，A46）
+        auth: "?{provider: ref}"
+        ops: "[]string"                              # ⊆ WorkService.tools（Lint）
+
+    - kind: Workflow                 # v0.8 吸收 Loop（A41）
+      builtin: true
+      storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"
+      spec:
+        triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
+        ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
+        phases: "[]Phase"
+        onFailed: "{backoff, maxAttempts, escalate: {to: root, notify: role-holders}}"
+        brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认
+        cost: "{budget: {minutes, tokens, mutations}, record: budget_log}"
+        regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
+      builtinSet: [core-loop, default-task, simple-shot, watch-only]
+
+    - kind: Provider                 # 账号包（A27/A40）
+      builtin: true
+      storage: global/providers/<name>.yaml
+      spec:
+        kind: "llm|im|email|cloud|generic"
+        auth: "{scheme, secret: {source: 'vault:|env:|keychain:', rotation}}"   # 明文禁
+        config: "?map"
+        connector: "?ref"                            # 可为空
+
+    - kind: Notification             # 一 Scheme 一 Instance（A28）
+      builtin: true
+      storage: global/notifications/<name>.yaml
+      spec:
+        channel: "{kind: im|email|webhook, provider: ref}"
+        on: "{events: []string, levels: []string}"
+        route: "{to: role-holders, dedup: {window}}"   # A49：查 Role.on 持有者
+        template: "?ref"
+      status: {delivered: "{last24h, failed}"}
+
+    - kind: User                     # 用户系统 builtin（A34）
+      builtin: true
+      storage: global/users/<name>.yaml
+      spec:
+        display: "!string"
+        contact: "{im: {provider, userId}, email}"
+        roles: "[]ref"
+        groups: "[]ref"
+      status: {lastSeen: timestamp}
+
+    - kind: Group                    # 组只绑 role（A45）
+      builtin: true
+      storage: global/groups/<name>.yaml
+      spec: {roles: "[]ref"}                         # 禁权限字段
+
+    - kind: Role                     # 权限 + 对象挂载（A45 + A49 并入 Bind）
+      builtin: true
+      storage: global/roles/<name>.yaml
+      spec:
+        on: "?[]ref"                                 # A49：对象↔role 挂载（原 Bind）
+        permissions: "[]{scope: 'global|systems/<n>/*', actions: [read|write|approve|call|*]}"
+      status: {holders: "[]User"}                    # user-system 投影
+      builtinSet: [global/admin]                     # 全权限不可删
+
+    - kind: Ref                      # 声明式逻辑引用（A46）
+      builtin: true
+      storage: "global/refs/<name>.yaml | 系统 refs/"
+      spec:
+        resolve: "{system: ref!, type: code|doc|url|resource|service, params: map}"
+        purpose: "?string"
+        ttl: "?duration"
+      status: {lastResolution: "{at, by, value, cacheTtl}"}
+      rules: [spec 禁物理地址, 解析链 ≤2, owner 必挂]
+
+    - kind: TaskScheme               # 四层执行第三层（A19）
+      builtin: true
+      storage: systems/<s>/schemes/<name>.yaml
+      spec:
+        trigger: "{events: []string, match: map}"
+        steps: "[]{id, connector: opsRef, op, args}"
+        params: "[]string"
+        onFailure: "{retry, backoff, then: escalate}"
+        budget: "!{minutes|tokens|mutations}"
+
+    - kind: WorkServiceTemplate      # 安装模板 builtin Scheme（A20/A53）
+      builtin: true
+      storage: global/templates/<name>.yaml
+      spec:
+        provides: "{capabilities: []string, category}"
+        resources: "{images: [{name, source, digest!}], storage, ports, min}"
+        install: "[]{action}"                       # digest 必填；幂等；三段 undo
+        postInstall: "[{action: register-workservice}]"   # 产出六面体骨架（A53）
+        asks: "[]{field, question}"
+
+    - kind: Skill                    # 工具使用缓存（A38）
+      builtin: true
+      storage: systems/<s>/instances/<i>/skills/<name>.yaml
+      spec:
+        sourceOps: "!ref"
+        when: "?{task}"
+        prompt: "!string"
+        examples: "[]{op, args, outcome}"           # 脱敏
+        origin: "{sessionRef, cachedAt}"
+        cachePolicy: "{ttl: 30d, invalidateOn: {providerVersionChange: true}}"
+
+    # 不注册（按裁决）：
+    #   Event —— 短生命周期数据非文档对象（A42），队列由 dsh core plugin 实现
+    #   ConnectorProvider —— 并入 WorkService.connector（A53）
+    #   Bind —— 并入 Role.on（A49）；Owner/Finalizer —— 删除（A51，级联=目录即对象）
+    #   Status —— 降级为字段约定（A52，见 conventions）
+
+  # ============================================================
+  # 二、文档类型（docTypes 完整注册）
+  # ============================================================
+  docTypes:
+    - {name: Goal,           mandatory: required, sections: [intent, acceptance],          writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
+    - {name: Desc,           mandatory: required, sections: [overview, boundaries],        writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
+    - {name: Rule,           mandatory: default,  sections: [rules],                       writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
+    - {name: WorkflowDesign, mandatory: optional, sections: [flows],                       writers: [human],              appliesTo: ServiceDesc, admission: normal}
+    - {name: Metrics,        mandatory: default,  sections: [indicators, thresholds],      writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
+    - {name: DataDesign,     mandatory: optional, sections: [entities, flows],             writers: [human],              appliesTo: ServiceDesc, admission: normal}
+    - {name: DataMetrics,    mandatory: optional, sections: [flows, slo],                  writers: [human],              appliesTo: ServiceDesc, admission: normal}
+    - {name: Auth,           mandatory: default,  sections: [subjects, grants],            writers: [human],              appliesTo: ServiceDesc, admission: strict}
+    - {name: DeployDesign,   mandatory: optional, sections: [envs, rollout],               writers: [human],              appliesTo: ServiceDesc, admission: normal}
+    - {name: CodeDesign,     mandatory: optional, sections: [modules],                     writers: [human],              appliesTo: ServiceDesc, admission: normal}
+    - {name: ImplDoc,        mandatory: required, sections: [how, mapping],                writers: [agent],              appliesTo: ServiceInstance, admission: normal}
+    - {name: VerifyDoc,      mandatory: required, sections: [guarantees, probes],          writers: [agent, "role:owner"], appliesTo: ServiceInstance, admission: normal}
+    - {name: DriftReport,    mandatory: auto,     sections: [drifts, actions],             writers: [workflow-engine],    appliesTo: ServiceInstance, admission: normal}
+    - {name: Runbook,        mandatory: optional, sections: [],                            writers: [human],              appliesTo: ServiceInstance, admission: normal}
+    - {name: Requirements,   mandatory: required, sections: [archive],                     writers: [human],              appliesTo: core_system 存档, admission: strict}
+    - {name: PlanDoc,        mandatory: required, sections: [intent, steps, budget],       writers: [agent],              appliesTo: ServiceInstance, admission: normal}   # A29
+    - {name: SessionLog,     mandatory: required, sections: [phases, docsLoaded, outcome], writers: [agent],              appliesTo: ServiceInstance, admission: normal}   # A29
+    # mandatory=注册级；Service 可加严（A37）；Builtin 无特殊档
+
+  # ============================================================
+  # 三、事件类型（A42 Level / A47 按类型+owner 路由）
+  # ============================================================
   eventTypes:
-    - {type: ExternalChanged, source: connector, route: owner-workflow}
-    - {type: MetricThreshold, source: metrics,   route: owner-workflow}
-    - {type: DocApplied,      source: core,      route: owner-workflow}
-    - {type: ApprovalNeeded,  source: policy,    route: bind-human+notification}   # v0.3：接 Notification
-    - {type: HeartbeatLost,   source: core,      route: parent-agent+notification}
-    - {type: InstallRequested, source: human,    route: deploy-system-loop}
-    - {type: TemplateFound,   source: connector, route: deploy-system-loop}
-    - {type: SessionClosed,   source: agent,     route: instance-docs}             # v0.3：Session 记录触发（A29）
-  eventLevels: [debug, info, warn, error, fatal]   # Log 式等级（A42）
-  dispatch:                      # "dsh"：事件如何找到处理者（缺省路由；队列由 dsh core plugin 实现）
-    - {on: "*",                  for: scope:builtin/*,  dispatch: workflows/builtin-root}
-    - {on: ExternalChanged,      for: selector:*,       dispatch: owner-loop}
-    - {on: InstallRequested,     for: any,              dispatch: workflows/deploy-system-loop}
-    - {on: ApprovalNeeded|Escalate, for: any,           dispatch: notification/*}  # 通知路由
-    - {on: "*",                  for: any,              dispatch: deadletter}
-  runtime:                       # v0.3 运行时基座（R1.2 + R2）
-    baseAgent: dsh               # 外部运行时（deepseek 插件机制）；core 即以 dsh plugin 实现（A39/A43）；系统本身无 plugin 概念
+    - {type: ExternalChanged,  source: connector, defaultLevel: info,  dedup: "<obj>:<change>:hash", route: owner-workflow}
+    - {type: MetricThreshold,  source: metrics,   defaultLevel: warn,  dedup: "<metric>:<window>",   route: owner-workflow}
+    - {type: DocApplied,       source: core,      defaultLevel: info,  dedup: "no-op 不发(A32)",     route: owner-workflow}
+    - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<loop>:<tick>",       route: observation-bus}
+    - {type: ApprovalNeeded,   source: permission,defaultLevel: warn,  dedup: "<rule>:<obj>",        route: notification/*}
+    - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<loop>:<reason>",     route: root+notification/*}
+    - {type: HeartbeatLost,    source: core,      defaultLevel: error, dedup: "<agent>",             route: parent-agent+notification/*}
+    - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-loop}
+    - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-loop}
+    - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}   # A29
+
+  # ============================================================
+  # 四、事件路由（穷举缺省 + 死信兜底）
+  # ============================================================
+  dispatch:
+    - {on: ExternalChanged,  for: "owner:*",        dispatch: owner-workflow}
+    - {on: MetricThreshold,  for: "owner:*",        dispatch: owner-workflow}
+    - {on: DocApplied,       for: "owner:*",        dispatch: owner-workflow}
+    - {on: DriftFixed,       for: "any",            dispatch: observation-bus}
+    - {on: ApprovalNeeded,   for: "any",            dispatch: notification/*}
+    - {on: Escalate,         for: "any",            dispatch: root-agent, cc: notification/*}
+    - {on: HeartbeatLost,    for: "owner:agent",    dispatch: parent-agent, cc: notification/*}
+    - {on: InstallRequested, for: "any",            dispatch: workflows/deploy-system-loop}
+    - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-loop}
+    - {on: SessionClosed,    for: "owner:instance", dispatch: instance-docs}
+    - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
+    - {on: "*",              for: "any",            dispatch: deadletter}    # 死信必须可见
+
+  # ============================================================
+  # 五、运行时
+  # ============================================================
+  runtime:
+    baseAgent: dsh                  # 外部运行时（deepseek 插件机制）；core 即 dsh plugin（A39/A43）
     executionLayers: [intent, agent, scheme, code]
-    defaultWorkflow: default-task          # builtin 集合：core-loop/default-task/simple-shot/watch-only（A41）
-    autoLevels:                           # AUTOLEVEL 默认（A30）
-      rootAgent: ask
-      serviceAgent: auto
-    permissionSystem:                   # v0.9 权限系统（A45）
-      defaultAdminRole: global/admin      # 默认全权限，不可删
-      binding: [user->role, user->group->role]   # 只绑 role，不直接绑权限
-      scopes: [global, system]            # global 权限 / system 开头各自权限域
-      agentJudgement: [agent, role, parent-agent] # 判定方灵活不限死；跨系统由被请求方判定
-    escalation: root                     # v0.4：默认上溯 root agent；bind=权限插入，双通道（A35）
-    providerResolution:                  # v0.6：ConnectorProvider 命名解析（A38）
-      defaultOrg: friddle-self-recursive-agent   # 无前缀名 ⇒ 默认 org（代码与安装在该 org 生成）
-      prefixed: github                   # 带前缀名 ⇒ github.com/<org>/<name> 找完整配置
-    userSystem: builtin                  # v0.4：默认本地用户表；未来评估 authentik 接入（A34）
+    workflows: {default: default-task, builtin: [core-loop, default-task, simple-shot, watch-only]}
+    autoLevels: {rootAgent: ask, serviceAgent: auto, all: "需显式授权+权限系统放行"}
+    escalation: root                # A35：默认上溯；Role.on 挂载=权限插入双通道（A49）
+    permissionSystem:
+      defaultAdminRole: global/admin
+      binding: [user->role, user->group->role]      # 只绑 role（A45）
+      scopes: [global, system]
+      agentJudgement: [agent, role, parent-agent]   # 灵活；跨系统 B 侧裁判
+      hardRules: [deny delete agent/builtinRoot, deny disable scheme, deny delete role/global/admin]
+    providerResolution: {defaultOrg: friddle-self-recursive-agent, prefixed: "github.com/<org>/<name>"}
+    userSystem: builtin             # A34
+    events:
+      levels: [debug, info, warn, error, fatal]     # A42
+      debug: 只进内存队列不落盘
+      fatal: 必接 Notification
+      ingestDefaults: {dedupWindow: 5m, groupMax: 100}
+    sessions: {record: [PlanDoc, SessionLog]}       # A29
+    skills: {cachePolicy: {ttl: 30d, invalidateOnProviderVersionChange: true}, promote: "高频→Global 走人审"}
+    storage:
+      docs: 本地文件夹 git（权威；Repository 接口可换后端）
+      opsLog: SQLite WAL（六表；git=内容版本，DB=操作流水；每日对账）
+      refResolution: {cacheTtl: 10m, 失败降级旧缓存+Event}
+
+  # ============================================================
+  # 六、字段约定（conventions；A51/A52 后 Concepts 降级至此）
+  # ============================================================
+  conventions:
+    status:                          # A52：Status 概念降级为约定
+      observedGeneration: int        # 收敛到 Spec 第几代
+      phase: string                  # 对象级粗状态
+      conditions: "[]{type, status: True|False|Unknown, reason(枚举注册), message, lastTransitionTime}"
+      drift: "{summary, reportRef}"  # Instance 必有
+      writers: {status: workflow-engine(fieldManager), spec: human/agent-by-role}   # P2/P6
+    cascade:                         # A51：Owner/Finalizer 降级为约定
+      rule: 目录即对象——删目录=级联删除其下一切
+      crossDir: 跨目录引用走 Ref（A46）或跨系统提案
+      externalCleanup: WorkService.tools 成对 cleanup op（Lint 强制；无系统级 Finalizer）
+    metadata:
+      reserved: [metadata, spec, status]
+      labels: 自由注释性元数据，无选择语义（A47）
+      frontmatter: name/docType/scope/labels/roles

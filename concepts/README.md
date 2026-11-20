@@ -11,24 +11,24 @@
 | [agent.md](agent.md) | Agent | 执行与收敛单元 | Pod/Job + controller |
 | [servicedesc.md](servicedesc.md) | ServiceDesc | 系统声明=一组文档 | Deployment Spec |
 | [serviceinstance.md](serviceinstance.md) | ServiceInstance | 声明的现实化 | Pod + status |
-| [workservice.md](workservice.md) | WorkService | 外部真实系统 | Node/External Provider |
-| [connector.md](connector.md) | ConnectorOps + ConnectorProvider | 外部系统幂等驱动（v0.3 拆类型层/使用层） | CSI driver + Attachment |
+| [workservice.md](workservice.md) | WorkService | 外部系统完整管理描述（六面体） | Node+exporter |
+| [connector.md](connector.md) | ConnectorOps | 工具调用面（v0.13：Provider 并入 WorkService 连接面，A53） | 已装工具入口 |
 | [ref.md](ref.md) | Ref | 第三方临时指针 | ObjectReference/ExternalName |
 | [builtin.md](builtin.md) | Builtin | 起源标记（core_system 自带开发，v0.5 无强制语义） | kube-system（仅类比自带） |
 | [event.md](event.md) | Event | 变化通知，只触发不修改 | Event/watch |
 | [apply.md](apply.md) | — | 唯一写路径 = 系统间调用 | kubectl apply/SSA |
-| [bind.md](bind.md) | Bind | 人↔Agent↔System 绑定 | RBAC Binding |
+| ~~bind.md~~ | ~~Bind~~ | **已并入 Role.on（A49）** | — |
 
 ## 补充概念（原稿没有，按 K8s 边界补齐）
 
 | 文档 | Kind | 补它是因为 |
 |---|---|---|
 | [loop.md](loop.md) | ~~Loop~~ | **已并入 Workflow（A41）**：Loop=带触发规则的 Workflow 实例 |
-| [status.md](status.md) | — | 没有 Spec/Status 分离就没有声明式 |
+| ~~status.md~~ | — | **已降级为字段约定（A52）**：conventions.status（scheme.yaml） |
 | [scope.md](scope.md) | — | "属于哪个 System 还是 Global" 需要正式的名字解析规则 |
 | ~~selector.md~~ | ~~Selector~~ | **已删除（A47）**：路由按类型+owner/scope 直达；labels 降为自由注释 |
-| [owner.md](owner.md) | — | Instance/SubAgent/Ref 的级联归属与 GC |
-| [finalizer.md](finalizer.md) | — | 删除外部副作用必须两阶段（A7） |
+| ~~owner.md~~ | — | **已删除（A51）**：级联=目录即对象；责任上溯=root（A35） |
+| ~~finalizer.md~~ | — | **已删除（A51）**：清理=WorkService tools 成对 cleanup op |
 | [doctype.md](doctype.md) | — | "文档类型"本身要能注册扩展（=CRD） |
 | [policy.md](policy.md) | — | 文档即权限 ⇒ 必须有准入（A9） |
 | ~~credential.md~~ | ~~Credential~~ | **已删除（A40）**：钥匙内化为 Provider.auth.secret |
@@ -66,6 +66,17 @@
 |---|---|---|
 | [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
 | [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
+
+## v0.13 变更（R12 裁决执行）
+
+| 文档 | 变更 | 说明 |
+|---|---|---|
+| [workservice.md](workservice.md)（重写） | 扩充为六面体 | 连接（含 ConnectorProvider）/观测/数据/流程/运行状态/工具调用描述；层级判例：System=deploy_system→实例=sybran 开发实例→WorkService=jenkins/onedev/bug-management（A53；A48 空壳论驳回） |
+| [connector.md](connector.md)（收窄） | ConnectorOps 专档 | Provider 并入 WorkService.connector；Ops.workservice 指向六面体 |
+| ~~bind.md~~ | 并入 Role | Role.spec.on=对象挂载；holders 由 user-system 投影（A49 采纳） |
+| ~~owner.md~~ / ~~finalizer.md~~ | 删除 | 级联=目录即对象；外部清理=WorkService tools 成对 cleanup op（A51 采纳） |
+| ~~status.md~~ | 降级为约定 | 并入 scheme.yaml conventions.status（A52 采纳） |
+| revision.md | 保持 + 补充说明 | A50 待裁决：Revision=版本管理没错，提案只是"独立概念还是 Apply 的一章"之争，机制无争议 |
 
 ## v0.11 变更（R10 裁决）
 

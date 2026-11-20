@@ -1,84 +1,111 @@
-# WorkService — 外部真实系统
+# WorkService — 外部系统的完整管理描述（六面体）
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | Node（能力提供方）/ External Provider（如 ExternalDNS 面对的云厂商） |
-| 形态 | workservices/<name>/ 目录：Desc + Connector 引用 |
+| K8s 对照 | Node + 其上的 exporter/工具面（一个对象管全一个外部节点） |
+| 形态 | workservices/<name>/workservice.yaml（六面体 spec） |
 | 作用域 | Global |
-| 状态 | 设计稿 v1 |
+| 状态 | 设计稿 v0.13（R12：A48 驳回"空壳论"，反向扩充为六面体；ConnectorProvider 并入连接面，A53） |
 
-## 1. 定义
+## 0. 层级判例（R12 原文，全系统通用）
 
-WorkService 是被纳入管理面的**外部第三方真实系统**：gitlab、jenkins、prometheus、公司内部已有的任何系统。它们不是本控制面创建的，但本控制面要对它们声明期望、观测现实、施加变更——全部经由 Connector（A11 边界）。
+```
+System   = deploy_system（ServiceDesc）
+实例     = sybran 开发实例（ServiceInstance）
+WorkService = jenkins / onedev / bug-management 系统
+```
 
-例：`developer-system`（ServiceDesc）依赖 `gitlab`、`jenkins`（WorkService）。
+即：deploy_system 声明意图 → sybran 实例落地 → 依赖 jenkins/onedev/bug-management 三个 WorkService。WorkService 不限于 devops——**任何被纳管的外部系统**（含 bug-management 这类业务系统）都是。
+
+## 1. 定义（六个面）
+
+WorkService 是对一个外部系统的**完整管理描述**，一个对象六个面：
+
+| 面 | 内容 | 吸收自 |
+|---|---|---|
+| **connector 连接** | 类型标注 types、实现绑定 impl（tool/image/source+Ref）、download、使用 schema、usage | **原 ConnectorProvider 整体并入（A53）** |
+| **observation 观测** | 这个服务怎么被观测：指标点、日志位、告警面（意图描述，数据本体在 MetricsInfo） | 新增 |
+| **data 数据** | 它管理什么数据、数据在哪、怎么取（供 Ref 解析与 DataMetrics 用） | 新增 |
+| **flows 流程** | 它的业务流程描述（jenkins 的 pipeline 阶段、bug 系统的状态机…） | 新增 |
+| **runtime 运行状态观测** | 健康/版本/可达的探针定义（→ status conditions） | 原 status 职责正式化 |
+| **tools 工具与调用描述** | 提供哪些工具、怎么调用：ops 集、参数、llmPrompt 注入说明 | 原 ConnectorOps 的描述层 |
 
 ## 2. 边界
 
-**是**：外部系统的"在册声明"：它是什么（Desc）、用什么驱动它（Connector 引用）、它在哪（Endpoint/Ref）、健康如何（Status）。
+**是**：外部系统的六面体管理描述。独立工具（dsh/http/gitfs）以 `category: tool` 的 WorkService 注册——本机工具也是一种"服务"。
 
 **不是**：
-- 不是本系统的实例（那是 ServiceInstance，Q2 裁决）；
-- 不是 Connector（Connector 是驱动代码，WorkService 是被驱动者的声明；一个 gitlab WorkService 引用一个 gitlab-driver Connector）；
-- 不被 Loop 直接改配置：一切变更走 Connector 的幂等 apply（P4）；
-- 不吞并临时引用：只在册"常驻管理"的外部系统，临时指路用 Ref。
+- 不是 ServiceInstance（判例已定：Instance 是本系统 Desc 的落地；WorkService 是外部系统本体描述）；
+- 不是只有连接（v0.12 复审的"空壳"判断错误——它应该更大而不是更小，A48 驳回）；
+- 不存数据本体（data 面只描述在哪/怎么取）；
+- 不做业务判断（判断仍属 Agent）。
 
 ## 3. 对象结构
 
 ```yaml
-# workservices/gitlab/workservice.yaml
 apiVersion: core/v1
 kind: WorkService
 metadata:
-  name: gitlab
+  name: onedev
   scope: global
-  labels: {category: scm}
-  finalizers: [core/revoke-credentials]
+  labels: {category: developer}        # tool 型：category: tool
 spec:
-  descRef: desc.md                 # 这个外部系统是什么、提供什么能力
-  capabilities: [scm, ci-trigger, mr-review]   # 能力标签，供 Desc 侧按能力引用
-  connectorOps:                                 # v0.3：引用 ConnectorOps（使用层）
-    - ops/onedev-ci
-  endpoint: {ref: ref/scm-endpoint}            # v0.10：Ref=逻辑声明，真实地址由 owning system 解析（A46）
-  auth: {provider: provider/gitlab-robot}     # v0.8：凭证走 Provider（A40）
-status:                            # Connector watch + 健康探测回写
-  observedGeneration: 4
-  conditions:
-    - {type: Reachable, status: "True"}
-    - {type: VersionSupported, status: "True", reason: "17.x in [16,18)"}
+  connector:                            # 连接面（原 ConnectorProvider，A53）
+    types: [scm, ci]
+    impl: {kind: source, ref: ref/workservice-repo}
+    download: "git://…/connectors/onedev"
+    scheme: {ops: [checkout, build-status, gate-status, verify, watch]}
+    usage: "REST+git 双通道…"
+    llmPrompt: "你可用 onedev 工具…"
+  observation:                          # 观测面
+    metrics: [{name: pickup_p95, query: "..."}, {name: runners, query: "..."}]
+    logs: {ref: ref/onedev-logs}
+  data:                                 # 数据面
+    entities: [{name: project, store: ref/onedev-db, access: via-connector}]
+  flows:                                # 流程面
+    - {name: build-flow, stages: [checkout, build, gate, report]}
+  runtime:                              # 运行状态观测面
+    probes: [{httpGet: /api/server-info, period: 1m}, {version: "16..18"}]
+  tools:                                # 工具与调用描述面
+    - {op: checkout, params: {ref: string}, idempotent: true}
+    - {op: build-status, params: {commit, result}, idempotent: true}
+status:
+  conditions: [Reachable, VersionSupported]   # runtime 面探针回写
 ```
 
 ## 4. 生命周期
 
-在册（Apply）→ Connector 持续 watch（外部变化→Event）→ 版本漂移/不可达→Event→相关 Loop 处理 → 注销（Finalizer：吊销凭证、解除 Webhook 注册等外部副作用）。
+在册（Apply）→ runtime 面探针持续回写 status → 观测/流程/工具描述变更=意图变更（走 Apply，触发相关 Workflow 对账）→ 注销（**副作用清理是它的 tools/flows 职责之一**：A51 后无系统级 Finalizer，删一个 WorkService 前由其工具清单里声明的清理流程执行）。
 
 ## 5. 与其他概念的关系
 
-- 被 ServiceDesc 的 workserviceRefs 按能力引用（Desc 不绑实现，引用时按 capabilities 匹配）。
-- ConnectorOps 是它的驱动（类型由 ConnectorProvider 提供）；Ref 指它的地址；Provider 是账号与钥匙包（v0.8 起钥匙内化于 Provider，A40）。
-- Prometheus 作为 WorkService 在册后，"监控实现"就有了归宿（A1 的下半句）。
+- **ConnectorOps**（concepts/connector.md）：挂载使用面——其 provider 字段 v0.13 起指向 **WorkService**（连接面）；工具描述来自 tools 面。
+- Ref 解析（A46）：data 面是"code/资源在哪"的权威来源之一（如 onedev 源码地址=developer_system+onedev WorkService data 面）。
+- Observation/Metrics：观测面的 query 定义 → MetricsInfo 采集。
+- 层级判例成为 architecture 边界树 Q2 的标准答案。
 
 ## 6. 设计规则
 
-1. 能力声明（capabilities）是 Desc 侧引用的依据：换 gitlab→gitea 只动 WorkService+ConnectorOps/Provider，不动 Desc（"能力声明，不绑实现"的兑现处）。
-2. WorkService 的 Status 只描述"它自身健康/版本/可达"，不描述"我的系统好不好"（后者在 Instance）。
-3. 外部系统的任何写操作必须可回滚：Connector 契约含 undo 语义（见 connector.md）。
-4. 一个外部系统一个 WorkService 对象；同系统多环境=多对象（gitlab-prod / gitlab-test）。
+1. 六面皆可为空（tool 型常只有 connector+tools）；但 connector.types 与 tools 至少一面非空（否则无从纳管）。
+2. llmPrompt/download 在连接面必填（沿 A38 规则）。
+3. 观测/数据/流程是**意图描述**——把抓取数据写进来即违反 Q1（数据进 MetricsInfo）。
+4. 命名解析（无前缀=默认 org）规则随连接面迁入，作用于 impl/download 引用。
+5. 删除清理职责显式写在 tools/flows 里（代替 Finalizer，A51）：有外部创建动作的 tools 必须成对声明清理 op（Lint）。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 适配面大，每个外部系统都要写 Connector | ⚠️ 中 | 工程量随系统数线性涨 | Connector 模板库 + 常见类型官方维护（gitlab/jenkins/k8s/prometheus/ssh(dsh) 先行） |
-| 外部系统不可控变更（升级/改 API） | ⚠️ 中 | 现实先变，文档后知 | Connector watch 差异→Event→Loop 对账（这正是本系统的主场：drift 是常态输入而非异常） |
-| 幂等/undo 在某些外部系统做不到 | ⚠️ 中 | 如某些 API 无 dry-run | Connector 内部用"读-比-写-验证"模拟；真做不到的类型标注 `undoUnsupported`，权限系统 强制人审 |
+| 六面体写成大部头 | ⚠️ 中 | 每个外部系统文档变厚 | 面可空+模板生成（install 模板直接产出六面体骨架）；大部头恰恰是"纳管完整"的证据 |
+| tool 型 WorkService 泛滥 | ⚠️ 低 | 什么小工具都注册 | category: tool 走轻量模板（两面即可） |
+| 删除清理不写导致残留 | ⚠️ 中 | 无 Finalizer 后靠显式声明 | 规则 5 强制成对声明+Lint |
 
-**结论：可行，且是本设计最先能落地的部分（不依赖 Agent 全自治）。**
+**结论：可行。六面体让 WorkService 成为"外部系统的一切皆文档"的落点，与 ServiceDesc（内部系统的一切皆文档）对偶。**
 
 ## 8. 原始设计标注
 
-- A11：与 ServiceInstance 的边界=Q2（外部第三方 vs 本系统实例化）。
-- A1：Prometheus 从文档类型降为此处的 WorkService。
+- A53（R12）：WorkService 扩充为六面体（连接/观测/数据/流程/运行状态/工具调用描述）；ConnectorProvider 并入连接面；层级判例：System=deploy_system、实例=sybran 开发实例、WorkService=jenkins/onedev/bug-management。
+- A11/A24 沿用；A48"空壳论"驳回。
 
 ## 9. 待决问题
 

@@ -14,6 +14,7 @@
 1. **权限域按 scope**：global 有 global 权限（管 global 起头的对象与全局动作）；**system 开头的有 system 权限**（各系统域内对象由该系统权限管）。对象落在哪个 scope，就受哪层权限管（scope.md 联动）。
 2. **默认 `global/admin` 拥有所有权限**（内置 role，不可删、不可降权——锁死管理的最后一道门）。
 3. **一切只绑 role**：权限只授予 role；**用户绑 role**（user→role）、**用户绑 group**、**group 绑 role**（user→group→role）。**用户和 group 都不直接绑权限**——没有例外通道。
+3b. **对象挂 role**（A49，原 Bind 并入）：`Role.spec.on: [对象]`——哪个 Agent/系统挂了这个 role；持有者可处理该对象（与 root 双通道，A35 语义不变）。
 4. **Agent 权限判断不限死**：Agent 的动作权限=其绑定 role 的并集（ConnectorOps/Ref/Provider/文档域）；**由谁判定是灵活的**——可以是 agent 自治判定（auto 级）、role 权限表、或**上级 agent**（父级审批/裁剪）。**跨系统**：系统 A 的 agent 需要系统 B 的 agent 协助或询问时，**由 B 侧判定**（B 的 agent/role/上级 agent 任一合法判定方）——被请求方持有裁判权，A 侧不能自判通过。
 
 ## 2. 边界
@@ -33,6 +34,7 @@ apiVersion: core/v1
 kind: Role
 metadata: {name: devtools-admin, scope: global}
 spec:
+  on: [agent/ci-repair-agent]       # A49：对象挂载（原 Bind.role/on 并入）
   permissions:
     - {scope: "systems/developer-system/*", actions: [read, write, approve]}
     - {scope: "ops/onedev-ci", actions: [call]}
@@ -67,7 +69,7 @@ spec:
 ## 5. 与其他概念的关系
 
 - User（用户系统）：用户↔role/group 的持有面。
-- Bind：Bind 是"对象↔role"（谁可插手某对象）；权限系统是"role↔权限"（role 能做什么）。两层拼起来完整。
+- ~~Bind~~（A49 已并入）：Role.on 承担"对象↔role"挂载；Role.status.holders 由 user-system 投影回写。
 - Scope：权限域划分依据（global/system）。
 - Workflow §7 跨权限三出路中的"审批提升"，人审档位由本系统配置。
 - Apply：写路径的准入环节调用本系统（权限+人审）；结构校验另走 Scheme。
