@@ -68,6 +68,11 @@
 | A45 | R8 权限系统设计 | 新的权限骨架 | scope 权限域：global 权限 + system 开头各自 system 权限；默认 global/admin 全权限；**一切只绑 role**（用户绑 role / 用户绑 group、group 绑 role；不直接绑权限）；agent 权限判断不限死（agent/role/上级 agent）；跨系统 A 请求 B 时由 B 侧判定 | concepts/permission.md | ✅ | 已落地 |
 | A46 | R9 Ref 重定义 | "Ref 更多是描述。申明。运行时候去相应系统找实例" | Ref=声明式逻辑引用：spec 只写 resolve{system,type,params}（如 type=code、项目名=onedev）；真实地址由被指向系统管理并返回（onedev 源码地址=developer_system 管）；spec 禁止出现物理地址；原"URL 指针+probe"废弃（probe 归 resolver system）；以此解耦各系统 | concepts/ref.md、connector/workservice 联动 | ✅ | 已落地 |
 | A47 | R10 Selector 删除 | "Selector 在新系统中没啥用" | 概念删除：事件路由按 类型+involved/owner+scope 直达（dispatch 表）；能力匹配=WorkService.capabilities 字段；观测聚合按 Kind/scope；labels 降为自由注释性元数据 | concepts/selector.md（墓碑）、event/workflow/scheme 联动 | ✅ | 已落地 |
+| A48 | R11 复审提案 | WorkService 空壳化（类型/驱动/地址/账号分别归 ConnectorProvider/Ops/Ref/Provider） | 提案：并入外部 Instance（origin: external）或降级为 Ref 解析缓存；register-workservice 相应改名 | concept-review.md §二① | ⚠️ 提案 | **待裁决** |
+| A49 | R11 复审提案 | Bind 与 Role 重复（A34 后只剩对象↔role 二元关系表） | 提案：并入 Role（Role.spec.on）；Notification 路由改查 Role 持有者 | concept-review.md §二② | ⚠️ 提案 | **待裁决** |
+| A50 | R11 复审提案 | Revision 全是 Apply 的实现细节（版本管理=Apply 定义的一部分） | 提案：并入 Apply"版本与审计"节；零机制变化 | concept-review.md §二③ | ⚠️ 提案 | **待裁决** |
+| A51 | R11 复审提案 | Owner/Finalizer 移植残留（级联=目录天然语义；清副作用=一次删除 workflow） | 提案：Owner 并入 Scope；Finalizer 降级为 builtin delete-flow Workflow | concept-review.md §二④ | ⚠️ 提案 | **待裁决** |
+| A52 | R11 复审提案 | Status 无对象无 Kind，只是字段约定 | 提案：降级为 Scheme 结构约定，概念表除名 | concept-review.md §二⑤ | ⚠️ 提案 | **待裁决** |
 
 ## 全局可行性判定（详见 feasibility.md）
 
