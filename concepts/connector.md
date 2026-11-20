@@ -59,7 +59,7 @@ metadata:
   scope: builtin-developer-system/local-ci
 spec:
   provider: onedev-driver        # 绑定（经命名解析）
-  config: {endpointRef: ref/onedev-endpoint}
+  config: {endpointRef: ref/onedev-endpoint}   # v0.10：Ref=逻辑声明，真实地址运行时由 owning system 解析（A46）
   auth: {provider: provider/onedev-robot}          # v0.8：凭证走 Provider（Credential 已删，A40）
   ops: [checkout, build-status, gate-status, verify]   # 提供的功能
 ```

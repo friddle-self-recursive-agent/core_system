@@ -265,6 +265,12 @@
 1. ❶ dsh（deepseek 运行时）的版本升级如何进入我们的发布节奏（外部依赖管理）？
 2. ❷ core 以 dsh plugin 实现的启动序与看门狗关系（bootstrap 联动）记录在哪：instance runtime 文件即可？
 
+## ref（v0.10 声明式后）
+
+1. ❶ 解析能力的声明形式：resolver system 在 Desc 里怎么写"我能解析 type=code"（capability 词表扩展？）？
+2. ❷ resolve type 词表首批：code/doc/url/resource/service 够吗（要不要 artifact/image）？
+3. ❸ 缓存失效的主动通知：owning system 换地址时要不要主动踢缓存（Event: ResolutionInvalidated）？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

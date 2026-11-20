@@ -67,6 +67,12 @@
 | [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
 | [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
 
+## v0.10 变更（R9 修正催生）
+
+| 文档 | 变更 | 说明 |
+|---|---|---|
+| [ref.md](ref.md)（重写） | 临时 URL 指针 → 声明式逻辑引用 | Ref 只声明"要什么"（resolve.system/type/params 如项目名）；运行时向相应系统解析真实地址/实例；地址归 owning system 管理（如 onedev 源码地址由 developer_system 返回）——以此解耦各系统（A46） |
+
 ## v0.9 变更（R8 修正催生）
 
 | 文档 | 变更 | 说明 |

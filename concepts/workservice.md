@@ -39,7 +39,7 @@ spec:
   capabilities: [scm, ci-trigger, mr-review]   # 能力标签，供 Desc 侧按能力引用
   connectorOps:                                 # v0.3：引用 ConnectorOps（使用层）
     - ops/onedev-ci
-  endpoint: {ref: ref/gitlab-prod}             # 用 Ref 指地址，不写死
+  endpoint: {ref: ref/scm-endpoint}            # v0.10：Ref=逻辑声明，真实地址由 owning system 解析（A46）
   auth: {provider: provider/gitlab-robot}     # v0.8：凭证走 Provider（A40）
 status:                            # Connector watch + 健康探测回写
   observedGeneration: 4

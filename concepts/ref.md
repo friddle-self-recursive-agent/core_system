@@ -1,24 +1,37 @@
-# Ref — 第三方临时指针
+# Ref — 声明式逻辑引用（说"要什么"，不写"在哪"）
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | ObjectReference / Service(ExternalName) |
-| 形态 | 一份小对象：global/refs/<name>.yaml 或系统目录内 refs/ |
-| 作用域 | Global 或 System（原稿问题"Ref 属于哪个 System 还是 Global"→ 由 Scope 规则裁决） |
-| 状态 | 设计稿 v1 |
+| K8s 对照 | Service 名/DNS（逻辑名→由权威方解析地址）；ExternalName 的声明化 |
+| 形态 | 对象：`global/refs/<name>.yaml` 或系统目录内 refs/ |
+| 作用域 | Global 或 System（"Ref 属于哪个 System 还是 Global"→ 由 Scope 规则裁决） |
+| 状态 | 设计稿 v0.10（R9 重写：从"临时 URL 指针"改为声明式逻辑引用，A46） |
 
 ## 1. 定义
 
-Ref 解决原稿场景："我的系统是监控，但我的代码在别处"——**指路，不搬运**。它是指向任何不在册资源的轻量指针：外部 URL、另一个仓库、一篇文档、一个人。带生命周期（临时语义），失效可被发现。
+Ref 更多是**描述、申明**：声明"我需要什么"——由哪个 system 解析、type 是什么、关键参数（如项目名）。**运行时去相应系统找实例**：真实地址由被指向的系统管理并返回。
+
+典型例（R9 原文）：
+
+```
+我需要 onedev 源代码
+  → Ref 声明：resolve.system = developer-system，type = code，params.project = onedev
+  → 运行时向 developer_system 请求解析
+  → developer_system 返回真正代码地址（git@…/onedev.git）
+```
+
+**用这种方法进行各个系统解耦**：消费方只写逻辑声明；物理映射（真实地址、托管在哪、哪个环境）归 owning system 管理面。换托管、换环境只动 owning system，所有引用方零改动。
 
 ## 2. 边界
 
-**是**：一个指针 + 元数据（指向什么、谁拥有、活多久、为何存在）。
+**是**：逻辑声明（resolver+type+params）+ 生命周期 + 解析结果缓存。
 
 **不是**：
-- 不是 WorkService：不注册驱动、不做幂等管理、不代表"常驻纳管"，只是指一下（需要被驱动=升级为 WorkService）；
-- 不是链接集合页面：Ref 是对象（有 GVK、可被引用、可被 权限系统 校验），不是 README 里的裸链接；
-- 不复制内容：目标变了 Ref 不知道内容，只知道"还在不在"（可达性探测）。
+- **不是地址**：地址是解析**结果**（status.lastResolution），不写在 spec 里；
+- 不是 WorkService（那是外部系统纳管；Ref 是需求声明）；
+- 不是内部 URI（文档库内部引用仍用 `system://`；Ref 面向外部/跨系统资源）；
+- 不管地址有效性：**可达性探测与地址管理归 resolver system**（v0.2 的 probe 职责移出，A46）；
+- 不复制内容（只声明与解析）。
 
 ## 3. 对象结构
 
@@ -26,56 +39,72 @@ Ref 解决原稿场景："我的系统是监控，但我的代码在别处"—�
 apiVersion: core/v1
 kind: Ref
 metadata:
-  name: jenkins-docs
-  scope: developer-system        # 或 global
-  labels: {category: external-doc}
-  ownerRefs: [{kind: Agent, name: ci-repair-agent}]   # 谁引用谁负责
+  name: onedev-source
+  scope: developer-system        # 声明方所在 scope
+  ownerRefs: [{kind: Agent, name: ci-repair-agent}]   # 谁声明谁负责
 spec:
-  target: https://wiki.example.com/jenkins-pipeline
-  kind: url                      # url | repo | doc | object | human
-  purpose: "Jenkinsfile 约定参考，实现侧对齐用"
-  ttl: 90d                       # 过期策略；manual=不过期但需年检 Event
-  probe: {httpHead: true, interval: 1d}   # 可选可达性探测
+  resolve:                       # 声明"要什么"
+    system: developer-system     # 由哪个 system desc 解析（resolver）
+    type: code                   # code | doc | url | resource | service
+    params: {project: onedev}    # 如项目名
+  purpose: "ci 构建取源码"
+  ttl: 90d                       # 声明有效期（可选）
 status:
-  lastProbe: {at: 2026-11-19T10:00:00Z, ok: true}
-  expires: 2027-02-18
+  lastResolution:                # 由解析动作回写（缓存）
+    at: 2026-11-20T10:00:00Z
+    by: developer-system/local-ci
+    value: "git@host:onedev/onedev.git"
+    cacheTtl: 10m
 ```
 
-## 4. 生命周期
+## 4. 运行时解析
 
-创建（谁用谁建，ownerRef 挂引用者）→ 存续期探测 → TTL 到期 → Event 通知 owner（续期/升级 WorkService/放死）→ 死信清理。
+```
+resolve(ref)
+  → 按 resolve.system 路由到该系统（其 Agent/ConnectorOps 提供 resolve 能力）
+  → 返回真实地址/实例 → 写 status.lastResolution（缓存 cacheTtl）
+  → 缓存命中期内直接用缓存；过期/失效事件后重解析
+失败：resolver 不可用 → 用旧缓存降级 + Event(warn)；无缓存 → Event(error) → 声明 owner
+```
 
-## 5. 与其他概念的关系
+## 5. 生命周期
 
-- WorkService 的 endpoint 用 Ref 指地址（地址是"临时"信息：环境迁移只改 Ref）。
-- Agent 的 refs 是其上下文与权限的一部分（P7）。
-- 与 Owner：无主 Ref（owner 全消失）自动进清理队列——防指针坟场。
+声明（谁用谁建，ownerRef 必挂）→ 运行时解析+缓存 → ttl 到期/resolver 变更 → Event 通知 owner → 续期/改声明/放死 → 无主清理（不变）。
 
-## 6. 设计规则
+## 6. 与其他概念的关系
 
-1. Ref 必须挂 owner（人或对象）；无主即清理。
-2. 重要外部依赖禁止只用 Ref：被 Loop 依赖的目标必须是 WorkService（Ref=知道，WorkService=管理）。
-3. Ref 不得指向文档库内部对象（内部引用用 `system://` URI，Ref 只对外）。
-4. 敏感目标（带 token 的 URL）禁止入 Ref——账号与钥匙走 Provider（v0.8，A40），指针只存目标地址。
+- **解耦主战场**：ConnectorOps.config 的 endpointRef/项目引用、WorkService 的 endpoint，v0.10 起都是逻辑声明（真实地址由 owning system 解析）。
+- resolver system 用 WorkService+Ops 管理物理映射（developer_system 管 scm 地址表就是它的 ImplDoc 内容之一）。
+- Skill/SessionLog 记录解析结果（审计"当时用的是什么地址"）。
 
-## 7. 可行性分析
+## 7. 设计规则
+
+1. Ref.spec 禁止出现物理地址（http://、git@、oss:// 等只允许出现在解析结果里）——出现即 Lint 警告（解耦从语法上锁死）。
+2. resolve.system 必须指向已存在的 ServiceDesc，且该系统声明了对应 type 的解析能力（Scheme 校验）。
+3. 解析结果必带 cacheTtl；解析失败必发 Event。
+4. 解析链深度 ≤2（A 的 ref 由 B 解析，B 不得再用 ref 递归解析），建仓时检环。
+5. owner 必挂；内部文档引用不用 Ref。
+
+## 8. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 指针腐化 | ⚠️ 低 | 链接失效无人管 | TTL+探测+owner 通知；核心规则 2 兜底 |
-| Ref 泛滥成杂物堆 | ⚠️ 低 | 什么都建 Ref | 必须挂 purpose 与 owner；权限系统 Lint 全局 Ref 数量阈值告警 |
+| 多一跳解析的延迟 | ⚠️ 低 | 每次取地址要问 resolver | cacheTtl 缓存 + 失效事件驱动重解析 |
+| 循环解析 | ⚠️ 低 | A→B→A | 规则 4 深度限制+检环 |
+| resolver 单点 | ⚠️ 中 | developer_system 挂了取不到地址 | 缓存降级 + Event + owning system 自身高可用 |
+| 声明与实现漂移 | ⚠️ 低 | params 拼写错解析不到 | 解析失败即 Event；常用 params 建 Lint 词表 |
 
-**结论：可行，纯簿记对象，无技术风险；风险全在纪律，由规则+Lint 管。**
+**结论：可行。等价于把 DNS/服务发现做进文档面，纯增量机制，解耦收益直接。**
 
-## 8. 原始设计标注
+## 9. 原始设计标注
 
-- 原稿"Ref 属于哪个 System 还是 Global" → `metadata.scope` 二值，就近声明，见 scope.md。
+- A46（R9）：Ref 重定义为声明式逻辑引用（描述/申明"要什么"；运行时向相应系统解析真实地址/实例；地址归 owning system 管理；以此解耦各系统）。原"临时 URL 指针+probe 探测"语义废弃（probe 归 resolver system）。
 
-## 9. 待决问题
+## 10. 待决问题
 
 见 open-questions.md#ref
 
-## 10. 审阅标注区
+## 11. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|
