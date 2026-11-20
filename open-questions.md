@@ -271,6 +271,11 @@
 2. ❷ resolve type 词表首批：code/doc/url/resource/service 够吗（要不要 artifact/image）？
 3. ❸ 缓存失效的主动通知：owning system 换地址时要不要主动踢缓存（Event: ResolutionInvalidated）？
 
+## selector（删除后遗留）
+
+1. ❶ dispatch 表按类型+owner 枚举：系统多了以后路由表规模怎么办（通配 owner:* 是否够）？
+2. ❷ labels 作为纯注释要不要留 Lint（防又悄悄长出选择语义）？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

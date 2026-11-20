@@ -46,7 +46,7 @@ metadata:
   scope: builtin-developer-system
 spec:
   triggers:                          # ① 触发规则（原 Loop.watch）
-    events:  {selector: {domain: devtools}, minLevel: warn}
+    events:  {types: [ExternalChanged, MetricThreshold], minLevel: warn}   # 按类型+owner 路由（A47）
     timer:   {resync: 10m}           # 巡检兜底（level-triggered 保险丝）
   ingest:                            # ② 事件整理规则
     dedup: {window: 5m}

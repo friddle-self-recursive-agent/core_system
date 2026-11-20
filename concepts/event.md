@@ -33,8 +33,7 @@ spec: {}
 status:
   type: ExternalChanged                # Scheme.eventTypes 之一
   source: {kind: WorkService, name: gitlab, detail: "runner 标签变更"}
-  involvedRef: {kind: ServiceInstance, name: developer-system/ci}
-  selector: {domain: ci}               # 供路由匹配（selector.md）
+  involvedRef: {kind: ServiceInstance, name: developer-system/ci}   # 路由按类型+involved/owner+scope（v0.11，A47）
   at: 2026-11-20T10:00:00Z
   dedupKey: "gitlab:runner-label:sha256(...)"   # 同因事件聚合
   level: debug | info | warn | error | fatal   # Log 式等级（A42，取代原 severity）
@@ -46,7 +45,7 @@ status:
 
 ## 5. 与其他概念的关系
 
-- Core 是总线；Scheme.dispatch 是路由表；Connector.watch 是最大生产者。
+- Core 是总线；Scheme.dispatch 是路由表（按事件类型+owner/scope 直达，v0.11 起，A47）；Connector.watch 是最大生产者。
 - Event ≠ Apply：Apply 改文档并顺带产生 `DocApplied` Event；Event 本身永远不改任何东西。
 - MetricsInfo 阈值判断后发 `MetricThreshold` Event——数据面到信号面的桥。
 

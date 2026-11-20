@@ -67,6 +67,7 @@
 | A44 | R8 Policy 概念删除 | "Policy 准入控制不要。放到权限系统" | Policy 概念/Kind 删除；职责重分：权限+人审→权限系统；结构校验→Scheme/DocType；一致性→引擎；硬规则→权限系统内置项 | concepts/policy.md（墓碑）、concepts/permission.md | ✅ | 已落地 |
 | A45 | R8 权限系统设计 | 新的权限骨架 | scope 权限域：global 权限 + system 开头各自 system 权限；默认 global/admin 全权限；**一切只绑 role**（用户绑 role / 用户绑 group、group 绑 role；不直接绑权限）；agent 权限判断不限死（agent/role/上级 agent）；跨系统 A 请求 B 时由 B 侧判定 | concepts/permission.md | ✅ | 已落地 |
 | A46 | R9 Ref 重定义 | "Ref 更多是描述。申明。运行时候去相应系统找实例" | Ref=声明式逻辑引用：spec 只写 resolve{system,type,params}（如 type=code、项目名=onedev）；真实地址由被指向系统管理并返回（onedev 源码地址=developer_system 管）；spec 禁止出现物理地址；原"URL 指针+probe"废弃（probe 归 resolver system）；以此解耦各系统 | concepts/ref.md、connector/workservice 联动 | ✅ | 已落地 |
+| A47 | R10 Selector 删除 | "Selector 在新系统中没啥用" | 概念删除：事件路由按 类型+involved/owner+scope 直达（dispatch 表）；能力匹配=WorkService.capabilities 字段；观测聚合按 Kind/scope；labels 降为自由注释性元数据 | concepts/selector.md（墓碑）、event/workflow/scheme 联动 | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

@@ -21,7 +21,7 @@ core_system/
 ├── requirements/                        # 原始要求存档（R0 背景 / R1 运行时）
 ├── principles.md                        # 10 条设计原则（冲突裁决依据）
 ├── architecture.md                      # 四层一面 / 边界决策树 / K8s 对照
-├── concepts/                            # 30 个概念（12 原稿 + 10 补充 + 3 v0.2 + 3 v0.3 + 1 v0.4 + 1 v0.6，多版为重写）
+├── concepts/                            # 概念定义：现存 25 + 墓碑 4（Loop/Plugin/Policy/Selector）+ 已删 1（Credential），演进史见各版小节
 ├── doctypes/README.md                   # 文档类型注册表（含 Builtin 三档）
 ├── core/scheme.yaml                     # 首版 Scheme：类型注册 + 事件路由 + 运行时基座
 ├── systems/builtin/                     # 自举最小集四个 builtin service 声明

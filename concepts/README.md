@@ -26,7 +26,7 @@
 | [loop.md](loop.md) | ~~Loop~~ | **已并入 Workflow（A41）**：Loop=带触发规则的 Workflow 实例 |
 | [status.md](status.md) | — | 没有 Spec/Status 分离就没有声明式 |
 | [scope.md](scope.md) | — | "属于哪个 System 还是 Global" 需要正式的名字解析规则 |
-| [selector.md](selector.md) | — | 事件路由、汇总观测需要跨对象选择 |
+| ~~selector.md~~ | ~~Selector~~ | **已删除（A47）**：路由按类型+owner/scope 直达；labels 降为自由注释 |
 | [owner.md](owner.md) | — | Instance/SubAgent/Ref 的级联归属与 GC |
 | [finalizer.md](finalizer.md) | — | 删除外部副作用必须两阶段（A7） |
 | [doctype.md](doctype.md) | — | "文档类型"本身要能注册扩展（=CRD） |
@@ -66,6 +66,12 @@
 |---|---|---|
 | [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
 | [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
+
+## v0.11 变更（R10 裁决）
+
+| 文档 | 变更 | 说明 |
+|---|---|---|
+| ~~selector.md~~ | 删除 | "Selector 在新系统中没啥用"：事件路由按类型+involved/owner+scope 直达；能力匹配=capabilities 字段；观测聚合按 Kind/scope；labels 无选择语义（A47） |
 
 ## v0.10 变更（R9 修正催生）
 
