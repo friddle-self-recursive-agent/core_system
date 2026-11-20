@@ -5,7 +5,7 @@
 | K8s 对照 | CustomResourceDefinition：文档类型 = 自定义资源类型 |
 | 形态 | doctypes/ 注册表（core/scheme.yaml 的 docTypes 段展开） |
 | 作用域 | Builtin（注册表本身），类型可被各层使用 |
-| 状态 | 设计稿 v1 |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -27,16 +27,16 @@
 apiVersion: doc.core/v1
 kind: DocType
 metadata:
-  name: Goal
+ name: Goal
 spec:
-  appliesTo: {kinds: [ServiceDesc], scopes: [global, builtin]}
-  required:                        # 必填段（权限系统 校验）
-    - intent                       # 意图陈述
-    - acceptance                   # 验收条款（可验证）
-  writers: [human, bind-role:owner] # 默认写者（Agent 默认无权）
-  admission: normal | strict
-  mandatory: required              # 必带级别（DocType 注册级，v0.5：与 Builtin 无关，A37）；Service 可加严
-  lifecycle: versioned             # 变更走 Apply，generation 联动
+ appliesTo: {kinds: [ServiceDesc], scopes: [global, builtin]}
+ required: # 必填段（权限系统 校验）
+ - intent # 意图陈述
+ - acceptance # 验收条款（可验证）
+ writers: [human, bind-role:owner] # 默认写者（Agent 默认无权）
+ admission: normal | strict
+ mandatory: required # 必带级别（DocType 注册级，：与 Builtin 无关）；Service 可加严
+ lifecycle: versioned # 变更走 Apply，generation 联动
 ```
 
 ## 4. 生命周期
@@ -53,8 +53,9 @@ spec:
 
 1. 每个类型必须声明 `writers`，默认最窄（人/owner）。
 2. 必填段控制在 ≤3 个：文档类型的职责是"防缺关键段"，不是"格式化写作"。
-3. 同一语义不允许两个类型（A1 教训：Prometheus 型被并入 Metrics 型就是本规则的应用）。
+3. 同一语义不允许两个类型（ 教训：Prometheus 型被并入 Metrics 型就是本规则的应用）。
 4. `acceptance` 类可验证段是 Loop 的 Verifying 依据——**没有验收条款的 Goal 不予入库**（servicedesc.md 可行性的核心缓解）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -66,15 +67,11 @@ spec:
 
 **结论：可行。结构化骨架+自然语言血肉的折中是本设计对"文档面向人又面向机"的核心回答。**
 
-## 8. 原始设计标注
-
-- A1/A2：原稿类型清单经本机制整理（去重、改名、补 Instance 侧类型）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#doctype
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

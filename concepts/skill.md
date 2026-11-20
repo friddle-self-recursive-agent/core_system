@@ -5,7 +5,7 @@
 | K8s 对照 | 无对应（镜像 layer cache 的类比：用过就留，下次直接用） |
 | 形态 | 缓存对象：Instance/Agent 会话层（systems/<s>/instances/<i>/skills/<name>.yaml） |
 | 作用域 | Instance（高频可提升为 Global） |
-| 状态 | 设计稿 v0.6（R5 新增，A38："工具使用地方可以用这个缓存成为 skill"） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -31,17 +31,17 @@ Ops 在某处被成功使用后，**使用方式可缓存为 Skill**：一份"�
 apiVersion: core/v1
 kind: Skill
 metadata:
-  name: onedev-build-report
-  scope: builtin-developer-system/local-ci
+ name: onedev-build-report
+ scope: builtin-developer-system/local-ci
 spec:
-  sourceOps: ops/onedev-ci          # 来源工具
-  when: {task: build-and-verify}    # 适用条件（任务/场景）
-  prompt: |                         # 注入提示（派生自 provider.llmPrompt + 实战修正）
-    回写构建状态用 build-status 而非直接 REST；失败重试前先 gate-status 读现状…
-  examples:                         # 成功调用示例（脱敏）
-    - {op: checkout, args: {ref: main}, outcome: ok}
-  origin: {sessionRef: session-2026…, cachedAt: 2026-11-20}
-  cache权限系统: {ttl: 30d, invalidateOn: {providerVersionChange: true}}
+ sourceOps: ops/onedev-ci # 来源工具
+ when: {task: build-and-verify} # 适用条件（任务/场景）
+ prompt: | # 注入提示（派生自 provider.llmPrompt + 实战修正）
+ 回写构建状态用 build-status 而非直接 REST；失败重试前先 gate-status 读现状…
+ examples: # 成功调用示例（脱敏）
+ - {op: checkout, args: {ref: main}, outcome: ok}
+ origin: {sessionRef: session-2026…, cachedAt: 2026-11-20}
+ cache权限系统: {ttl: 30d, invalidateOn: {providerVersionChange: true}}
 ```
 
 ## 4. 生命周期
@@ -60,6 +60,7 @@ spec:
 2. 沉淀自动、提升人工（提升到 Global 走 Apply+人审）。
 3. 示例必须脱敏（凭证模式扫描同规则）。
 4. invalidateOn.providerVersionChange 默认 true（工具变了经验作废）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -70,15 +71,11 @@ spec:
 
 **结论：可行。本质是 prompt/示例缓存，纯增量机制，风险由"缓存非真相"原则框住。**
 
-## 8. 原始设计标注
-
-- A38（R5）：新增概念（工具使用处缓存为 skill）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#skill
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

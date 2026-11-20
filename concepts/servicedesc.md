@@ -5,7 +5,7 @@
 | K8s 对照 | Deployment / 自定义资源的 **Spec 部分** |
 | 形态 | 一个目录（systems/<name>/）= 一个 ServiceDesc；v1 无系统时，文件夹即存储 |
 | 作用域 | Global（每个系统平级） |
-| 状态 | 设计稿 v1 |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -30,32 +30,32 @@ ServiceDesc 是"一个系统应该长成什么样"的全部意图：一组按 Do
 apiVersion: core/v1
 kind: ServiceDesc
 metadata:
-  name: developer-system
-  scope: global
-  labels: {domain: devtools}
-  finalizers: [core/wipe-workservice-side-effects]
+ name: developer-system
+ scope: global
+ labels: {domain: devtools}
+ finalizers: [core/wipe-workservice-side-effects]
 spec:
-  goalRef:  goal.md                 # 必须
-  descRef:  desc.md                 # 必须
-  docs:                              # 其余按 DocType 注册表
-    - rule/workflow-rule.md
-    - metrics.md
-    - data-design.md
-  workserviceRefs:                   # 依赖的外部系统（Ref/WorkService 引用）
-    - workservice/gitlab
-    - workservice/jenkins
-  instances:                         # 期望的实例清单（像 replicas）
-    - name: ci
-      agentRefs: [agent/ci-repair-agent]
-status: {}                           # 空。Desc 无 Status，Status 长在 Instance
+ goalRef: goal.md # 必须
+ descRef: desc.md # 必须
+ docs: # 其余按 DocType 注册表
+ - rule/workflow-rule.md
+ - metrics.md
+ - data-design.md
+ workserviceRefs: # 依赖的外部系统（Ref/WorkService 引用）
+ - workservice/gitlab
+ - workservice/jenkins
+ instances: # 期望的实例清单（像 replicas）
+ - name: ci
+ agentRefs: [agent/ci-repair-agent]
+status: {} # 空。Desc 无 Status，Status 长在 Instance
 ```
 
 ## 4. 生命周期
 
 ```
 创建（Apply，权限系统 校验必须文档齐全）→ Active
-  ↑ 改文档 → generation+1 → 触发所属 Loop reconcile（level-triggered）
-删除请求 → Finalizer 阶段（清外部副作用）→ 真删（级联删 Instance，owner.md）
+ ↑ 改文档 → generation+1 → 触发所属 Loop reconcile（level-triggered）
+删除请求 → 执行外部清理（WorkService.tools 成对 cleanup op）→ 真删（删目录即级联，含全部 Instance）
 ```
 
 版本与代数：每次 spec 侧变更 `metadata.generation` +1，Instance 的 `status.observedGeneration` 追赶它——收敛进度一眼可见。
@@ -72,6 +72,7 @@ status: {}                           # 空。Desc 无 Status，Status 长在 Ins
 2. Desc 内禁止出现具体厂商/实例名（"用 gitlab"是 WorkService 层的事；Desc 说"需要代码托管能力"）——**能力声明，不绑实现**。验收：文档里出现 `gitlab.com/...` 之类即 权限系统 警告。
 3. 文档间引用用相对路径或 `system://<name>/<doc>` URI，不用裸文件路径（为将来换存储留缝）。
 4. 一个系统一个目录，目录名=对象名（instance 仓 layout.md）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -83,16 +84,11 @@ status: {}                           # 空。Desc 无 Status，Status 长在 Ins
 
 **结论：可行。核心风险是自然语言的可判定性，用模板+验证段压住。**
 
-## 8. 原始设计标注
-
-- 原稿文档类型清单落位于此（含 A1 Prometheus 并入、A2 拼写修正，详见 doctypes/README.md）。
-- "现在没有系统。但是默认就按文件夹保存这些文档" → 落为：目录即对象，instance 仓 layout.md 规定映射。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#servicedesc
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

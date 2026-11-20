@@ -5,23 +5,23 @@
 | K8s 对照 | RBAC（Role/RoleBinding/Group）+ 准入的权限部分 |
 | 形态 | Kind：`Role`（global/roles/）、`Group`（global/groups/）；User/Bind 已有 |
 | 作用域 | Global |
-| 状态 | 设计稿 v0.9（R8 新增：权限系统 概念删除，准入并入，A44/A45） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
-权限系统是唯一的授权与准入机制（原 权限系统 概念删除，A44）。四条骨架：
+权限系统是唯一的授权与准入机制（原 权限系统 概念删除）。四条骨架：
 
 1. **权限域按 scope**：global 有 global 权限（管 global 起头的对象与全局动作）；**system 开头的有 system 权限**（各系统域内对象由该系统权限管）。对象落在哪个 scope，就受哪层权限管（scope.md 联动）。
 2. **默认 `global/admin` 拥有所有权限**（内置 role，不可删、不可降权——锁死管理的最后一道门）。
 3. **一切只绑 role**：权限只授予 role；**用户绑 role**（user→role）、**用户绑 group**、**group 绑 role**（user→group→role）。**用户和 group 都不直接绑权限**——没有例外通道。
-3b. **对象挂 role**（A49，原 Bind 并入）：`Role.spec.on: [对象]`——哪个 Agent/系统挂了这个 role；持有者可处理该对象（与 root 双通道，A35 语义不变）。
+3b. **对象挂 role**（原 Bind 并入）：`Role.spec.on: [对象]`——哪个 Agent/系统挂了这个 role；持有者可处理该对象（与 root 双通道， 语义不变）。
 4. **Agent 权限判断不限死**：Agent 的动作权限=其绑定 role 的并集（ConnectorOps/Ref/Provider/文档域）；**由谁判定是灵活的**——可以是 agent 自治判定（auto 级）、role 权限表、或**上级 agent**（父级审批/裁剪）。**跨系统**：系统 A 的 agent 需要系统 B 的 agent 协助或询问时，**由 B 侧判定**（B 的 agent/role/上级 agent 任一合法判定方）——被请求方持有裁判权，A 侧不能自判通过。
 
 ## 2. 边界
 
 **是**：授权（谁能在哪个 scope 做什么）+ 准入的权限与风险部分（人审拦截）。
 
-**不是**（原 权限系统 四职责的重新分工，A44）：
+**不是**（原 权限系统 四职责的重新分工）：
 - 不管结构校验（必填段/枚举）→ 归 Scheme/DocType；
 - 不管一致性校验（owner 无环、引用存在）→ 归引擎；
 - 不是审批流引擎（人审动作=ApprovalNeeded 事件+Notification 送达，无 SLA 机器）；
@@ -34,20 +34,20 @@ apiVersion: core/v1
 kind: Role
 metadata: {name: devtools-admin, scope: global}
 spec:
-  on: [agent/ci-repair-agent]       # A49：对象挂载（原 Bind.role/on 并入）
-  permissions:
-    - {scope: "systems/developer-system/*", actions: [read, write, approve]}
-    - {scope: "ops/onedev-ci", actions: [call]}
+ on: [agent/ci-repair-agent] # ：对象挂载（原 Bind.role/on 并入）
+ permissions:
+ - {scope: "systems/developer-system/*", actions: [read, write, approve]}
+ - {scope: "ops/onedev-ci", actions: [call]}
 ---
 apiVersion: core/v1
 kind: Group
 metadata: {name: devtools-team, scope: global}
 spec:
-  roles: [role/devtools-admin]      # group 只绑 role，不绑权限
+ roles: [role/devtools-admin] # group 只绑 role，不绑权限
 ---
 # User.spec 增补（user-system.md 联动）：
-#   roles: [role/devtools-admin]           # 用户绑 role
-#   groups: [group/devtools-team]          # 用户绑 group→role
+# roles: [role/devtools-admin] # 用户绑 role
+# groups: [group/devtools-team] # 用户绑 group→role
 # builtin: role/global-admin（全权限，不可删）
 ```
 
@@ -55,21 +55,21 @@ spec:
 
 ```
 动作请求（本系统内）
-  → 判定方（灵活，声明在 Agent/Workflow，不限死）：
-     a. agent 自治（autoLevel=auto/all，白名单内）
-     b. role 权限表（查表：动作 ∈ role 并集）
-     c. 上级 agent（父级审批；root 为终点）
-  → 全部不过 = 拒绝 + 记审计；命中人审档 = ApprovalNeeded
+ → 判定方（灵活，声明在 Agent/Workflow，不限死）：
+ a. agent 自治（autoLevel=auto/all，白名单内）
+ b. role 权限表（查表：动作 ∈ role 并集）
+ c. 上级 agent（父级审批；root 为终点）
+ → 全部不过 = 拒绝 + 记审计；命中人审档 = ApprovalNeeded
 
 跨系统（A 的 agent 请求 B 的 agent）
-  → A 发请求（提案/询问），**B 侧判定**（B 的 agent/role/上级 agent）
-  → B 判定留痕（SessionLog/审计）；A 无自判权
+ → A 发请求（提案/询问），**B 侧判定**（B 的 agent/role/上级 agent）
+ → B 判定留痕（SessionLog/审计）；A 无自判权
 ```
 
 ## 5. 与其他概念的关系
 
 - User（用户系统）：用户↔role/group 的持有面。
-- ~~Bind~~（A49 已并入）：Role.on 承担"对象↔role"挂载；Role.status.holders 由 user-system 投影回写。
+- 对象挂载：Role.on 承担"对象↔role"挂载；Role.status.holders 由 user-system 投影回写。
 - Scope：权限域划分依据（global/system）。
 - Workflow §7 跨权限三出路中的"审批提升"，人审档位由本系统配置。
 - Apply：写路径的准入环节调用本系统（权限+人审）；结构校验另走 Scheme。
@@ -81,6 +81,7 @@ spec:
 3. 判定方灵活但**判定必须留痕**（谁判的、依据什么、何时）——灵活性换可审计。
 4. 跨系统裁判权永远在被请求方（B 侧）。
 5. 原则 P7（权限随文档走）不变：改 role/绑定=改权限=高敏变更（人审）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -92,16 +93,11 @@ spec:
 
 **结论：可行。标准 RBAC 骨架 + 灵活判定层；复杂度与原 权限系统 相当但边界更清。**
 
-## 8. 原始设计标注
-
-- A44（R8）：权限系统 概念删除，准入并入权限系统；结构校验归 Scheme/DocType、一致性归引擎。
-- A45（R8）：权限系统设计（scope 权限域、默认 global/admin 全权限、只绑 role、用户经 group/role、agent 判定灵活不限死、跨系统 B 侧裁判）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#permission
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

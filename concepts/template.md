@@ -3,13 +3,13 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | Helm Chart（声明需要什么资源、如何落成 WorkService） |
-| 形态 | 对象（global/templates/<name>.yaml），builtin Scheme（R1.4） |
+| 形态 | 对象（global/templates/<name>.yaml），builtin Scheme |
 | 作用域 | Global（模板本体）/ 安装实例落为 WorkService |
-| 状态 | 设计稿 v0.2（R1.4） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
-WorkServiceTemplate 描述"安装一个外部系统需要什么、怎么装、装完如何纳管"。install 流程（R1.4）：
+WorkServiceTemplate 描述"安装一个外部系统需要什么、怎么装、装完如何纳管"。install 流程：
 
 ```
 install service
@@ -37,33 +37,33 @@ install service
 apiVersion: core/v1
 kind: WorkServiceTemplate
 metadata:
-  name: onedev
-  scope: global
-  labels: {core/template: workservice}
+ name: onedev
+ scope: global
+ labels: {core/template: workservice}
 spec:
-  provides: {capabilities: [scm, ci], category: developer}
-  resources:                        # R1.4"描述需要资源（镜像文件地址）"
-    images:
-      - {name: onedev-server, source: "oss://templates/onedev/onedev-server.tar.zst", digest: "sha256:..."}
-    storage: {nas: "nfs://nas/services/onedev", oss: "oss://services/onedev"}
-    ports: [6610]
-    min: {cpu: "2", mem: 4Gi}
-  workservice: {template: onedev-six-facet}   # v0.13：产出 WorkService 六面体骨架（A53）；Ops 由使用方挂载
-  install:                          # 确定性步骤（deploy-system 执行）
-    - {action: pull-image,  from: images[0], verify: digest}
-    - {action: render-config, template: config.tmpl, with: asks}
-    - {action: start-service, check: {httpGet: "/api/server-info", timeout: 120s}}
-  postInstall:
-    - {action: register-workservice, as: workservice/onedev}   # 六面体骨架（A53）
-    # v0.13 A51：无 Finalizer——外部清理职责写入产出物的 tools/flows（成对清理 op，Lint）
-  asks:                             # 安装时必须询问的项
-    - {field: endpoint.host, question: "服务绑定主机名？"}
-    - {field: auth.provider, kind: provider-ref, question: "管理员账号用哪个 Provider？（v0.8，A40）"}
+ provides: {capabilities: [scm, ci], category: developer}
+ resources: # R1.4"描述需要资源（镜像文件地址）"
+ images:
+ - {name: onedev-server, source: "oss://templates/onedev/onedev-server.tar.zst", digest: "sha256:..."}
+ storage: {nas: "nfs://nas/services/onedev", oss: "oss://services/onedev"}
+ ports: [6610]
+ min: {cpu: "2", mem: 4Gi}
+ workservice: {template: onedev-six-facet} # ：产出 WorkService 六面体骨架；Ops 由使用方挂载
+ install: # 确定性步骤（deploy-system 执行）
+ - {action: pull-image, from: images[0], verify: digest}
+ - {action: render-config, template: config.tmpl, with: asks}
+ - {action: start-service, check: {httpGet: "/api/server-info", timeout: 120s}}
+ postInstall:
+ - {action: register-workservice, as: workservice/onedev} # 六面体骨架
+ # ：无 Finalizer——外部清理职责写入产出物的 tools/flows（成对清理 op，Lint）
+ asks: # 安装时必须询问的项
+ - {field: endpoint.host, question: "服务绑定主机名？"}
+ - {field: auth.provider, kind: provider-ref, question: "管理员账号用哪个 Provider？"}
 ```
 
 ## 4. 与其他概念的关系
 
-- builtin-deploy-system 是执行者（其 Goal.A1–A4 即本流程的验收）。
+- builtin-deploy-system 是执行者（其 Goal.– 即本流程的验收）。
 - 镜像地址默认指 storage-system 的 OSS 层；digest 校验防模板被篡改。
 - 模板发现用 GitHub org 搜索（Ref 指向 org；搜索结果建 TemplateFound Event）。
 
@@ -72,7 +72,8 @@ spec:
 1. 模板必须声明 digest（无 digest 拒绝安装——供应链底线）。
 2. asks 非空必须走人工确认；无 asks 也要一次显式确认（防误装）。
 3. install 步骤全部幂等 + 三段 undo（镜像/配置/服务）。
-4. 模板本身来自 GitHub 仓时，克隆件经 权限系统 扫描（凭证模式扫描复用 credential.md 规则 1）。
+4. 模板本身来自 GitHub 仓时，克隆件经权限系统扫描（明文密钥模式全库扫描规则）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 6. 可行性分析
 
@@ -84,15 +85,11 @@ spec:
 
 **结论：可行。等价于面向"外部系统"的 Helm，安装执行复用 deploy-system+dsh。**
 
-## 7. 原始设计标注
-
-- A20（见 annotations.md）：R1.4 落地；Scheme 由设计方定义（本文件即定义）。
-
-## 8. 待决问题
+## 7. 待决问题
 
 见 open-questions.md#template
 
-## 9. 审阅标注区
+## 8. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

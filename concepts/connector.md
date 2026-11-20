@@ -5,7 +5,7 @@
 | K8s 对照 | 已装好的命令行入口（工具的使用点） |
 | 形态 | `global|systems/<s>/…/connector-ops/<name>.yaml` |
 | 作用域 | Global / System / Instance |
-| 状态 | 设计稿 v0.13（R12：ConnectorProvider 并入 WorkService 连接面，A53；本文只剩 Ops） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -17,7 +17,7 @@ ConnectorOps 是**直接的工具调用方式/提供的功能**：把某个 Work
 
 **是**：挂载使用面（workserviceRef + 环境 + op 子集 + Workflow 绑定）。每个 ServiceInstance 可以自实现自己的 Ops（就近遮蔽）。
 
-**不是**：不是类型注册（在 WorkService.connector 面）；不是工具描述（在 WorkService.tools 面）；不做业务判断；无复杂生命周期（就是绑定，A38）。
+**不是**：不是类型注册（在 WorkService.connector 面）；不是工具描述（在 WorkService.tools 面）；不做业务判断；无复杂生命周期（就是绑定）。
 
 ## 3. 对象结构
 
@@ -25,19 +25,19 @@ ConnectorOps 是**直接的工具调用方式/提供的功能**：把某个 Work
 apiVersion: core/v1
 kind: ConnectorOps
 metadata:
-  name: onedev-ci
-  scope: builtin-developer-system/local-ci
+ name: onedev-ci
+ scope: builtin-developer-system/local-ci
 spec:
-  workservice: onedev                  # v0.13：指向 WorkService（原 provider 字段，A53）
-  workflow: default-task               # 相位约束（缺省）
-  config: {endpointRef: ref/onedev-endpoint}   # 逻辑声明（A46）
-  auth: {provider: provider/onedev-robot}      # 账号走 Provider（A40）
-  ops: [checkout, build-status, gate-status, verify]   # 提供的功能子集
+ workservice: onedev # ：指向 WorkService（原 provider 字段）
+ workflow: default-task # 相位约束（缺省）
+ config: {endpointRef: ref/onedev-endpoint} # 逻辑声明
+ auth: {provider: provider/onedev-robot} # 账号走 Provider
+ ops: [checkout, build-status, gate-status, verify] # 提供的功能子集
 ```
 
 ## 4. 生命周期
 
-极简（A38 不变）：绑定 → 使用 → 删除。无探活/drift/finalizer 概念级机制。
+极简（ 不变）：绑定 → 使用 → 删除。无探活/drift/finalizer 概念级机制。
 
 ## 5. 与其他概念的关系
 
@@ -49,8 +49,9 @@ spec:
 
 1. workservice 必填且必须已在册（六面体至少 connector 或 tools 非空）。
 2. ops 子集 ⊆ WorkService.tools 声明的 op 集（Lint）。
-3. 使用要权限（role 并集+权限系统，P7/A45）。
+3. 使用要权限（role 并集+权限系统，P7/）。
 4. `undo: none` 的工具（WorkService.tools 里声明）每次调用人审。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -58,18 +59,13 @@ spec:
 |---|---|---|---|
 | Ops 与 WorkService.tools 描述漂移 | ⚠️ 低 | 工具变更后子集悬空 | 规则 2 Lint + WorkService 变更触发相关 Workflow 对账 |
 
-**结论：可行。职责比 v0.6 更薄（描述全在 WorkService），风险更小。**
+**结论：可行。职责比 更薄（描述全在 WorkService），风险更小。**
 
-## 8. 原始设计标注
-
-- A53（R12）：ConnectorProvider 并入 WorkService.connector 面；connector.md 收窄为 Ops 专档。
-- A25/A38 沿用（Ops 语义不变）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#connector
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

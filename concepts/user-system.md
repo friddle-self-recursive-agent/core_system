@@ -5,7 +5,7 @@
 | K8s 对照 | 无直接对应（k8s 不管人）；类比 cloud IAM 的用户目录，但刻意从简 |
 | 形态 | builtin 服务（systems/builtin/user-system/）+ Kind `User`（global/users/<name>.yaml） |
 | 作用域 | Builtin（服务）/ Global（User 对象） |
-| 状态 | 设计稿 v0.4（R3 新增，A34） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -27,18 +27,18 @@
 apiVersion: core/v1
 kind: User
 metadata:
-  name: u-zhang
-  scope: global
+ name: u-zhang
+ scope: global
 spec:
-  display: 张三
-  contact:                          # Notification 通道解析用
-    im: {provider: provider/im-feishu, userId: "zhang"}
-    email: zhang@example.com
-  roles:                            # 持有的 role（=Bind 引用）
-    - bind/ci-approver-bind
-    - bind/oncall-devtools
+ display: 张三
+ contact: # Notification 通道解析用
+ im: {provider: provider/im-feishu, userId: "zhang"}
+ email: zhang@example.com
+ roles: # 持有的 role（=Bind 引用）
+ - bind/ci-approver-bind
+ - bind/oncall-devtools
 status:
-  lastSeen: 2026-11-20T09:00:00Z    # console 登录/操作时间（审计）
+ lastSeen: 2026-11-20T09:00:00Z # console 登录/操作时间（审计）
 ```
 
 ## 4. 生命周期
@@ -58,6 +58,7 @@ builtin 起步（Igniter 装载首批用户——至少一个管理员）→ 增
 2. 用户增删改走人审；root 管理员至少一人（防止全锁死）。
 3. contact 只存引用/地址，不存 IM 凭证（凭证在 Provider/Credential）。
 4. IdP 接入前，本系统是权威；接入后 spec 标 `syncedFrom: workservice/authentik`，本地写只读。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -69,15 +70,11 @@ builtin 起步（Igniter 装载首批用户——至少一个管理员）→ 增
 
 **结论：可行。builtin 是一张表，零技术风险；IdP 接入是纯增量（复用 WorkService/Connector 机制）。**
 
-## 8. 原始设计标注
-
-- A34（R3）：新增概念；默认 builtin；authentic（疑为 authentik）接入列入未来可行性。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#user-system
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

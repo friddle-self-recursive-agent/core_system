@@ -21,7 +21,7 @@ core_system/
 ├── requirements/                        # 原始要求存档（R0 背景 / R1 运行时）
 ├── principles.md                        # 10 条设计原则（冲突裁决依据）
 ├── architecture.md                      # 四层一面 / 边界决策树 / K8s 对照
-├── concepts/                            # 概念定义：现存 20 + 墓碑 8（Loop/Plugin/Policy/Selector/Bind/Owner/Finalizer/Status）+ 已删 1（Credential），演进史见各版小节
+├── concepts/                            # 概念定义（终态制，rule.md；历史见 annotations.md）
 ├── doctypes/README.md                   # 文档类型注册表（含 Builtin 三档）
 ├── core/scheme.yaml                     # 首版 Scheme：类型注册 + 事件路由 + 运行时基座
 ├── systems/builtin/                     # 自举最小集四个 builtin service 声明
@@ -46,4 +46,4 @@ core_system/
 
 ## Loop
 
-管线状态机、自举顺序、developer_system 如何满足循环：全部在 instance 仓（loop/、impl/）。本仓只声明"必须有 Loop、Loop 的契约是什么"（concepts/loop.md）。
+管线状态机、自举顺序、developer_system 如何满足循环：全部在 instance 仓（loop/、impl/）。本仓只声明"必须有 Workflow、Workflow 的契约是什么"（concepts/workflow.md）。

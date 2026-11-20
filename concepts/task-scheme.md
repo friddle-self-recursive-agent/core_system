@@ -5,20 +5,20 @@
 | K8s 对照 | Job/CronJob spec（确定性步骤）——"长运行不依赖即兴"的 K8s 答案 |
 | 形态 | 对象（systems/<s>/schemes/<name>.yaml），builtin Scheme 之一 |
 | 作用域 | System 或 Instance |
-| 状态 | 设计稿 v0.2（R1.2.3） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
 默认执行层级四层：**用户意图 → Agent → Scheme → 代码**。
 
 ```
-意图层（Goal/命令/Event）  ：要说清"要什么"（文档）
-Agent 层                  ：理解意图、路由到 Scheme、处理异常与升级（LLM 只在这层）
-Scheme 层（TaskScheme）   ：确定性步骤图：触发→步骤→失败策略（声明式、可审）
+意图层（Goal/命令/Event） ：要说清"要什么"（文档）
+Agent 层 ：理解意图、路由到 Scheme、处理异常与升级（LLM 只在这层）
+Scheme 层（TaskScheme） ：确定性步骤图：触发→步骤→失败策略（声明式、可审）
 代码层（Connector/Plugin) ：幂等执行（get/plan/apply/verify/undo）
 ```
 
-核心动机（R1.2.3 原文）：**长时间运行系统肯定不能依赖 Agent 自定义**。Agent 可以"自定义 Scheme"（写一份 TaskScheme 文档经 Apply 入库），但执行永远走已入库的 Scheme 步骤 + 基础调度（常见任务的可配置调度模板），不走 Agent 即兴发挥。收敛性风险从运行时移到评审时（Scheme 入库过 权限系统）。
+核心动机：**长时间运行系统肯定不能依赖 Agent 即兴**。Agent 可以"自定义 Scheme"（写一份 TaskScheme 文档经 Apply 入库），但执行永远走已入库的 Scheme 步骤 + 基础调度（常见任务的可配置调度模板），不走 Agent 即兴发挥。收敛性风险从运行时移到评审时（Scheme 入库过权限系统）。
 
 ## 2. 边界
 
@@ -35,34 +35,35 @@ Scheme 层（TaskScheme）   ：确定性步骤图：触发→步骤→失败策
 apiVersion: core/v1
 kind: TaskScheme
 metadata:
-  name: build-and-verify
-  scope: builtin-developer-system/local-ci
+ name: build-and-verify
+ scope: builtin-developer-system/local-ci
 spec:
-  trigger: {events: [ExternalChanged], match: {source: onedev, type: push}}
-  steps:
-    - {id: checkout, connector: onedev-driver, op: checkout, args: {ref: "{{.branch}}"}}
-    - {id: build,    connector: dsh,           op: exec,     args: {host: local, cmd: "./gradlew build"}}
-    - {id: gate,     connector: dsh,           op: exec,     args: {cmd: "./gradlew lint test"}}
-    - {id: artifact, connector: oss-driver,    op: put,      args: {from: build/libs, digest: true}}
-    - {id: report,   connector: onedev-driver, op: build-status}
-  params: [branch]                      # 可配置（基础调度=模板+参数）
-  onFailure: {retry: 2, backoff: 30s, then: escalate}
-  budget: {minutes: 20}
+ trigger: {events: [ExternalChanged], match: {source: onedev, type: push}}
+ steps:
+ - {id: checkout, connector: onedev-driver, op: checkout, args: {ref: "{{.branch}}"}}
+ - {id: build, connector: dsh, op: exec, args: {host: local, cmd: "./gradlew build"}}
+ - {id: gate, connector: dsh, op: exec, args: {cmd: "./gradlew lint test"}}
+ - {id: artifact, connector: oss-driver, op: put, args: {from: build/libs, digest: true}}
+ - {id: report, connector: onedev-driver, op: build-status}
+ params: [branch] # 可配置（基础调度=模板+参数）
+ onFailure: {retry: 2, backoff: 30s, then: escalate}
+ budget: {minutes: 20}
 ```
 
 ## 4. 与其他概念的关系
 
-- Loop 的 Dispatch → Agent 选 Scheme（按 trigger 匹配）→ 代码层执行 → Verify → Status。四层嵌在 instance 仓 loop/loop.md 管线的 Plan/Execute 段。
-- Scheme（类型注册）注册 TaskScheme 这个 Kind；TaskScheme 是"声明层的执行面"（A19 双义统一）。
-- **Workflow 分工（A26）**：Workflow 管相位（Executing 段），TaskScheme 管 Executing 段内的步骤图——步骤总在某 Workflow 的 Executing 相位内跑。
+- Workflow 的 Dispatch → Agent 选 Scheme（按 trigger 匹配）→ 代码层执行 → Verify → Status 回写。四层嵌在 core-loop 管线的 Plan/Execute 相位。
+- Scheme（类型注册）注册 TaskScheme 这个 Kind；TaskScheme 是"声明层的执行面"（ 双义统一）。
+- **Workflow 分工**：Workflow 管相位（Executing 段），TaskScheme 管 Executing 段内的步骤图——步骤总在某 Workflow 的 Executing 相位内跑。
 - builtin 模板库：`global/templates/task/`（build/verify/sync/report），Instance 引用+参数化，避免每系统重写。
 
 ## 5. 设计规则
 
-1. 步骤只能引用已注册 ConnectorOps 的 op（v0.3：步骤 connector 字段指 ops 名）——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
+1. 步骤只能引用已注册 ConnectorOps 的 op（步骤 connector 字段指 ops 名）——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
 2. 每个步骤幂等；整图可重入（断点=已完成步骤集）。
 3. budget 必填；超预算=本轮失败走 onFailure。
-4. 新 Scheme 入库过 权限系统（高危 op 如 exec 人审）。
+4. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 6. 可行性分析
 
@@ -74,15 +75,11 @@ spec:
 
 **结论：可行。这是把"LLM 收敛不可保证"（H1）关进笼子的关键机制——确定性下沉，智能上浮。**
 
-## 7. 原始设计标注
-
-- A19（见 annotations.md）：Scheme 双义统一（类型注册 + 执行层）。
-
-## 8. 待决问题
+## 7. 待决问题
 
 见 open-questions.md#task-scheme
 
-## 9. 审阅标注区
+## 8. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

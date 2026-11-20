@@ -5,7 +5,7 @@
 | K8s 对照 | Pod（运行实例 + status + 探针数据） |
 | 形态 | ServiceDesc 目录下的 `instances/<name>/` 子目录 |
 | 作用域 | 隶属某个 ServiceDesc（owner） |
-| 状态 | 设计稿 v1 |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
@@ -16,14 +16,14 @@ Desc 回答"应该是什么"，Instance 回答"我现在是怎么实现/保障�
 ## 2. 边界
 
 **是**：
-- **Agent 引用**（agentRefs，A3）：本实例由哪些 Agent 负责收敛；
+- **Agent 引用**（agentRefs）：本实例由哪些 Agent 负责收敛；
 - **实现侧 Docs**：ImplDoc（我怎么实现这些功能）+ VerifyDoc（我怎么约束/保障/验证）；
-- **MetricsInfo**：采集到的现实数据（A17：数据不是文档，见 §3）；
+- **MetricsInfo**：采集到的现实数据（数据不是文档，见 §3）；
 - **Status**：Conditions、observedGeneration、drift 摘要——现实压缩回文档的标准形态。
 
 **不是**：
 - 不改意图：发现 Spec 该改 → 走提案 Event，不改 Spec（P6）；
-- 不是外部系统（外部是 WorkService，A11）；
+- 不是外部系统（外部是 WorkService）；
 - MetricsInfo 不是 .md 文档：数据落 metrics/ 数据区或 TSDB 引用，文档里只存"查询入口声明"。
 
 ## 3. 对象结构
@@ -33,28 +33,28 @@ Desc 回答"应该是什么"，Instance 回答"我现在是怎么实现/保障�
 apiVersion: core/v1
 kind: ServiceInstance
 metadata:
-  name: developer-system/ci
-  ownerRefs: [{kind: ServiceDesc, name: developer-system}]   # 级联
-spec: {}                       # v1：实例无独立 Spec，完全跟随 owner Desc（简化）
+ name: developer-system/ci
+ ownerRefs: [{kind: ServiceDesc, name: developer-system}] # 级联
+spec: {} # v1：实例无独立 Spec，完全跟随 owner Desc（简化）
 status:
-  observedGeneration: 12       # 已收敛到的 Desc 代数
-  phase: InSync | Drifting | Remediating | Failed | Escalated
-  drift:
-    summary: "3 项偏差：runner 数不足/1 条 rule 未满足/…"
-    reportRef: docs/drift-2026-11-20.md     # DriftReport 文档（Loop 生成）
-  conditions:
-    - {type: Ready,        status: "False", reason: runners-shortage}
-    - {type: RulesHeld,    status: "True"}
-    - {type: MetricsFlow,  status: "True"}
+ observedGeneration: 12 # 已收敛到的 Desc 代数
+ phase: InSync | Drifting | Remediating | Failed | Escalated
+ drift:
+ summary: "3 项偏差：runner 数不足/1 条 rule 未满足/…"
+ reportRef: docs/drift-2026-11-20.md # DriftReport 文档（Loop 生成）
+ conditions:
+ - {type: Ready, status: "False", reason: runners-shortage}
+ - {type: RulesHeld, status: "True"}
+ - {type: MetricsFlow, status: "True"}
 agentRefs: [agent/ci-repair-agent, agent/ci-verifier]
 docs:
-  impl:  docs/how-ci-works.md        # ImplDoc：如何实现
-  verify: docs/how-ci-is-guaranteed.md # VerifyDoc：如何保障/验证
-metricsInfo:                          # A17：查询入口声明，非数据本体
-  store: tsdb/prometheus-main
-  queries:
-    runners: "sum(ci_runners_active)"
-    p95:   "histogram_quantile(0.95, ...)"
+ impl: docs/how-ci-works.md # ImplDoc：如何实现
+ verify: docs/how-ci-is-guaranteed.md # VerifyDoc：如何保障/验证
+metricsInfo: # ：查询入口声明，非数据本体
+ store: tsdb/prometheus-main
+ queries:
+ runners: "sum(ci_runners_active)"
+ p95: "histogram_quantile(0.95, ...)"
 ```
 
 ## 4. 生命周期
@@ -76,6 +76,7 @@ metricsInfo:                          # A17：查询入口声明，非数据本�
 2. Status 只由 Loop/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
 3. MetricsInfo 只存查询声明与最近摘要（如 24h 概要），原始序列在观测面。
 4. 一个 Instance 的 Agent 集合变更 = 实例配置变更，走 Apply。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -87,17 +88,11 @@ metricsInfo:                          # A17：查询入口声明，非数据本�
 
 **结论：可行。ImplDoc 防腐化是长期工程问题，机制上以"文档过期=drift"兜住。**
 
-## 8. 原始设计标注
-
-- A3：内嵌 Agent → agentRefs 引用。
-- A17：MetricsInfo 定为"数据+查询声明"，不进文档对象库。
-- 原稿"DOCS[我怎么实现这些功能的。怎么进行约束保障的]" → 拆为 ImplDoc + VerifyDoc 两类。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#serviceinstance
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

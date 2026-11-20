@@ -3,25 +3,25 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | kube-apiserver + etcd + controller-manager（合并为一个小进程） |
-| 形态 | **默认由 dsh plugin 承载**（A39）：core plugin 于 dsh 宿主内提供控制面；P9 例外清单不变 |
+| 形态 | **默认由 dsh plugin 承载**：core plugin 于 dsh 宿主内提供控制面；P9 例外清单不变 |
 | 作用域 | Builtin |
-| 状态 | 设计稿 v1 |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
 Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——其行为由 core.desc 等 Builtin 文档声明（自描述，见 instance 仓 loop/bootstrap.md）。
 
-**承载形态（v0.7，A39）**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/权限系统 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
+**承载形态**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/权限系统 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
 
 职责五件套：
 
 1. **存储**：封装文档库（v1 = git 仓库目录），提供带乐观锁的读写接口（见 Revision）。
-2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统 准入校验。
+2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统准入校验。
 3. **分发**：Event 的产生、去重、路由（按 Selector 派发给 Loop/Agent）。
 4. **调度**：Loop 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。
 5. **观测汇聚**：接收 DriftReport / MetricsInfo 注册表，供观测面查询。
 
-## 2. 边界（A13）
+## 2. 边界
 
 **是**：一个进程、一组接口。文档库里没有"Core 对象"，只有 Core 的自描述文档。
 
@@ -29,7 +29,7 @@ Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、
 - 不是存储本身（存储是 git/目录/未来 DB，Core 只是封装）；
 - 不是 Scheme（Scheme 是注册表**数据**，Core 是读它的**进程**）；
 - 不是 Builtin（Builtin 是 scope **标记**，Core 是被标记的对象之一）；
-- 不执行任务（执行是 Agent）；不连外部系统（连接是 ConnectorOps）；不自带独立界面（界面=console plugin，A39）；
+- 不执行任务（执行是 Agent）；不连外部系统（连接是 ConnectorOps）；不自带独立界面（界面=console plugin）；
 - 不做业务判断（判断是 Agent 读文档后做的）。
 
 ## 3. 自描述结构
@@ -39,21 +39,21 @@ Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、
 apiVersion: core/v1
 kind: ServiceDesc
 metadata:
-  name: core
-  scope: builtin
-  labels: { tier: control-plane }
+ name: core
+ scope: builtin
+ labels: { tier: control-plane }
 spec:
-  goal: "维持文档面与控制面自身的一致、可用、可审计"
-  docs:                        # 引用 core/ 目录下的 Builtin 文档
-    - rule: core.rule.md       # 如：所有写入必须留审计记录
-    - auth: core.auth.md       # 谁能改 Builtin
-  loops:                       # Core 自身也受 Loop 管
-    - ref: loop/core-self-check
-status:                        # 由 builtinRoot Agent 回写
-  conditions:
-    - {type: Available, status: "True"}
-    - {type: SelfConsistent, status: "True"}   # Scheme 与文档库实际内容一致
-  observedGeneration: 3
+ goal: "维持文档面与控制面自身的一致、可用、可审计"
+ docs: # 引用 core/ 目录下的 Builtin 文档
+ - rule: core.rule.md # 如：所有写入必须留审计记录
+ - auth: core.auth.md # 谁能改 Builtin
+ loops: # Core 自身也受 Loop 管
+ - ref: loop/core-self-check
+status: # 由 builtinRoot Agent 回写
+ conditions:
+ - {type: Available, status: "True"}
+ - {type: SelfConsistent, status: "True"} # Scheme 与文档库实际内容一致
+ observedGeneration: 3
 ```
 
 ## 4. 生命周期
@@ -72,6 +72,7 @@ status:                        # 由 builtinRoot Agent 回写
 2. Core 所有接口必须可 dry-run（预演不改状态）。
 3. Core 无状态化优先：状态全在文档面，Core 重启不丢脑。
 4. 文档库写入必须串行化（单写者队列），读并发不限。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -83,15 +84,11 @@ status:                        # 由 builtinRoot Agent 回写
 
 **结论：可行，条件是接受"git 后端 + 串行写"的 v1 约束。**
 
-## 8. 原始设计标注
-
-- A13：Core/Scheme/Builtin 三者边界已在 §2 划清（进程/数据/标记）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#core
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|

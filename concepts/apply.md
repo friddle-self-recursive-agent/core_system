@@ -2,14 +2,14 @@
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | kubectl apply（文档级）——**不再对标 SSA 字段归属（v0.4 删除，A33）** |
+| K8s 对照 | kubectl apply（文档级）——**不再对标 SSA 字段归属（ 删除）** |
 | 形态 | Core 暴露的写接口（动词），不是存储对象 |
 | 作用域 | 全局 |
-| 状态 | 设计稿 v0.4（R3 修正） |
+| 状态 | 定稿（终态制，rule.md） |
 
 ## 1. 定义
 
-Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply——**因为文档做版本管理**（R3 确认）。这个"唯一"只作用于**文档面**；**不影响最底层 Agent 干活**——Agent 执行任务走 ConnectorOps（权限校验在 ops），其运转以 PlanDoc/SessionLog 留痕（A29），不逐写审批（A32 澄清）。
+Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply——**因为文档做版本管理**。这个"唯一"只作用于**文档面**；**不影响最底层 Agent 干活**——Agent 执行任务走 ConnectorOps（权限校验在 ops），其运转以 PlanDoc/SessionLog 留痕，不逐写审批（ 澄清）。
 
 系统间调用仍是文档面语义：系统 A 影响系统 B = A 对 B 的文档 Apply 一个提案，B 的 Loop 看到后自行收敛。没有点对点 RPC。
 
@@ -18,22 +18,22 @@ Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply—�
 **是**：文档写接口 + 乐观锁（文档级）+ 审计 + 事件产生。
 
 **不是**：
-- 不是 Agent 干活的审批关口（A29/A32：Agent 干活不受 Apply 约束）；
-- 不是字段级合并器（SSA/managedFields 已删，A33：git 无字段级归属概念，不做；文档 diff 是语义活，交给 LLM）；
+- 不是 Agent 干活的审批关口（/：Agent 干活不受 Apply 约束）；
+- 不是字段级合并器（SSA/managedFields 已删，：git 无字段级归属概念，不做；文档 diff 是语义活，交给 LLM）；
 - 不是 Event（Apply 改状态，Event 只通知）；
-- 不带提案 SLA/超时机器（R3 删除：不是本系统的职责；催办与告知由 Notification 承担）。
+- 不带提案 SLA/超时机器。
 
 ## 3. 语义
 
 ```
 apply(obj, opts)
-  opts: {dryRun: bool, force: bool, fieldManager: "agent/ci-repair-agent"}
+ opts: {dryRun: bool, force: bool, fieldManager: "agent/ci-repair-agent"}
 
-流程：读当前 → 权限系统 准入 → 文档级比对（整文档）
-     → 内容相同：no-op（见规则 1）
-     → 内容不同：乐观锁提交（Revision）→ generation+1（若 spec 变）→ DocApplied Event
+流程：读当前 → 权限系统准入 → 文档级比对（整文档）
+ → 内容相同：no-op（见规则 1）
+ → 内容不同：乐观锁提交（Revision）→ generation+1（若 spec 变）→ DocApplied Event
 冲突：resourceVersion 不符 = Conflict → 后写者重读；
-     需要合并时由 LLM 做**语义 diff**（哪里不同、是否冲突、合并提案），人裁兜底（A33）
+ 需要合并时由 LLM 做**语义 diff**（哪里不同、是否冲突、合并提案），人裁兜底
 ```
 
 ## 4. 生命周期
@@ -49,11 +49,12 @@ apply(obj, opts)
 
 ## 6. 设计规则
 
-1. **no-op 不发 Event + fieldManager 白名单豁免自身**（R3 明确加上）：Apply 相同内容为 no-op，不产生事件；且自身 fieldManager 的回写（如 Loop 写 Status 触发的 DocApplied）在白名单内豁免——双保险防自我唤醒循环。
+1. **no-op 不发 Event + fieldManager 白名单豁免自身**：Apply 相同内容为 no-op，不产生事件；且自身 fieldManager 的回写（如 Loop 写 Status 触发的 DocApplied）在白名单内豁免——双保险防自我唤醒循环。
 2. 任何文档写入必须携带 fieldManager（无主写入拒绝，审计可追溯）。
 3. dryRun 必须零副作用且返回与真执行一致的 plan。
-4. 跨系统提案默认进对方**待审区**；超时/催办**不是本系统机制**——Notification 告知即可（R3：提案 SLA 删除）。
+4. 跨系统提案默认进对方**待审区**；超时/催办不是本系统机制——Notification 告知即可。
 5. Status 与 Spec 的写权限分离不变（P2/P6）。
+- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
@@ -61,21 +62,14 @@ apply(obj, opts)
 |---|---|---|---|
 | 并发写冲突更粗（文档级） | ⚠️ 低 | 接受：文档粒度本就大，写者少 | 乐观锁+重读；真需并行的内容应拆成多份文档 |
 | LLM 语义 diff 幻觉 | ⚠️ 中 | 合并建议可能错 | 事实基础永远是 git 文本 diff；LLM 只做解读与合并提案，落地必须人裁（或 权限系统 高危拦截） |
-| ~~SSA 实现复杂~~ | — | 已删除（A33） | — |
 
-**结论：可行，且比 v0.2 更简单（删掉最难啃的 SSA 子集）。**
+**结论：可行，且比 更简单（删掉最难啃的 SSA 子集）。**
 
-## 8. 原始设计标注
-
-- A32（R3）：定位澄清（文档版本管理；不约束 Agent 干活）+ no-op/白名单规则转正。
-- A33（R3）：删字段级归属与三方合并；文档 diff=LLM 语义 diff。
-- A12 沿用（Apply/Event 正交）。
-
-## 9. 待决问题
+## 8. 待决问题
 
 见 open-questions.md#apply
 
-## 10. 审阅标注区
+## 9. 审阅标注区
 
 | 标记 | 位置 | 说明 |
 |---|---|---|
