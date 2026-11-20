@@ -75,6 +75,10 @@
 | A50 | R11 复审提案 | Revision 全是 Apply 的实现细节（版本管理=Apply 定义的一部分） | **挂起**：Revision=版本管理无争议；提案只是文档组织之争（独立概念 vs Apply 一节），已在 concept-review.md §四补白话说明，待再次裁决 | concepts/revision.md | ⚠️ | 待裁决（已补充说明） |
 | A51 | R11 复审提案 | Owner/Finalizer 移植残留 | **采纳且更彻底：直接去掉两个概念**——级联=目录即对象；外部副作用清理=WorkService.tools 成对 cleanup op（Lint 强制）；无系统级删除协议 | concepts/owner.md、finalizer.md（墓碑）、workservice.md 规则5 | ✅ | 已落地（R12） |
 | A52 | R11 复审提案 | Status 无对象无 Kind，只是字段约定 | **采纳**：降级为 scheme.yaml conventions.status；status.md 墓碑 | concepts/status.md（墓碑）、core/scheme.yaml §六 | ✅ | 已落地（R12） |
+| A55 | R14.4 仓库前缀 | 公司 git 上 agent 自治相关仓库无命名规则 | 定：公司 OneDev 上**默认前缀 `agent_pool`**（agent_pool/<name>）；GitHub 公开 org 只放无公司信息的泛化内容，公司实物（域名/地址/系统名/凭据）只在公司 git（R14.6 硬规则） | requirements/agent-pool.md、system.yaml | ✅ | 待裁决 |
+| A56 | R14.2 反馈闭环 | "报错→agent→提议→批准→pull→发布→验收"是否需要新概念 | **零新概念**：=core-loop 系 Workflow 实例（feedback-remediation-loop）+ 既有 Event/Agent(AUTOLEVEL)/Proposal(P6)/AwaitingApproval/Notification/developer-system/deploy-system/VerifyDoc 的串联；新增物只有对象实例（Workflow/Agent/ConnectorOps）与三个 Connector watch 事件源 | instance 仓 impl/feedback-workflow.md | ✅ | 待裁决 |
+| A57 | R14.1 双 profile | 两个 dsh profile 的分工与自举方向 | core-system profile=自举开发（developer-system 闭环跑 core_system 三仓），**唯一交付=更新 kube-inner profile 所用 plugin**（经 developer_system 产物链发布）；kube-inner profile=接入运行时（onedev + 内网集群纳管）。这是 bootstrap（P9）之后的第一对 agent 实例 | instance 仓 runtime/agent-pool-machine.md | ⚠️ 自举依赖 plugin 首版 | 待裁决 |
+| A58 | R14.3 模块划分 | 内网系统"页面功能模块"在文档面的归属 | 门户服务注册表（90 项，六类）=**公司 git 存实物**；文档面只存模块分类注册（每模块=WorkService 或其 Instance/Ref，按边界决策树 Q2 判定）；清单本身是数据不是文档（Q1），投影进 WorkService 六面体 | instance 仓 impl/kube-inner-integration.md | ✅ | 待裁决 |
 
 ## 全局可行性判定（详见 feasibility.md）
 
