@@ -1,5 +1,5 @@
 # core/scheme.yaml —— 首版 Scheme（类型注册 + 事件路由）
-# 概念依据：concepts/scheme.md；v0.2 增补 WorkServiceTemplate / TaskScheme（A19/A20）
+# 概念依据：concepts/scheme.md；v0.3：Connector 拆 Ops/Provider，新增 Workflow/Provider/Notification（A25–A28）
 apiVersion: core/v1
 kind: Scheme
 metadata:
@@ -12,31 +12,42 @@ spec:
     - {kind: ServiceInstance, builtin: true,  storage: systems/<s>/instances/<name>/instance.yaml}
     - {kind: Agent,           builtin: true,  storage: global/agents/<name>/agent.yaml}
     - {kind: WorkService,     builtin: true,  storage: workservices/<name>/workservice.yaml}
-    - {kind: Connector,       builtin: true,  storage: global/connectors/<type>/connector.yaml}
+    - {kind: ConnectorProvider, builtin: true, storage: global/connectors/<name>/provider.yaml}  # v0.3 类型层
+    - {kind: ConnectorOps,    builtin: true,  storage: global|systems/<s>/…/connector-ops/<name>.yaml}  # v0.3 使用层
+    - {kind: Workflow,        builtin: true,  storage: global/workflows/<name>.yaml}            # v0.3 态机
+    - {kind: Provider,        builtin: true,  storage: global/providers/<name>.yaml}            # v0.3 账号包
+    - {kind: Notification,    builtin: true,  storage: global/notifications/<name>.yaml}        # v0.3 通知
     - {kind: Ref,             builtin: true,  storage: global/refs/<name>.yaml}
     - {kind: Bind,            builtin: true,  storage: global/binds/<name>.yaml}
     - {kind: Credential,      builtin: true,  storage: global/credentials/<name>.yaml}
     - {kind: Loop,            builtin: true,  storage: systems/<s>/loops/<name>.yaml}
     - {kind: Policy,          builtin: true,  storage: global/policies/<name>.yaml}
-    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}      # v0.2：执行层 Scheme（A19）
-    - {kind: WorkServiceTemplate, builtin: true, storage: global/templates/<name>.yaml}      # v0.2：安装模板（A20）
-    - {kind: Plugin,          builtin: true,  storage: global/plugins/<name>.yaml}           # v0.2：dsh 插件（A21）
+    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}
+    - {kind: WorkServiceTemplate, builtin: true, storage: global/templates/<name>.yaml}
+    - {kind: Plugin,          builtin: true,  storage: global/plugins/<name>.yaml}
   docTypes:                      # 展开定义见 doctypes/README.md
     [Goal, Desc, Rule, WorkflowDesign, Metrics, DataDesign, DataMetrics, Auth,
-     DeployDesign, CodeDesign, ImplDoc, VerifyDoc, DriftReport, Runbook, Requirements]
+     DeployDesign, CodeDesign, ImplDoc, VerifyDoc, DriftReport, Runbook, Requirements,
+     PlanDoc, SessionLog]        # v0.3：Agent Plan/Session 记录（A29）
   eventTypes:
     - {type: ExternalChanged, source: connector, route: owner-instance-loop}
     - {type: MetricThreshold, source: metrics,   route: selector-match-loop}
     - {type: DocApplied,      source: core,      route: owner-loop}
-    - {type: ApprovalNeeded,  source: policy,    route: bind-human}
-    - {type: HeartbeatLost,   source: core,      route: parent-agent}
-    - {type: InstallRequested, source: human,    route: deploy-system-loop}     # v0.2：R1.4 install 流程
+    - {type: ApprovalNeeded,  source: policy,    route: bind-human+notification}   # v0.3：接 Notification
+    - {type: HeartbeatLost,   source: core,      route: parent-agent+notification}
+    - {type: InstallRequested, source: human,    route: deploy-system-loop}
     - {type: TemplateFound,   source: connector, route: deploy-system-loop}
+    - {type: SessionClosed,   source: agent,     route: instance-docs}             # v0.3：Session 记录触发（A29）
   dispatch:                      # "dsh"：事件如何找到处理者（缺省路由）
     - {on: "*",                  for: scope:builtin/*,  dispatch: loops/builtin-root}
     - {on: ExternalChanged,      for: selector:*,       dispatch: owner-loop}
     - {on: InstallRequested,     for: selector:*,       dispatch: systems/builtin/deploy-system}
-    - {on: "*",                  for: selector:*,       dispatch: deadletter}   # 兜底死信
-  runtime:                       # v0.2：运行时基座（R1.2）
-    baseAgent: dsh               # 基础 agent 运行时（concepts/plugin.md）
-    executionLayers: [intent, agent, scheme, code]   # 用户意图→Agent→Scheme→代码（concepts/task-scheme.md）
+    - {on: ApprovalNeeded|Escalate, for: selector:*,    dispatch: notification/*}  # v0.3：通知路由
+    - {on: "*",                  for: selector:*,       dispatch: deadletter}
+  runtime:                       # v0.3 运行时基座（R1.2 + R2）
+    baseAgent: dsh               # 基础 agent 运行时；子 agent=机器级进程派发（A31）
+    executionLayers: [intent, agent, scheme, code]
+    defaultWorkflow: default-task          # builtin 态机（concepts/workflow.md）
+    autoLevels:                           # AUTOLEVEL 默认（A30）
+      rootAgent: ask
+      serviceAgent: auto

@@ -54,11 +54,12 @@ spec:
 
 - Loop 的 Dispatch → Agent 选 Scheme（按 trigger 匹配）→ 代码层执行 → Verify → Status。四层嵌在 instance 仓 loop/loop.md 管线的 Plan/Execute 段。
 - Scheme（类型注册）注册 TaskScheme 这个 Kind；TaskScheme 是"声明层的执行面"（A19 双义统一）。
+- **Workflow 分工（A26）**：Workflow 管相位（Executing 段），TaskScheme 管 Executing 段内的步骤图——步骤总在某 Workflow 的 Executing 相位内跑。
 - builtin 模板库：`global/templates/task/`（build/verify/sync/report），Instance 引用+参数化，避免每系统重写。
 
 ## 5. 设计规则
 
-1. 步骤只能引用已注册 Connector 的 op——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
+1. 步骤只能引用已注册 ConnectorOps 的 op（v0.3：步骤 connector 字段指 ops 名）——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
 2. 每个步骤幂等；整图可重入（断点=已完成步骤集）。
 3. budget 必填；超预算=本轮失败走 onFailure。
 4. 新 Scheme 入库过 Policy（高危 op 如 exec 人审）。

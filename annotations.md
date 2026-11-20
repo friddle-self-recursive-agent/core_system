@@ -45,6 +45,13 @@
 | A22 | R1.3 builtin 集合 | 原设计 builtin=控制面自身（core/scheme/builtinRoot），现扩为 4 个 builtin service | Builtin scope 重划：SelfRecursiveCore + developer/deploy/storage 三系统=自举最小集；"内置=代码和 connector 内置"（在 workservice 仓） | systems/builtin/、concepts/builtin.md | ⚠️ 膨胀风险 | 待裁决 |
 | A23 | R1.5.4 ops 日志 | 原设计审计=git log 单轨 | 双轨：git=文档内容版本；DB（v1 sqlite）=操作流水（Apply/Event/Escalate），Core 双写+每日对账 | concepts/revision.md v0.2 修订 | ✅ | 已落地 |
 | A24 | R1.6 developer 选型 | 原示例 gitlab/jenkins → 实际用既有 onedev | developer-system 落地选型 onedev（WorkService+onedev-driver），build 默认本地（dsh exec-local） | systems/builtin/developer-system、instance 仓 impl/developer-system.md | ✅ | 已按 R1.6 落地 |
+| A25 | R2 Connector 拆分 | 单一 Connector 混"类型"与"使用" | 拆 ConnectorProvider（类型+代码绑定）/ConnectorOps（挂载使用，绑 Workflow）；Agent 默认挂 ops；builtin 服务 connector 提供默认 ops，每 ServiceInstance 可自实现；使用要权限 | concepts/connector.md | ✅ | 已落地 |
+| A26 | R2 Workflow | 任务态机缺声明载体 | 新增 Workflow（执行态机）；任务态机=default-task builtin；与 WorkflowDesign（设计文档）、TaskScheme（步骤图）三方边界已定；ConnectorOps 必绑 | concepts/workflow.md | ✅ | 已落地 |
+| A27 | R2 Provider | Agent 需绑定 API 账号/接口 | 新增 Provider（auth/config/connector 可空/secret→Credential 引用）；注意与 ConnectorProvider 不同物 | concepts/provider.md | ✅ | 已落地 |
+| A28 | R2 Notification | BIND 后缺通知概念 | 新增 Notification（一个 Scheme 一个 Instance）；ApprovalNeeded/Escalate 默认接通知实例 | concepts/notification.md | ✅ | 已落地 |
+| A29 | R2 取消 Agent 写路径强制规则 | "Agent 一切写操作经 Apply，违者拒绝" 被否 | 取消该规则；替代：每次 PLAN 与每完成一次 Session 必须记录文档（PlanDoc/SessionLog）于 ServiceInstance；文档面写入机制（Apply/Policy）本身保留 | concepts/agent.md §6.1、doctypes | ✅ | 已落地 |
+| A30 | R2 AUTOLEVEL | Agent 无自治分级 | ask/auto/all 三级；默认 RootAgent=ask、ServiceAgent=auto；all 需显式授权（P8 落地） | concepts/agent.md §3.1 | ✅ | 已落地 |
+| A31 | R2 子 agent 形态 | 派发子 dsh agent 的粒度未定 | 子 agent=机器 instance 级独立进程（非 dsh 内部 subagent），接受内存开销换隔离与直控；简单派发走 simple-shot | concepts/agent.md §1/§6.4 | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

@@ -1,95 +1,97 @@
-# Connector — 外部系统幂等驱动
+# Connector — ConnectorOps / ConnectorProvider（v0.3 拆分）
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | CSI/CNI/Device Plugin（驱动契约）+ operator 里 kubeclient 的位置 |
-| 形态 | 代码 + 声明（global/connectors/<type>/：connector.yaml + src/） |
-| 作用域 | Global（系统专属驱动放 systems/<s>/connectors/，同样全局注册） |
-| 状态 | 设计稿 v1 |
+| K8s 对照 | Provider≈CSI driver 实现（类型+代码绑定）；Ops≈VolumeAttachment/StorageClass（挂载使用） |
+| 形态 | 两个 Kind：`ConnectorProvider`（类型标注+代码绑定，Global）+ `ConnectorOps`（操作挂载，Global/System/Instance） |
+| 状态 | 设计稿 v0.3（R2 修正：原单一 Connector 拆为两个，A25） |
 
-## 1. 定义
+## 1. 定义（为什么拆）
 
-Connector 是"用代码做胶水"的正式化：把一个外部系统（WorkService）的操作封装成**统一幂等契约**，并把它外部发生的变化转成 Event。Agent 和 Loop 只面对契约，不面对千差万别的外部 API。
+原单一 Connector 混了两件事：**"这类驱动由什么代码实现"**（类型层）和**"这个系统挂了一份什么样的操作"**（使用层）。拆开：
 
-契约五个方法（全部幂等，P4）：
+- **ConnectorProvider**（类型层）：支持什么类型（types 标注）、具体对应什么代码或工具（impl 绑定）、契约支持度（get/plan/apply/verify/watch/undo）。纯注册，不含环境信息。
+- **ConnectorOps**（使用层）：挂载在 global 或某个 service/instance 里的"一份可调用操作"。引用一个 Provider，加上环境（endpoint/config/credential）、暴露的 op 子集、绑定的 Workflow。**Agent 默认挂 ConnectorOps**（不是直接挂 Provider）。
 
-```
-get(spec)            -> state          读现状
-plan(spec, state)    -> diff           算差距（不执行）
-apply(spec, dryRun)  -> actions|result 执行（可预演）
-verify(state, spec)  -> bool           验证是否一致
-watch()              -> events         外部变化 → Event 流
-undo(actionLog)      -> void           回滚（做不到的类型显式声明 undoUnsupported）
-```
+默认供给：builtin 服务 `builtin-connector`（systems/builtin/connector/）提供全局默认 ops（gitfs/dsh/http 等通用操作）；**每个 ServiceInstance 可以自己实现自己的 ConnectorOps**（就近遮蔽，scope 规则）——"builtin service: connector，每个 service instance 自己实现这个 connector"。
 
-原稿例子：Connector 是 DSH —— 即"Agent 怎么使用 DSH（分布式 shell）"的用法与代码就是一个 `dsh` 类型的 Connector。
+**使用要权限**：Agent 能调哪些 ops = 其引用的 ConnectorOps 并集，再被 Policy 裁剪（P7）。
 
 ## 2. 边界
 
-**是**：驱动层。吃声明、吐状态/事件。**纯机械**。
+**Provider 是**：类型注册项（Scheme 闸门管它）；**不是**：不含 endpoint/凭证/工作流。
 
-**不是**：
-- 不做业务判断（不读 Goal、不决定"该不该修"，那是 Agent）；
-- 不是外部系统本体（那是 WorkService）；
-- 不是 Agent 的一部分（代码集中入库，Agent 只引用 type+version，A16）；
-- 不持有凭证明文（运行时按 Credential 引用解析）。
+**Ops 是**：一份可调用的操作（环境+子集+Workflow）；**不是**：不是代码本体（代码在 Provider 的 impl）；不做业务判断。
+
+**二者都不是**：不是外部系统本体（WorkService）、不是 Plugin（Plugin 扩展 dsh 自身，Ops 对接外部）。
 
 ## 3. 对象结构
 
 ```yaml
-# global/connectors/gitlab-driver/connector.yaml
+# 类型层：global/connectors/onedev-driver/provider.yaml
 apiVersion: core/v1
-kind: Connector
+kind: ConnectorProvider
 metadata:
-  name: gitlab-driver
+  name: onedev-driver
   scope: global
 spec:
-  type: gitlab-driver            # Agent/WorkService 引用的就是 type
-  version: v1.2
-  runtime: {lang: go, entry: src/main}
-  contract:                      # 五方法支持度声明
+  types: [scm, ci]                       # 支持什么类型（类型标注）
+  impl: {repo: workservice, path: connectors/onedev}   # 对应代码或工具
+  contract:
     get: true  plan: true  apply: true  verify: true
     watch: true
-    undo: partial                # partial|full|none；none ⇒ Policy 强制人审
-  capabilities: [scm, ci-trigger] # 与 WorkService.capabilities 对齐
-  configSchema:                  # 使用方需提供的参数 schema
-    endpoint: {type: ref}
-    token:  {type: credential-ref}
+    undo: partial                        # none ⇒ 使用处 Policy 强制人审
+---
+# 使用层：systems/<s>/instances/<i>/connector-ops/onedev-ci.yaml（或 global/connectors/ops/<name>.yaml）
+apiVersion: core/v1
+kind: ConnectorOps
+metadata:
+  name: onedev-ci
+  scope: builtin-developer-system/local-ci
+spec:
+  provider: onedev-driver                # 类型来源
+  workflow: default-task                 # 绑定的 Workflow（见 concepts/workflow.md）
+  config: {endpointRef: ref/onedev-endpoint}
+  credentials: [credential/onedev-robot]
+  ops: [checkout, build-status, gate-status, verify]   # 暴露子集
+status:
+  conditions:
+    - {type: Reachable, status: "True"}
+    - {type: ProviderVersion, status: "True", reason: "v0.1"}
 ```
 
 ## 4. 生命周期
 
-注册（代码入库+Apply 声明）→ 被引用 → 版本升级（新 version，旧版保留兼容期）→ 废弃（无人引用后可删，Scheme 记 tombstone）。
+Provider：注册（代码入库+Apply）→ 被引用 → 版本升级（新版并存，兼容期）→ 废弃（无引用后）。
+Ops：创建（引用 Provider+配环境+绑 Workflow）→ 探活（conditions）→ 配置漂移=drift → 删除（Finalizer 清外部注册物，如 webhook）。
 
 ## 5. 与其他概念的关系
 
-- WorkService 引用它驱动自己；Agent 引用它获得能力（权限并集的一部分，P7）。
-- 它的 watch() 是 Event 的第一生产者（外部世界的入口）。
-- Credential 为它供钥匙；Ref 为它供地址。
+- **Workflow**：每个 Ops 必绑一个 Workflow（op 的调用走态机；builtin 有默认），见 concepts/workflow.md。
+- **Provider（大写概念）**：外部能力账号包（auth/config/connector/secret）里的 connector 字段引用 **ConnectorOps**——注意两词：`ConnectorProvider`（驱动类型）与 `Provider`（账号能力包）不同物，见 concepts/provider.md。
+- WorkService 引用 ops 驱动自己；TaskScheme 步骤的 `connector:` 字段指 ConnectorOps 名。
+- 权限：Agent 引用 ops（P7）；ops 的credentials 单独授权（credential.md）。
 
 ## 6. 设计规则
 
-1. 契约五方法缺省即拒绝注册（watch 可降级为轮询并显式声明 `watch: poll(30s)`）。
-2. 无 dry-run 的外部 API，Connector 内部用 get+plan 模拟 dry-run。
-3. Connector 代码即权限：能注册新 Connector 的权限 ≥ 改 Auth 文档，Policy 默认人审。
-4. 禁止 Connector 内嵌另一个 Connector 形成
-   逻辑编排——编排属于 Agent 的 plan，不属于驱动层。
+1. Provider 未注册的 type，Ops 不予创建（Scheme 闸门）。
+2. Ops 必绑 Workflow（缺省 default-task）。
+3. `undo: none` 的 Provider，其 Ops 的每次 apply 走人审。
+4. 一个外部系统的驱动只注册一个 Provider；环境差异全在 Ops 层。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 适配器黑洞 | ⚠️ 中 | 长尾外部系统写不完 | 分级：官方维护常用类型；一次性系统用 `dsh`/`http`/`sql` 三个通用驱动兜底 |
-| 通用驱动太危险 | ⚠️ 中 | dsh 能跑任意命令=最大权限面 | 通用驱动默认逐调用审批（Policy 拦截）+ 命令白名单模板 |
-| undo 不完整导致回滚断链 | ⚠️ 中 | actionLog 中断后无法完整回滚 | apply 分步落盘 actionLog；中断续跑；undoUnsupported 强制人审 |
-| 版本兼容矩阵复杂 | ⚠️ 低 | Connector 版本 × 外部系统版本 | WorkService.Status.VersionSupported 条件位显式呈现 |
+| 拆分后概念数膨胀 | ⚠️ 低 | 但消除了"类型/使用"混用的双源 | 命名硬区分：Provider=类型，Ops=使用 |
+| 每 instance 自实现 ops 的重复 | ⚠️ 中 | 用户明确要求（不共享状态） | 全局默认 ops 兜底 + 模板生成 |
+| 其余同 v0.2（适配面/幂等/undo） | ⚠️ 中 | 拆分不改变契约难度 | 见原可行性结论：成熟工程，无研究性风险 |
 
-**结论：可行。这是最传统、工程确定性最高的部分，适配器模式 + 统一契约，无研究性风险。**
+**结论：可行。拆分是纯结构改善，把"类型"与"使用"各归其位。**
 
 ## 8. 原始设计标注
 
-- A16：代码入库、Agent 引用 type。
-- 原稿"Connector 连接现有系统和 workload / type->对应代码（如 DSH）" → 落为本契约模型。
+- A25（R2）：Connector 拆为 ConnectorOps/ConnectorProvider；Agent 默认挂 ops；builtin 服务 `connector` 提供默认 ops；使用要权限。
 
 ## 9. 待决问题
 

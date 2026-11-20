@@ -12,7 +12,7 @@
 | [servicedesc.md](servicedesc.md) | ServiceDesc | 系统声明=一组文档 | Deployment Spec |
 | [serviceinstance.md](serviceinstance.md) | ServiceInstance | 声明的现实化 | Pod + status |
 | [workservice.md](workservice.md) | WorkService | 外部真实系统 | Node/External Provider |
-| [connector.md](connector.md) | Connector | 外部系统幂等驱动（代码胶水） | CSI/CNI driver |
+| [connector.md](connector.md) | ConnectorOps + ConnectorProvider | 外部系统幂等驱动（v0.3 拆类型层/使用层） | CSI driver + Attachment |
 | [ref.md](ref.md) | Ref | 第三方临时指针 | ObjectReference/ExternalName |
 | [builtin.md](builtin.md) | Builtin | 内部标记 + 最严作用域 | kube-system |
 | [event.md](event.md) | Event | 变化通知，只触发不修改 | Event/watch |
@@ -42,6 +42,15 @@
 | [task-scheme.md](task-scheme.md) | TaskScheme | R1.2.3：四层执行（意图→Agent→Scheme→代码），长运行不依赖 Agent 即兴 |
 | [template.md](template.md) | WorkServiceTemplate | R1.4：install service 的模板发现/询问/安装流程需要一个 builtin Scheme |
 
+## v0.3 新增/重划概念（R2 修正催生）
+
+| 文档 | Kind | 说明 |
+|---|---|---|
+| [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R2：拆使用层/类型层；Agent 默认挂 ops；builtin 服务 connector 提供默认 ops（A25） |
+| [workflow.md](workflow.md) | Workflow | R2：执行态机，ConnectorOps 必绑；任务态机=default-task builtin（A26） |
+| [provider.md](provider.md) | Provider | R2：外部能力账号包（auth/config/connector 可空/secret）（A27） |
+| [notification.md](notification.md) | Notification | R2：一个 Scheme 一个 Instance 的通知渠道（A28） |
+
 ## 边界矩阵（一屏总览）
 
 | 概念 | 管"意图"还是"现实" | 管内部还是外部 | 是数据还是声明 | 唯一存在理由 |
@@ -50,7 +59,7 @@
 | ServiceInstance | 现实的快照与证据 | 内 | 声明(Status)+数据 | 证明系统现在是什么 |
 | WorkService | 外部能力的声明 | 外 | 声明 | 把第三方纳入管理面 |
 | Agent | — | 内 | 声明 | 干活与收敛 |
-| Connector | — | 边界 | 声明+代码 | 幂等驱动外部 |
+| ConnectorProvider / ConnectorOps | — | 边界 | 声明+代码 | 类型标注+幂等驱动（v0.3 拆分） |
 | Ref | — | 外 | 声明 | 临时指路 |
 | Event | 现实的边沿 | — | 数据 | 触发"看一眼" |
 | MetricsInfo | 现实的序列 | — | 数据 | 支撑判断与验证 |

@@ -26,6 +26,8 @@
 | `ImplDoc` | required | how / mapping | Agent（随实现生成） | "我怎么实现这些功能的"（原稿 DOCS 前半）：声明→实现对照 |
 | `VerifyDoc` | required | guarantees / probes | Agent/owner | "怎么进行约束保障的"（原稿 DOCS 后半）：验证手段、探针、兜底 |
 | `DriftReport` | auto | drifts[] / actions[] | Loop 生成 | 每轮对账的差距与动作记录；也是下轮的压缩上下文 |
+| `PlanDoc` | required | intent / steps / budget | Agent | v0.3（A29）：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
+| `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3（A29）：每完成一次 Session 记录；态机可回放、上下文可审计 |
 | `Runbook` | optional | — | 人 | 人肉处理手册（Escalate 后人看的东西） |
 
 ## 3. Builtin 特例（原稿要求的三档）

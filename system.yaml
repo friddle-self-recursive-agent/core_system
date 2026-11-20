@@ -26,6 +26,7 @@ spec:
     - systems/builtin/developer-system
     - systems/builtin/deploy-system
     - systems/builtin/storage-system
+    - systems/builtin/connector            # v0.3：全局默认 ConnectorOps 宿主（A25）
   workserviceRefs:                   # 按能力引用，不点名
     - {capabilities: scm, ci}        # 由 developer-system 落地（onedev）
     - {capabilities: object-storage, nfs}  # 由 storage-system 落地（nas+oss）

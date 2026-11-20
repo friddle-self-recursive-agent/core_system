@@ -48,7 +48,7 @@ spec:
     storage: {nas: "nfs://nas/services/onedev", oss: "oss://services/onedev"}
     ports: [6610]
     min: {cpu: "2", mem: 4Gi}
-  connector: {type: onedev-driver, version: v0.1}
+  connectorOps: {ops: onedev-ci}          # v0.3：装完即挂的 ops（Provider 类型在 impl 里声明）
   install:                          # 确定性步骤（deploy-system 执行）
     - {action: pull-image,  from: images[0], verify: digest}
     - {action: render-config, template: config.tmpl, with: asks}

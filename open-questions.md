@@ -160,6 +160,36 @@
 2. ❷ 模板仓的命名约定（`<name>-template`？）与搜索方式（topic 标签 vs 仓库名匹配）？
 3. ❸ 无 OSS/NAS 的裸机环境，模板 resources 降级路径的最低要求？
 
+## connector（v0.3 拆分后）
+
+1. ❶ builtin 服务 `connector` 提供的默认 ops 集合定多大（gitfs/dsh/http 之外还放谁）？
+2. ❷ ops 的就近遮蔽（instance 覆盖 global）在 console 资源树上如何呈现，防"同名不同物"困惑？
+3. ❸ Provider 的 types 标注与 WorkService.capabilities 的关系：是否合并为同一词表？
+
+## workflow
+
+1. ❶ builtin 首批三个（default-task/simple-shot/watch-only）够用吗？是否补 install-flow？
+2. ❷ 相位预算默认值（Analyzing 5m 等）如何随模型速度调优——写进 Workflow 还是全局 Policy？
+3. ❸ SessionLog 回放的粒度：相位级还是动作级（存储量差一个量级）？
+
+## provider
+
+1. ❶ LLM Provider 是否需要多活（llm-main/llm-backup 自动切换）？切换策略放 Provider 还是 Agent？
+2. ❷ provider 与 credential 的人审能否合并为一次（同批变更）？
+3. ❸ 直连（connector 为空）的出口审计做到什么深度：域名白名单还是全量记录？
+
+## notification
+
+1. ❶ 首批通道顺序确认：IM（飞书）→ email → webhook 日志？
+2. ❷ 静默窗口与 oncall 值班联动：v1 做吗？
+3. ❸ critical 无通道的"建系统时警告"要不要升级为拒绝？
+
+## agent（v0.3 追加）
+
+1. ❶ Session 记录粒度"看实现"：dsh 会话结束即记，还是每 Workflow 相位迁移即记？
+2. ❷ docsLoaded 审计之外，要不要对"该读未读"（漏 Rule）做事后检测？
+3. ❸ RootAgent=ask 时问"Bind 的人"，多人值班如何路由（复用 escalationChain？）？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

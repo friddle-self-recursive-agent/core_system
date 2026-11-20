@@ -37,8 +37,8 @@ metadata:
 spec:
   descRef: desc.md                 # 这个外部系统是什么、提供什么能力
   capabilities: [scm, ci-trigger, mr-review]   # 能力标签，供 Desc 侧按能力引用
-  connectors:
-    - {type: gitlab-driver, version: v1.2}     # 幂等驱动
+  connectorOps:                                 # v0.3：引用 ConnectorOps（使用层）
+    - ops/onedev-ci
   endpoint: {ref: ref/gitlab-prod}             # 用 Ref 指地址，不写死
   credentials: [credential/gitlab-robot]       # 只引用，不明文
 status:                            # Connector watch + 健康探测回写
@@ -55,12 +55,12 @@ status:                            # Connector watch + 健康探测回写
 ## 5. 与其他概念的关系
 
 - 被 ServiceDesc 的 workserviceRefs 按能力引用（Desc 不绑实现，引用时按 capabilities 匹配）。
-- Connector 是它的驱动；Ref 指它的地址；Credential 是访问它的钥匙。
+- ConnectorOps 是它的驱动（类型由 ConnectorProvider 提供）；Ref 指它的地址；Credential 是访问它的钥匙；Provider 是账号包。
 - Prometheus 作为 WorkService 在册后，"监控实现"就有了归宿（A1 的下半句）。
 
 ## 6. 设计规则
 
-1. 能力声明（capabilities）是 Desc 侧引用的依据：换 gitlab→gitea 只动 WorkService+Connector，不动 Desc（这是"能力声明，不绑实现"的兑现处）。
+1. 能力声明（capabilities）是 Desc 侧引用的依据：换 gitlab→gitea 只动 WorkService+ConnectorOps/Provider，不动 Desc（"能力声明，不绑实现"的兑现处）。
 2. WorkService 的 Status 只描述"它自身健康/版本/可达"，不描述"我的系统好不好"（后者在 Instance）。
 3. 外部系统的任何写操作必须可回滚：Connector 契约含 undo 语义（见 connector.md）。
 4. 一个外部系统一个 WorkService 对象；同系统多环境=多对象（gitlab-prod / gitlab-test）。
