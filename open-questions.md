@@ -232,6 +232,12 @@
 2. ❷ Skill 提升为 Global 的判据（引用热度？跨实例数？）？
 3. ❸ Skill 与 provider.llmPrompt 冲突的检测时机：加载时校验 or 定期对账？
 
+## core（v0.7 dsh plugin 承载后）
+
+1. ❶ core plugin 与 builtinRoot/control plugin 同宿主时的启动序（谁先起、崩溃谁拉谁）？
+2. ❷ 多机时 core plugin 是否仍单实例（v1 单机接受；跨机的预留点）？
+3. ❸ "做通畅了"的判据定什么（首圈循环稳定跑 N 周？）作为启动独立 Core 界面的触发条件？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

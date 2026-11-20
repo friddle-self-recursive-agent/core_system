@@ -3,13 +3,15 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | kube-apiserver + etcd + controller-manager（合并为一个小进程） |
-| 形态 | 常驻最小进程（唯一被允许的非文档存在之一，P9） |
+| 形态 | **默认由 dsh plugin 承载**（A39）：core plugin 于 dsh 宿主内提供控制面；P9 例外清单不变 |
 | 作用域 | Builtin |
 | 状态 | 设计稿 v1 |
 
 ## 1. 定义
 
-Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——它的行为全部由 Builtin scope 下的 `core.desc` 等 Builtin 文档声明（自描述，见 instance 仓 loop/bootstrap.md）。
+Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——其行为由 core.desc 等 Builtin 文档声明（自描述，见 instance 仓 loop/bootstrap.md）。
+
+**承载形态（v0.7，A39）**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/Policy 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
 
 职责五件套：
 
@@ -27,7 +29,7 @@ Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、
 - 不是存储本身（存储是 git/目录/未来 DB，Core 只是封装）；
 - 不是 Scheme（Scheme 是注册表**数据**，Core 是读它的**进程**）；
 - 不是 Builtin（Builtin 是 scope **标记**，Core 是被标记的对象之一）；
-- 不执行任务（执行是 Agent）；不连外部系统（连接是 Connector）；
+- 不执行任务（执行是 Agent）；不连外部系统（连接是 ConnectorOps）；不自带独立界面（界面=console plugin，A39）；
 - 不做业务判断（判断是 Agent 读文档后做的）。
 
 ## 3. 自描述结构
@@ -56,7 +58,7 @@ status:                        # 由 builtinRoot Agent 回写
 
 ## 4. 生命周期
 
-启动（bootstrap 点火）→ 加载 Scheme → 校验文档库自洽 → 启动 Loop 引擎 → 常驻。升级 = Apply 新的 core.desc + builtinRoot 滚动重启自身（类似 k8s self-hosting）。Core 崩溃 → builtinRoot 拉起；builtinRoot 崩溃 → 看门狗（进程级，文档外最后一道，见 bootstrap）。
+启动（bootstrap 点火 → 起 dsh 宿主 → 载入 core plugin）→ 加载 Scheme → 校验文档库自洽 → 启动 Loop 引擎 → 常驻（驻于 dsh 宿主内）。升级 = Apply 新的 core.desc + builtinRoot 滚动重启自身（类似 k8s self-hosting）。Core 崩溃 → builtinRoot 拉起；builtinRoot 崩溃 → 看门狗（进程级，文档外最后一道，见 bootstrap）。
 
 ## 5. 与其他概念的关系
 
