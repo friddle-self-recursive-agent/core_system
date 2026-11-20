@@ -39,7 +39,7 @@ spec:
       effect: humanReview                    # 一律人审
     - match: {docTypes: [Auth]}
       effect: humanReview
-    - match: {kinds: [Connector, Credential, Bind]}
+    - match: {kinds: [ConnectorProvider, Provider, Bind]}   # v0.8：Credential→Provider（A40）
       effect: humanReview
     - match: {fieldManager: "agent/*", fields: ["spec.*"]}
       effect: deny                           # P6：Agent 不得写 Spec（默认）

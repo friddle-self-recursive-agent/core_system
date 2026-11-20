@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | Event 资源 + watch 通知 |
-| 形态 | 短生命周期数据（Core 内存队列 + 滚动归档），**不是文档对象** |
+| 形态 | 短生命周期数据（内存队列 + 滚动归档），**不是文档对象**（R7 确认）；队列由 dsh（core plugin）实现，类似 dsh 的 event 队列（A42） |
 | 作用域 | 全局命名空间（带来源标注） |
 | 状态 | 设计稿 v1 |
 
@@ -37,7 +37,7 @@ status:
   selector: {domain: ci}               # 供路由匹配（selector.md）
   at: 2026-11-20T10:00:00Z
   dedupKey: "gitlab:runner-label:sha256(...)"   # 同因事件聚合
-  severity: info | warning | critical
+  level: debug | info | warn | error | fatal   # Log 式等级（A42，取代原 severity）
 ```
 
 ## 4. 生命周期
@@ -52,7 +52,8 @@ status:
 
 ## 6. 设计规则
 
-1. dedupKey 强制：同一因由的重复事件在窗口内合并（防 gitlab 抖动引发风暴）。
+1. dedupKey 强调：同一因由的重复事件在窗口内合并（防外部抖动风暴；配合速率限制与 Workflow 侧冷却期——事件风暴的既有缓解不变）。
+1b. **Level 强制（A42）**：每个事件必带 log 式等级；消费侧按 level 过滤（debug 默认不入库只进内存队列；fatal 必接 Notification）。
 2. 事件不携带大负载：超过 1KB 的上下文放 Ref/DriftReport，Event 只带指针。
 3. 消费者不允许"信任事件内容"，只允许"被叫醒后自己看现实"（P3 的落地）。
 4. 死信必须可见：观测面死信计数是系统健康指标。
@@ -61,7 +62,7 @@ status:
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 事件风暴 | ⚠️ 中 | 外部抖动/告警雪崩 | dedupKey 聚合 + 速率限制 + Loop 侧最小间隔（loop.md 冷却期） |
+| 事件风暴 | ⚠️ 中 | 外部抖动/告警雪崩 | dedupKey 聚合 + 速率限制 + Workflow 冷却期（R7 确认保留） |
 | 事件丢失导致迟收敛 | ⚠️ 低 | 纯边沿会漏 | 定时巡检兜底（level-triggered 的保险丝）：最迟 N 分钟全量对账一次 |
 | 内存队列重启丢事件 | ⚠️ 低 | 同上 | 巡检兜底 + 归档落盘 |
 

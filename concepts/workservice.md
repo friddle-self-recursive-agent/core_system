@@ -40,7 +40,7 @@ spec:
   connectorOps:                                 # v0.3：引用 ConnectorOps（使用层）
     - ops/onedev-ci
   endpoint: {ref: ref/gitlab-prod}             # 用 Ref 指地址，不写死
-  credentials: [credential/gitlab-robot]       # 只引用，不明文
+  auth: {provider: provider/gitlab-robot}     # v0.8：凭证走 Provider（A40）
 status:                            # Connector watch + 健康探测回写
   observedGeneration: 4
   conditions:
@@ -55,7 +55,7 @@ status:                            # Connector watch + 健康探测回写
 ## 5. 与其他概念的关系
 
 - 被 ServiceDesc 的 workserviceRefs 按能力引用（Desc 不绑实现，引用时按 capabilities 匹配）。
-- ConnectorOps 是它的驱动（类型由 ConnectorProvider 提供）；Ref 指它的地址；Credential 是访问它的钥匙；Provider 是账号包。
+- ConnectorOps 是它的驱动（类型由 ConnectorProvider 提供）；Ref 指它的地址；Provider 是账号与钥匙包（v0.8 起钥匙内化于 Provider，A40）。
 - Prometheus 作为 WorkService 在册后，"监控实现"就有了归宿（A1 的下半句）。
 
 ## 6. 设计规则

@@ -60,6 +60,9 @@
 | A37 | R4 Builtin 概念 | v0.2 把 Builtin 做成"最严作用域+强制文档集+成员白名单"，语义错误 | Builtin=起源标记：core_system 系统本来开发/代码自带（如默认代码带最基础的 builtin_developer_system）；不携带任何强制要求；必带文档级别归 DocType 注册（Scheme 层）与 Service 自身声明；治理档位由 Policy 规则配置（可按 origin 匹配），非概念内生 | concepts/builtin.md、doctypes/README.md §3、concepts/scope.md、concepts/doctype.md | ✅ | 已落地 |
 | A38 | R5 Connector 再简化 + Skill | v0.3 的 Provider/Ops 生命周期过重（版本并存/探活/drift/finalizer） | Provider=绑定：impl 三形态（tool 外部直接工具/image 镜像/source 源代码+Ref 统一管理）；命名解析：无前缀=默认 org friddle-self-recursive-agent（代码与安装在该 org 生成），带前缀=github.com/<org>/<name> 完整配置；yaml 增 scheme/usage/llmPrompt（LLM 注入提示）/download（工具下载地方）；Ops=工具调用方式/提供的功能；新增 Skill：工具使用处缓存为 skill（按需注入，缓存非真相） | concepts/connector.md、concepts/skill.md、core/scheme.yaml | ✅ | 已落地 |
 | A39 | R6 Core 承载形态 | Core 独立进程+将来独立界面的默认路线过重 | **默认用 dsh plugin 承接 Core**：core plugin（Apply/Event/Loop 引擎/Scheme/Policy）跑在 dsh 宿主内；**单独 Core 界面暂缓**——界面=console plugin，做通畅后再单独做 | concepts/core.md、concepts/plugin.md、instance impl/self-recursive-core.md、workservice | ✅ | 已落地 |
+| A40 | R7 Credential 删除 | "不再有 Credential，有 Provider 概念即可" | Credential 概念/Kind 删除；secret 完全内化为 Provider.auth.secret（source 引用式取值 vault/env/keychain；明文扫描规则并入 Provider；轮换/吊销规则并入）；全库引用清理 | concepts/provider.md 及全库 | ✅ | 已落地 |
+| A41 | R7 Loop 并入 Workflow | Loop 概念变了：合并到 workflow | Loop=带触发规则的 Workflow 实例（developer_system 是一种 loop）；Loop 本质=触发规则→事件整理→事件处理→文档回归 的整个 workflow；内置 core-loop；cooldown/maxMutations/DriftReport 防重/每轮成本 全部迁入 Workflow；跨权限完整分析已做（五穿越点+三出路+分阶段） | concepts/workflow.md §7、concepts/loop.md（墓碑） | ✅ | 已落地 |
+| A42 | R7 Event 定级 | 事件要有类似 Log 的 Level；builtin 类似 dsh 实现的 event 队列 | Event.level=log 式五级（debug/info/warn/error/fatal）；debug 默认只进内存队列，fatal 必接 Notification；事件队列由 dsh（core plugin）实现；"短生命周期非文档对象"确认不变 | concepts/event.md | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

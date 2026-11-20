@@ -238,6 +238,22 @@
 2. ❷ 多机时 core plugin 是否仍单实例（v1 单机接受；跨机的预留点）？
 3. ❸ "做通畅了"的判据定什么（首圈循环稳定跑 N 周？）作为启动独立 Core 界面的触发条件？
 
+## workflow（v0.8 吸收 Loop 后）
+
+1. ❶ core-loop 与 default-task 的边界：core-loop 是系统级循环、default-task 是单任务态机——同一轮里嵌套时（core-loop 的 Executing 内跑 default-task 任务）成本与刹车按哪层计？
+2. ❷ 跨权限三出路的判定顺序写在哪：引擎硬编码（1→2→3）还是 Workflow 声明？
+3. ❸ 提案方付费的成本规则：被提案方拒绝时成本是否返还记账（纯审计语义）？
+
+## provider（v0.8 吸收 secret 后）
+
+1. ❶ Provider 变更人审会不会拖慢轮换（90d 轮换遇审批积压）？轮换走免审通道的边界？
+2. ❷ 原 credential 的 grantedTo 授权粒度并入后：auth.provider 授权给哪些 ConnectorOps 的声明放 Ops 侧还是 Provider 侧？
+
+## event（Level 化后）
+
+1. ❶ Level 与 Notification 的映射表（warn→?，error→?）默认值？
+2. ❷ debug 事件要不要可选落盘（排障时开）？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

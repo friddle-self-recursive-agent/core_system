@@ -58,7 +58,7 @@ spec:
     - {action: inject-finalizer, name: core/wipe-workservice-side-effects}
   asks:                             # 安装时必须询问的项
     - {field: endpoint.host, question: "服务绑定主机名？"}
-    - {field: credential.admin, kind: credential-ref, question: "管理员令牌放哪把钥匙？"}
+    - {field: auth.provider, kind: provider-ref, question: "管理员账号用哪个 Provider？（v0.8，A40）"}
 ```
 
 ## 4. 与其他概念的关系

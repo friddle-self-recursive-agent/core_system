@@ -17,7 +17,7 @@
 
 **不是**：
 - 不是 Bind（Bind 是对象↔role；用户系统是人↔role）；
-- 不是 Credential（机器钥匙 vs 人的身份）；
+- 不是 Provider（Provider=外部账号/钥匙包，机器侧；用户系统=人）；
 - 不做认证协议实现（builtin 只是一张表；真需要 SSO/OIDC 是未来 IdP 接入的事）；
 - 不管权限语义（权限仍是 P7 并集 + Policy）。
 

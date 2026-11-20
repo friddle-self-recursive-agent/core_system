@@ -56,7 +56,7 @@ status:
 1. Ref 必须挂 owner（人或对象）；无主即清理。
 2. 重要外部依赖禁止只用 Ref：被 Loop 依赖的目标必须是 WorkService（Ref=知道，WorkService=管理）。
 3. Ref 不得指向文档库内部对象（内部引用用 `system://` URI，Ref 只对外）。
-4. 敏感目标（带 token 的 URL）禁止入 Ref——用 Credential+Ref 组合，凭证不入指针。
+4. 敏感目标（带 token 的 URL）禁止入 Ref——账号与钥匙走 Provider（v0.8，A40），指针只存目标地址。
 
 ## 7. 可行性分析
 

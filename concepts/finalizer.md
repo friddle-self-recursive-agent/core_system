@@ -33,7 +33,7 @@
 metadata:
   finalizers:
     - core/wipe-workservice-side-effects   # 命名：<注册者>/<语义>
-    - core/revoke-credentials
+    - core/revoke-provider-auth      # v0.8：原 revoke-credentials 更名（A40）
 status:
   deletion: {startedAt: ..., phase: Cleaning|Blocked, perFinalizer: [...]}
 ```

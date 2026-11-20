@@ -60,7 +60,7 @@ metadata:
 spec:
   provider: onedev-driver        # 绑定（经命名解析）
   config: {endpointRef: ref/onedev-endpoint}
-  credentials: [credential/onedev-robot]
+  auth: {provider: provider/onedev-robot}          # v0.8：凭证走 Provider（Credential 已删，A40）
   ops: [checkout, build-status, gate-status, verify]   # 提供的功能
 ```
 

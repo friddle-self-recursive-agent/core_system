@@ -11,10 +11,10 @@
 
 Provider 回答："用谁家的 API、拿什么钥匙、怎么配、走哪个连接"。Agent 理论上要绑定 Provider——提供相应的 API 账号密码或接口（LLM API、IM 通知、云厂商……）。四要素：
 
-- **auth**（属于）：认证方式与归属（scheme + secret 引用）；
+- **auth**（属于）：认证方式与归属（scheme + secret）；
 - **config**：baseUrl、模型列表、限流等环境参数；
 - **connector**：走哪个 ConnectorOps（**可为空**——本地工具/无接口依赖的能力）；
-- **secret**：密钥本体走 Credential 引用（明文永不入库，credential.md 规则不变）。
+- **secret**：密钥的取值来源与轮换（**v0.8 起 Credential 概念删除，A40：secret 是 Provider 的字段**；明文永不入库——source 只允许 vault/env/keychain 引用式取值）。
 
 ## 2. 边界
 
@@ -22,7 +22,7 @@ Provider 回答："用谁家的 API、拿什么钥匙、怎么配、走哪个连
 
 **不是**：
 - 不是 ConnectorProvider（那是驱动**类型**；本概念的 connector 字段引用的是 **ConnectorOps**——名字相近，两物，A27 备注）；
-- 不是 Credential（Credential=一把钥匙；Provider=一个账号包，可含多把钥匙+config+通道）；
+- ~~不是 Credential~~（**Credential 概念已删除，A40**：钥匙就是 Provider 的 auth.secret 字段，不再有独立凭证对象）；
 - 不是 WorkService（WorkService=被管理的外部系统；Provider=访问某能力的账号视角，同一系统可有多份 Provider：只读号/管理员号）；
 - 四要素皆可为空（空 Provider=纯本地能力占位，合法）。
 
@@ -38,7 +38,7 @@ spec:
   kind: llm                          # llm | im | email | cloud | generic
   auth:
     scheme: bearer
-    secret: credential/llm-api-key   # secret 概念→Credential 引用
+    secret: {source: "vault:secret/llm-api-key", rotation: 90d}   # v0.8：secret 是 Provider 字段（A40），明文不入库
   config:
     baseUrl: https://api.example.com/v1
     models: [glm-5, glm-4-flash]
@@ -52,7 +52,7 @@ metadata:
   scope: global
 spec:
   kind: im
-  auth: {scheme: oauth2, secret: credential/feishu-app}
+  auth: {scheme: oauth2, secret: {source: "keychain:feishu-app"}}
   config: {app: cli_xxx, chatId: oc_xxx}
   connector: ops/http-api            # 走通用 http ConnectorOps
 ```
@@ -70,15 +70,16 @@ spec:
 ## 6. 设计规则
 
 1. Provider 变更走人审（它是"谁拿钥匙"的答案）。
-2. secret 字段只允许 Credential 引用（出现明文=Policy 拒绝+扫描告警）。
+2. secret 只允许引用式取值（vault:/env:/keychain:），出现明文=Policy 拒绝+全库扫描告警（原 Credential 扫描规则并入）。
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
+5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 与 Credential 职责接近造成双簿记 | ⚠️ 中 | 钥匙信息两处出现 | 硬边界：Provider 不存密钥本体，只存引用+config；Policy Lint 交叉校验引用存在 |
+| 密钥信息集中后成为高价值目标 | ⚠️ 中 | Provider 是钥匙集合的索引 | 明文扫描全库（原 credential 规则并入）；Provider 变更人审；source 只允许引用式取值 |
 | Provider 泛滥 | ⚠️ 低 | 每个外部账号一个 | 命名规范 `<kind>-<用途>`；无引用 Provider 告警 |
 
 **结论：可行。纯簿记聚合，风险由边界规则压住。**
@@ -86,6 +87,7 @@ spec:
 ## 8. 原始设计标注
 
 - A27（R2）：新增概念（auth/config/connector 可空/secret 四要素）。
+- A40（R7）：Credential 概念删除，secret 完全内化为 Provider 字段。
 
 ## 9. 待决问题
 

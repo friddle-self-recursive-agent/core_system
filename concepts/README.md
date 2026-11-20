@@ -23,7 +23,7 @@
 
 | 文档 | Kind | 补它是因为 |
 |---|---|---|
-| [loop.md](loop.md) | Loop | 收敛引擎要成为可配置的一等对象，而不是写死在代码里 |
+| [loop.md](loop.md) | ~~Loop~~ | **已并入 Workflow（A41）**：Loop=带触发规则的 Workflow 实例 |
 | [status.md](status.md) | — | 没有 Spec/Status 分离就没有声明式 |
 | [scope.md](scope.md) | — | "属于哪个 System 还是 Global" 需要正式的名字解析规则 |
 | [selector.md](selector.md) | — | 事件路由、汇总观测需要跨对象选择 |
@@ -31,7 +31,7 @@
 | [finalizer.md](finalizer.md) | — | 删除外部副作用必须两阶段（A7） |
 | [doctype.md](doctype.md) | — | "文档类型"本身要能注册扩展（=CRD） |
 | [policy.md](policy.md) | — | 文档即权限 ⇒ 必须有准入（A9） |
-| [credential.md](credential.md) | Credential | Connector 访问外部系统的凭证不能散落代码里 |
+| ~~credential.md~~ | ~~Credential~~ | **已删除（A40）**：钥匙内化为 Provider.auth.secret |
 | [revision.md](revision.md) | — | 多写者并发与审计（A8） |
 
 ## v0.2 新增概念（R1 运行时要求催生）
@@ -66,6 +66,14 @@
 |---|---|---|
 | [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
 | [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
+
+## v0.8 变更（R7 修正催生）
+
+| 文档 | 变更 | 说明 |
+|---|---|---|
+| [workflow.md](workflow.md)（重写） | 吸收 Loop | Loop=带触发规则的 Workflow 实例；内置 core-loop（event→analysis→处理/上报→plan/auto→调用系统→状态更新→文档回归）；刹车三件套+每轮成本迁入（A41） |
+| ~~credential.md~~ | 删除 | 钥匙内化为 Provider.auth.secret（A40） |
+| [event.md](event.md) | 加 Level | log 式五级；事件队列由 dsh（core plugin）实现（A42） |
 
 ## 边界矩阵（一屏总览）
 
