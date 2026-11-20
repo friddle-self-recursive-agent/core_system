@@ -21,10 +21,9 @@ spec:
     - {kind: User,           builtin: true,  storage: global/users/<name>.yaml}                       # v0.4 用户系统
     - {kind: Ref,             builtin: true,  storage: global/refs/<name>.yaml}
     - {kind: Bind,            builtin: true,  storage: global/binds/<name>.yaml}
-    - {kind: Policy,          builtin: true,  storage: global/policies/<name>.yaml}
-    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}
+    - {kind: Role,  builtin: true, storage: global/roles/<name>.yaml}   # v0.9 权限系统（A44/A45）
+    - {kind: Group, builtin: true, storage: global/groups/<name>.yaml} # v0.9 权限系统    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}
     - {kind: WorkServiceTemplate, builtin: true, storage: global/templates/<name>.yaml}
-    - {kind: Plugin,          builtin: true,  storage: global/plugins/<name>.yaml}
   docTypes:                      # 展开定义见 doctypes/README.md
     [Goal, Desc, Rule, WorkflowDesign, Metrics, DataDesign, DataMetrics, Auth,
      DeployDesign, CodeDesign, ImplDoc, VerifyDoc, DriftReport, Runbook, Requirements,
@@ -46,12 +45,17 @@ spec:
     - {on: ApprovalNeeded|Escalate, for: selector:*,    dispatch: notification/*}  # v0.3：通知路由
     - {on: "*",                  for: selector:*,       dispatch: deadletter}
   runtime:                       # v0.3 运行时基座（R1.2 + R2）
-    baseAgent: dsh               # 基础 agent 运行时；子 agent=机器级进程派发（A31）
+    baseAgent: dsh               # 外部运行时（deepseek 插件机制）；core 即以 dsh plugin 实现（A39/A43）；系统本身无 plugin 概念
     executionLayers: [intent, agent, scheme, code]
     defaultWorkflow: default-task          # builtin 集合：core-loop/default-task/simple-shot/watch-only（A41）
     autoLevels:                           # AUTOLEVEL 默认（A30）
       rootAgent: ask
       serviceAgent: auto
+    permissionSystem:                   # v0.9 权限系统（A45）
+      defaultAdminRole: global/admin      # 默认全权限，不可删
+      binding: [user->role, user->group->role]   # 只绑 role，不直接绑权限
+      scopes: [global, system]            # global 权限 / system 开头各自权限域
+      agentJudgement: [agent, role, parent-agent] # 判定方灵活不限死；跨系统由被请求方判定
     escalation: root                     # v0.4：默认上溯 root agent；bind=权限插入，双通道（A35）
     providerResolution:                  # v0.6：ConnectorProvider 命名解析（A38）
       defaultOrg: friddle-self-recursive-agent   # 无前缀名 ⇒ 默认 org（代码与安装在该 org 生成）

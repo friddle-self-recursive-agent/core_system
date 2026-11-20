@@ -29,7 +29,7 @@ Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply—�
 apply(obj, opts)
   opts: {dryRun: bool, force: bool, fieldManager: "agent/ci-repair-agent"}
 
-流程：读当前 → Policy 准入 → 文档级比对（整文档）
+流程：读当前 → 权限系统 准入 → 文档级比对（整文档）
      → 内容相同：no-op（见规则 1）
      → 内容不同：乐观锁提交（Revision）→ generation+1（若 spec 变）→ DocApplied Event
 冲突：resourceVersion 不符 = Conflict → 后写者重读；
@@ -43,8 +43,8 @@ apply(obj, opts)
 ## 5. 与其他概念的关系
 
 - Revision 提供乐观锁与历史（审计=git log + ops DB 双轨）。
-- Policy 在 Apply 内执行（准入是写路径的一环）。
-- 写者四种：人写 Spec、Agent 回写 Status/SessionLog、Loop 写 DriftReport、跨系统提案（默认进对方待审区，除非 Policy 放行）。
+- 权限系统 在 Apply 内执行（准入是写路径的一环）。
+- 写者四种：人写 Spec、Agent 回写 Status/SessionLog、Loop 写 DriftReport、跨系统提案（默认进对方待审区，除非 权限系统 放行）。
 - Notification：DocApplied/ApprovalNeeded 的告知出口（无 SLA 机器）。
 
 ## 6. 设计规则
@@ -60,7 +60,7 @@ apply(obj, opts)
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 并发写冲突更粗（文档级） | ⚠️ 低 | 接受：文档粒度本就大，写者少 | 乐观锁+重读；真需并行的内容应拆成多份文档 |
-| LLM 语义 diff 幻觉 | ⚠️ 中 | 合并建议可能错 | 事实基础永远是 git 文本 diff；LLM 只做解读与合并提案，落地必须人裁（或 Policy 高危拦截） |
+| LLM 语义 diff 幻觉 | ⚠️ 中 | 合并建议可能错 | 事实基础永远是 git 文本 diff；LLM 只做解读与合并提案，落地必须人裁（或 权限系统 高危拦截） |
 | ~~SSA 实现复杂~~ | — | 已删除（A33） | — |
 
 **结论：可行，且比 v0.2 更简单（删掉最难啃的 SSA 子集）。**

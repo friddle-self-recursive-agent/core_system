@@ -54,11 +54,11 @@ status:
 - 上游：Event 总线（按 on.events+severity 订阅）。
 - 下游：Provider（im/email/webhook 的账号与通道）→ ConnectorOps（非直连时）。
 - 对象：Bind（route.to=bind 时解析责任链）。
-- Workflow 的 Escalate 出口、Policy 的 ApprovalNeeded 默认接一个 Notification 实例（缺省 `approval-im`）。
+- Workflow 的 Escalate 出口、权限系统 的 ApprovalNeeded 默认接一个 Notification 实例（缺省 `approval-im`）。
 
 ## 6. 设计规则
 
-1. critical 必须有可达通道（无 Notification 覆盖 critical 的系统，Policy 建系统时警告——通知面不许悬空）。
+1. critical 必须有可达通道（无 Notification 覆盖 critical 的系统，权限系统 建系统时警告——通知面不许悬空）。
 2. 去重窗口强制（同 dedupKey 聚合）；失败重试后降级（im→email→webhook 日志）。
 3. 通知内容不携带敏感明文（凭证/密钥模式扫描同规则）。
 4. 送达记录进 ops DB（approval/escalate 关联审计）。

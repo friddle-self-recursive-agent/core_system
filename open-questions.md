@@ -27,7 +27,7 @@
 ## servicedesc
 
 1. ❶ "能力声明，不绑实现"（规则 2）在现实里常被打破——紧急修复直接点名实现。要不要一个 escape hatch（如 annotations 里允许、定期还债的 lint 豁免）？
-2. ❷ Goal.acceptance 的"可验证"标准由谁裁定：写系统的人、Bind 的 owner、还是 Policy 的固定模板？
+2. ❷ Goal.acceptance 的"可验证"标准由谁裁定：写系统的人、Bind 的 owner、还是 权限系统 的固定模板？
 3. ❸ 一个系统的边界划多大：developer-system 是一个 Desc，还是 scm/ci 两个？判据是什么（一个 owner？一个收敛域？）？
 4. 文档间矛盾的自动检出做到什么深度：仅交叉引用存在性，还是语义级（LLM lint）？
 
@@ -67,7 +67,7 @@
 
 1. ❶ 归档保留期（30d/1y）与合规要求对齐吗？审计要求 longer retention 吗？
 2. ❷ 巡检兜底的默认 resync 间隔（10m）与事件去重窗口的关系：去重窗口必须 < resync，确认默认值组合自洽？
-3. ❸ 死信熔断：同一 dedupKey 死信 N 次后自动屏蔽该来源吗？屏蔽是 Policy 动作还是 Event 系统动作？
+3. ❸ 死信熔断：同一 dedupKey 死信 N 次后自动屏蔽该来源吗？屏蔽是 权限系统 动作还是 Event 系统动作？
 
 ## apply
 
@@ -128,7 +128,7 @@
 
 1. ❶ 审批放行的粒度：按 fieldManager 放行后，同一 Agent 的所有后续动作都免审吗？要不要"单次批准"token？
 2. ❷ Lint 警告的收敛：警告堆积会让真正的信号被淹没，警告也要 SLA 吗？
-3. ❸ Policy 自身变更的"最小自引用"审查：改 Policy 的人审由谁批（平台 oncall？）？
+3. ❸ 权限系统 自身变更的"最小自引用"审查：改 权限系统 的人审由谁批（平台 oncall？）？
 
 ## credential
 
@@ -138,15 +138,15 @@
 
 ## revision
 
-1. ❶ commit message 结构化的强制力：pre-commit 钩子校验还是 Policy 校验（走 Apply 的都过 Policy，但直接 git commit 呢——v1 单库绕过路径）？
+1. ❶ commit message 结构化的强制力：pre-commit 钩子校验还是 权限系统 校验（走 Apply 的都过 权限系统，但直接 git commit 呢——v1 单库绕过路径）？
 2. ❷ Conflict 率的健康阈值定多少？超阈值的自动处置（限流最活跃写者？）？
-3. ❸ git 历史与 Policy 审计记录的关联：audit 记录单独存还是完全信任 git log？
+3. ❸ git 历史与 权限系统 审计记录的关联：audit 记录单独存还是完全信任 git log？
 
 ## plugin
 
 1. ❶ control 直控通道的原语集最小闭环是什么（dispatch/interrupt/query 三够吗）？要不要 sub→root 的主动上报通道（还是复用 reporter）？
 2. ❷ console plugin 的宿主形态：TUI 先行还是直接 Web？决定首版交互范围。
-3. ❸ 插件权限 grants 与 Agent docsPolicy 的合并规则（交集还是并集）？
+3. ❸ 插件权限 grants 与 Agent docs权限系统 的合并规则（交集还是并集）？
 
 ## task-scheme
 
@@ -169,7 +169,7 @@
 ## workflow
 
 1. ❶ builtin 首批三个（default-task/simple-shot/watch-only）够用吗？是否补 install-flow？
-2. ❷ 相位预算默认值（Analyzing 5m 等）如何随模型速度调优——写进 Workflow 还是全局 Policy？
+2. ❷ 相位预算默认值（Analyzing 5m 等）如何随模型速度调优——写进 Workflow 还是全局 权限系统？
 3. ❸ SessionLog 回放的粒度：相位级还是动作级（存储量差一个量级）？
 
 ## provider
@@ -194,7 +194,7 @@
 
 1. ❶ no-op 判定的字节级宽容度（空白/注释变化算不算 no-op）？
 2. ❷ 跨系统提案待审区的展示与处理 UX 定在 console 哪个入口？
-3. ❸ force 选项保留给谁（仅 Policy 高权限角色？）？
+3. ❸ force 选项保留给谁（仅 权限系统 高权限角色？）？
 
 ## revision（v0.4 追加）
 
@@ -217,7 +217,7 @@
 ## builtin（v0.5 起源标记后）
 
 1. ❶ 起源判据：随 core_system 代码仓开发？随默认发版带出？第三方后来合入算不算？
-2. ❷ origin 用 scope+label 双表达后，Policy 默认要不要给 core/origin=builtin 配一条人审规则（配置层默认值）？
+2. ❷ origin 用 scope+label 双表达后，权限系统 默认要不要给 core/origin=builtin 配一条人审规则（配置层默认值）？
 3. ❸ builtin 对象升级随代码发版（R1.3）与文档侧 Apply 的节奏冲突如何对账？
 
 ## connector（v0.6 简化后）
@@ -253,6 +253,17 @@
 
 1. ❶ Level 与 Notification 的映射表（warn→?，error→?）默认值？
 2. ❷ debug 事件要不要可选落盘（排障时开）？
+
+## permission（权限系统）
+
+1. ❶ 判定方声明化的粒度：Agent 级还是 Workflow 级（同一 agent 不同 workflow 判定方不同）？
+2. ❷ role 模板集首批定哪些（devtools-admin/platform-oncall/readonly…）？
+3. ❸ 跨系统 B 侧判定的拒绝理由要不要回传 A（提案注释）以便 A 调整？
+
+## plugin（删除后遗留）
+
+1. ❶ dsh（deepseek 运行时）的版本升级如何进入我们的发布节奏（外部依赖管理）？
+2. ❷ core 以 dsh plugin 实现的启动序与看门狗关系（bootstrap 联动）记录在哪：instance runtime 文件即可？
 
 ## 横切（不属于单一概念）
 

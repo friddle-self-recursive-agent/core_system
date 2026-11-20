@@ -41,12 +41,12 @@ spec:
   examples:                         # 成功调用示例（脱敏）
     - {op: checkout, args: {ref: main}, outcome: ok}
   origin: {sessionRef: session-2026…, cachedAt: 2026-11-20}
-  cachePolicy: {ttl: 30d, invalidateOn: {providerVersionChange: true}}
+  cache权限系统: {ttl: 30d, invalidateOn: {providerVersionChange: true}}
 ```
 
 ## 4. 生命周期
 
-使用处缓存（Session 成功调用后沉淀）→ 会话按需加载（与文档按需加载同机制，docsPolicy.onDemand）→ 高频 Skill 提升为 Global（多人/多实例复用）或反哺回 Provider.usage/llmPrompt → 过期/失效（TTL、provider 版本变更、示例失败率升高）自动丢弃。
+使用处缓存（Session 成功调用后沉淀）→ 会话按需加载（与文档按需加载同机制，docs权限系统.onDemand）→ 高频 Skill 提升为 Global（多人/多实例复用）或反哺回 Provider.usage/llmPrompt → 过期/失效（TTL、provider 版本变更、示例失败率升高）自动丢弃。
 
 ## 5. 与其他概念的关系
 

@@ -71,7 +71,7 @@ spec:
 
 ## 5. 与其他概念的关系
 
-- Agent 默认挂 Ops（工具面）；**使用要权限**（P7 并集+Policy 不变）。
+- Agent 默认挂 Ops（工具面）；**使用要权限**（P7 并集+权限系统 不变）。
 - Provider 的 llmPrompt + Skill 缓存共同构成 Agent 的工具使用上下文（会话按需注入）。
 - Ops 仍可绑 Workflow（缺省 default-task）——相位约束，不是生命周期机器。
 - 默认 org 的 Provider 集 = 我们自带的基础工具箱（onedev/gitfs/nas/oss/dsh…），代码与安装在 org 仓生成。
@@ -79,7 +79,7 @@ spec:
 ## 6. 设计规则
 
 1. 无前缀名必须能在默认 org 解析到；解析不到报错（不静默回退）。
-2. 带前缀名按 GitHub 拉取完整配置后走 Policy 扫描（同 install 流程的安全规则）。
+2. 带前缀名按 GitHub 拉取完整配置后走 权限系统 扫描（同 install 流程的安全规则）。
 3. impl 三形态必择一；source 形态必带 Ref（统一管理）。
 4. llmPrompt 必填（哪怕一句话）——它是 Agent 会话注入的工具说明书；download 必填。
 5. Ops 就是调用面：不为它设探活/漂移/finalizer 概念级机制。
@@ -88,7 +88,7 @@ spec:
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 外部 org 配置质量不可控 | ⚠️ 中 | 带前缀拉来的 provider 可能有坑 | Policy 扫描+digest+高危人审（复用 install 规则） |
+| 外部 org 配置质量不可控 | ⚠️ 中 | 带前缀拉来的 provider 可能有坑 | 权限系统 扫描+digest+高危人审（复用 install 规则） |
 | llmPrompt 写得差→Agent 用错工具 | ⚠️ 低 | 说明书质量问题 | Skill 缓存反哺（实战调用模式沉淀回 usage/llmPrompt） |
 | 三形态 impl 的安装差异 | ⚠️ 低 | tool/image/source 安装方式不同 | download 字段统一指路；安装执行归 deploy-system |
 

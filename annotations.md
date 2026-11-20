@@ -63,6 +63,9 @@
 | A40 | R7 Credential 删除 | "不再有 Credential，有 Provider 概念即可" | Credential 概念/Kind 删除；secret 完全内化为 Provider.auth.secret（source 引用式取值 vault/env/keychain；明文扫描规则并入 Provider；轮换/吊销规则并入）；全库引用清理 | concepts/provider.md 及全库 | ✅ | 已落地 |
 | A41 | R7 Loop 并入 Workflow | Loop 概念变了：合并到 workflow | Loop=带触发规则的 Workflow 实例（developer_system 是一种 loop）；Loop 本质=触发规则→事件整理→事件处理→文档回归 的整个 workflow；内置 core-loop；cooldown/maxMutations/DriftReport 防重/每轮成本 全部迁入 Workflow；跨权限完整分析已做（五穿越点+三出路+分阶段） | concepts/workflow.md §7、concepts/loop.md（墓碑） | ✅ | 已落地 |
 | A42 | R7 Event 定级 | 事件要有类似 Log 的 Level；builtin 类似 dsh 实现的 event 队列 | Event.level=log 式五级（debug/info/warn/error/fatal）；debug 默认只进内存队列，fatal 必接 Notification；事件队列由 dsh（core plugin）实现；"短生命周期非文档对象"确认不变 | concepts/event.md | ✅ | 已落地 |
+| A43 | R8 Plugin 概念删除 | "没有这个概念。我们系统本身没有 plugin" | Plugin 概念/Kind 删除；dsh=外部运行时（deepseek 插件机制），core 用 dsh plugin 实现（A39 沿用）；core/console/exec-local 等降为**实现说明**（instance 仓），非系统概念 | concepts/plugin.md（墓碑）、core/scheme.yaml | ✅ | 已落地 |
+| A44 | R8 Policy 概念删除 | "Policy 准入控制不要。放到权限系统" | Policy 概念/Kind 删除；职责重分：权限+人审→权限系统；结构校验→Scheme/DocType；一致性→引擎；硬规则→权限系统内置项 | concepts/policy.md（墓碑）、concepts/permission.md | ✅ | 已落地 |
+| A45 | R8 权限系统设计 | 新的权限骨架 | scope 权限域：global 权限 + system 开头各自 system 权限；默认 global/admin 全权限；**一切只绑 role**（用户绑 role / 用户绑 group、group 绑 role；不直接绑权限）；agent 权限判断不限死（agent/role/上级 agent）；跨系统 A 请求 B 时由 B 侧判定 | concepts/permission.md | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

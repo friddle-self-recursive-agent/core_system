@@ -42,7 +42,7 @@ resourceVersion：Core 每次成功写入自增；Apply 提交带回读到的版
 
 - Apply 第三步由它承担；SessionLog/PlanDoc 也在其审计范围。
 - Conflict 率仍是健康指标（Agent 互踩信号）。
-- Status/Spec 写权分离由 Policy 承载（不再是 managedFields，A33）。
+- Status/Spec 写权分离由 权限系统 承载（不再是 managedFields，A33）。
 
 ## 6. 设计规则
 
@@ -50,7 +50,7 @@ resourceVersion：Core 每次成功写入自增；Apply 提交带回读到的版
 2. Conflict 重试上限与 Loop.backoff 共享预算（防活锁）。
 3. commit message 结构化：`<fieldManager> <action> <reason-ref>`（reason-ref 指向 DriftReport/PlanDoc/Event）。
 4. 历史不可改写（no force-push）。
-5. **LLM 语义 diff 的输出永远是提案**：事实基础是 git 文本 diff；合并落地必须人裁或 Policy 明确放行——LLM 不直接改历史。
+5. **LLM 语义 diff 的输出永远是提案**：事实基础是 git 文本 diff；合并落地必须人裁或 权限系统 明确放行——LLM 不直接改历史。
 
 ## 7. 可行性分析
 

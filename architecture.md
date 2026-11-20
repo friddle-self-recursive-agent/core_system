@@ -7,7 +7,7 @@
 | 层 | 组成 | 只负责 | 绝不负责 |
 |---|---|---|---|
 | 文档面 | ServiceDesc / ServiceInstance / 各对象声明 | 存意图与约束 | 执行任何动作 |
-| 控制面 | Core 进程（Apply / Loop 引擎 / Event 分发 / Scheme / Policy） | 存取校验文档、调度收敛 | 干活（干活是 Agent 的事） |
+| 控制面 | Core 进程（Apply / Loop 引擎 / Event 分发 / Scheme / 权限系统） | 存取校验文档、调度收敛 | 干活（干活是 Agent 的事） |
 | 执行面 | Agent / Connector / WorkService | 收敛意图、驱动外部系统 | 定义意图 |
 | 观测面 | Event 汇聚 / MetricsInfo / DriftReport | 让人看得见 | 反过来直接改状态 |
 
@@ -15,7 +15,7 @@
 
 ```
                     ┌────────── Core（控制面进程，Builtin scope 自描述）──────────┐
-                    │  Scheme ── Apply ── Policy ── Loop引擎 ── Event分发          │
+                    │  Scheme ── Apply ── 权限系统 ── Loop引擎 ── Event分发          │
                     └───────┬───────────────────────────────────┬────────────────┘
                             │ 管理                                │ 分发
               ┌─────────────▼──────────┐            ┌───────────▼─────────────┐
@@ -85,7 +85,7 @@ Q4 它是类型还是实例？
 | Event | Event + watch | 只触发不修改，消费按 P3 |
 | Apply | kubectl apply / SSA | 同时是系统间调用的唯一形态 |
 | Loop | Controller/Reconciler | 一等对象，可配置触发源与升级策略 |
-| Policy | Admission Webhook | 文档即权限，准入必选 |
+| 权限系统 | Admission Webhook | 文档即权限，准入必选 |
 | Finalizer | Finalizer | 两阶段删除外部副作用 |
 | Bind | RBAC Binding + scheduler binding | 人也是一等被绑定对象 |
 | Builtin | kube-system（仅"自带"类比） | v0.5：仅起源标记，无强制要求（A37） |

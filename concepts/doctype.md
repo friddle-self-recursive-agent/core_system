@@ -17,7 +17,7 @@
 
 **不是**：
 - 不是 Scheme（Scheme 是注册中心总表，DocType 是其中文档类型的定义条目展开；关系=CRD 机制与单个 CRD 的关系）；
-- 不执行校验（校验是 Policy 按 DocType 登记的 schema 引用做）；
+- 不执行校验（校验是 权限系统 按 DocType 登记的 schema 引用做）；
 - 不限制散文内容：只约束**必须存在的结构段**（如 Goal 必须有"验收条款"段），段内是自然语言——结构化骨架+自然语言血肉。
 
 ## 3. 结构
@@ -30,7 +30,7 @@ metadata:
   name: Goal
 spec:
   appliesTo: {kinds: [ServiceDesc], scopes: [global, builtin]}
-  required:                        # 必填段（Policy 校验）
+  required:                        # 必填段（权限系统 校验）
     - intent                       # 意图陈述
     - acceptance                   # 验收条款（可验证）
   writers: [human, bind-role:owner] # 默认写者（Agent 默认无权）
@@ -41,12 +41,12 @@ spec:
 
 ## 4. 生命周期
 
-注册（Builtin 级准入，人审）→ 生效（Policy 据此校验入库文档）→ 演进（只加不改：加可选段可以，改必填段含义必须升版本 Goal/v2 并留迁移期）→ 废弃（tombstone，存量文档只读）。
+注册（Builtin 级准入，人审）→ 生效（权限系统 据此校验入库文档）→ 演进（只加不改：加可选段可以，改必填段含义必须升版本 Goal/v2 并留迁移期）→ 废弃（tombstone，存量文档只读）。
 
 ## 5. 与其他概念的关系
 
 - ServiceDesc 的文档集、Instance 的实现侧 Docs，类型全部来自这里。
-- Policy 是它的执法者；Scheme 是它的登记处。
+- 权限系统 是它的执法者；Scheme 是它的登记处。
 - 内置首批类型清单见 doctypes/README.md（Goal、Desc、Rule、WorkflowDesign、Metrics、DataDesign、DataMetrics、Auth、DeployDesign、CodeDesign、ImplDoc、VerifyDoc、DriftReport、Runbook）。
 
 ## 6. 设计规则
@@ -60,7 +60,7 @@ spec:
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 自然语言段无法机器校验 | ⚠️ 中 | 段存在≠段合格 | 分级校验：结构段 Policy 硬校验；语义质量由 Loop 分析阶段评估并计入 drift |
+| 自然语言段无法机器校验 | ⚠️ 中 | 段存在≠段合格 | 分级校验：结构段 权限系统 硬校验；语义质量由 Loop 分析阶段评估并计入 drift |
 | 类型 proliferation | ⚠️ 低 | 人人想加新类型 | 注册=Builtin 级人审，天然高门槛 |
 | 模板僵化 | ⚠️ 低 | 必填段过死 | 规则 2 限段数；anotations 可放自由内容 |
 

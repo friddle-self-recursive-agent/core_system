@@ -73,7 +73,7 @@ metricsInfo:                          # A17：查询入口声明，非数据本�
 ## 6. 设计规则
 
 1. Instance 目录里允许存在的文档类型白名单：ImplDoc、VerifyDoc、DriftReport、Runbook（按 DocType 注册）。
-2. Status 只由 Loop/Agent 经 Core 回写，人写 Policy 拒绝（P2）。
+2. Status 只由 Loop/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
 3. MetricsInfo 只存查询声明与最近摘要（如 24h 概要），原始序列在观测面。
 4. 一个 Instance 的 Agent 集合变更 = 实例配置变更，走 Apply。
 
@@ -82,7 +82,7 @@ metricsInfo:                          # A17：查询入口声明，非数据本�
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 实现侧 Docs 腐化 | ⚠️ 中 | 代码改了文档没改，ImplDoc 说谎 | ImplDoc 与 Connector 版本号联动校验；Loop 对账把"文档过期"也当作一种 drift |
-| MetricsInfo 与文档的边界被侵蚀 | ⚠️ 中 | 图省事把数据写进 .md | Policy Lint：Instance 下 .md 出现指标序列表即警告 |
+| MetricsInfo 与文档的边界被侵蚀 | ⚠️ 中 | 图省事把数据写进 .md | 权限系统 Lint：Instance 下 .md 出现指标序列表即警告 |
 | 多实例语义 | ⚠️ 低 | v1 无实例级 Spec，实例间只差名字 | 如需差异化，升级为实例级 Spec 覆盖（overlay），列入 open-questions |
 
 **结论：可行。ImplDoc 防腐化是长期工程问题，机制上以"文档过期=drift"兜住。**

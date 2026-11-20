@@ -25,7 +25,7 @@
 - 不是"绑人"（人在用户系统；Bind 只认 role）；
 - 不是审批流引擎（没有 SLA/超时机器，R3 删除：催办与告知由 Notification 承担）；
 - 不是强制 owner 登记（无主对象合法，默认上溯 root）；
-- 不承载硬编码约束（如"审批人不得等于执行人"——这类约束走 **Rule/Policy 数据**表达，不写死代码，A36）。
+- 不承载硬编码约束（如"审批人不得等于执行人"——这类约束走 **Rule/权限系统 数据**表达，不写死代码，A36）。
 
 ## 3. 对象结构
 
@@ -51,7 +51,7 @@ status:
 
 - **UserSystem**：用户与 role 持有关系；Bind.status.holders 是其投影。
 - **Agent/Loop/Workflow 的 Escalate**：升级默认走 root agent；有 Bind 的对象同时通知 role 持有者（Notification 送达）。
-- **Policy**：审批档位可按 role 配置（如 approver role 放行某类动作）；**约束类规则（如审批人≠执行人）以 Rule/Policy 数据表达**（示例规则库提供模板，引用即用，不进代码）。
+- **权限系统**：审批档位可按 role 配置（如 approver role 放行某类动作）；**约束类规则（如审批人≠执行人）以 Rule/权限系统 数据表达**（示例规则库提供模板，引用即用，不进代码）。
 
 ## 6. 设计规则
 
@@ -59,7 +59,7 @@ status:
 2. 无主对象合法；信息流默认上溯 root agent。
 3. 有 Bind 的对象：root 与 role 持有者**同时**收到事项（双通道）。
 4. role 词表：builtin 四个（owner/approver/oncall/watcher），自定义 role 需 Scheme 注册命名前缀。
-5. "审批人不得等于执行人"等治理约束：**不在代码里写死**——以引用型 Rule（Rule 文档/Policy 规则）实现，示例规则库存模板（A36）。
+5. "审批人不得等于执行人"等治理约束：**不在代码里写死**——以引用型 Rule（Rule 文档/权限系统 规则）实现，示例规则库存模板（A36）。
 6. Bind 变更走人审（它是"谁能插手"的答案）。
 
 ## 7. 可行性分析

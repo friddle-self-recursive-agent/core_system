@@ -13,5 +13,5 @@ spec:
     - {ops: gitfs,  provider: gitfs,  workflow: simple-shot, note: "文档轨操作"}
     - {ops: dsh,    provider: dsh,    workflow: simple-shot, note: "本机命令（白名单+人审）"}
     - {ops: http,   provider: http,   workflow: simple-shot, note: "通用 HTTP 出站"}
-  rule: 各 ServiceInstance 可就近遮蔽、自实现自己的 ConnectorOps（scope 规则）；默认 ops 变更走 Policy（可按 origin=builtin 匹配配置人审，v0.5）
+  rule: 各 ServiceInstance 可就近遮蔽、自实现自己的 ConnectorOps（scope 规则）；默认 ops 变更走 权限系统（可按 origin=builtin 匹配配置人审，v0.5）
 status: {}

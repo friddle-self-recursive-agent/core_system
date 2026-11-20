@@ -71,7 +71,7 @@ status:                            # Connector watch + 健康探测回写
 |---|---|---|---|
 | 适配面大，每个外部系统都要写 Connector | ⚠️ 中 | 工程量随系统数线性涨 | Connector 模板库 + 常见类型官方维护（gitlab/jenkins/k8s/prometheus/ssh(dsh) 先行） |
 | 外部系统不可控变更（升级/改 API） | ⚠️ 中 | 现实先变，文档后知 | Connector watch 差异→Event→Loop 对账（这正是本系统的主场：drift 是常态输入而非异常） |
-| 幂等/undo 在某些外部系统做不到 | ⚠️ 中 | 如某些 API 无 dry-run | Connector 内部用"读-比-写-验证"模拟；真做不到的类型标注 `undoUnsupported`，Policy 强制人审 |
+| 幂等/undo 在某些外部系统做不到 | ⚠️ 中 | 如某些 API 无 dry-run | Connector 内部用"读-比-写-验证"模拟；真做不到的类型标注 `undoUnsupported`，权限系统 强制人审 |
 
 **结论：可行，且是本设计最先能落地的部分（不依赖 Agent 全自治）。**
 

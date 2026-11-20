@@ -9,7 +9,7 @@
 
 ## 1. 定义
 
-Scope 解决"这个东西归谁、在哪儿找"。四层只有**归属与名字解析**语义（v0.5，A37：准入严格度不是 scope 的内生属性，治理档位由 Policy 规则配置，可按 scope/origin 匹配）：
+Scope 解决"这个东西归谁、在哪儿找"。四层只有**归属与名字解析**语义（v0.5，A37：准入严格度不是 scope 的内生属性，治理档位由 权限系统 规则配置，可按 scope/origin 匹配）：
 
 | 层 | 值 | 住哪 | 语义 | 例 |
 |---|---|---|---|---|
@@ -33,7 +33,7 @@ Instance → System → Global → Builtin
 **是**：归属规则 + 解析顺序 + 准入档位映射。
 
 **不是**：
-- 不是物理隔离（都在一个 git 库，逻辑隔离靠 Policy）；
+- 不是物理隔离（都在一个 git 库，逻辑隔离靠 权限系统）；
 - 不是 Label（selector.md：Label 是横向选择，Scope 是纵向归属，二者正交——"找出所有 domain=ci 的系统"用 Label，"这个文档属于哪个系统"用 Scope）；
 - 不是权限模型本体（权限是 P7 并集，Scope 只决定默认准入档位）。
 
@@ -43,7 +43,7 @@ Instance → System → Global → Builtin
 
 ## 5. 与其他概念的关系
 
-- Policy 按 scope 档位取默认准入策略。
+- 权限系统 按 scope 档位取默认准入策略。
 - Ref 的"属于哪个 System 还是 Global"（原稿问题）= `metadata.scope` 取值问题，由创建者按"谁依赖它"就近声明。
 - Builtin 是四层之一，仅起源标记（builtin.md v0.5）。
 
@@ -59,7 +59,7 @@ Instance → System → Global → Builtin
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 遮蔽导致调试困惑 | ⚠️ 低 | 名字命中哪层不直观 | 所有引用解析结果记录进审计；`core resolve <name>` 调试命令 |
-| 逻辑隔离被 git 权限绕过 | ⚠️ 中 | 有仓库写权限的人可改任何 scope | v1 承认（单库）；Policy 在 Apply 层拦；多库/子模块列入远期 |
+| 逻辑隔离被 git 权限绕过 | ⚠️ 中 | 有仓库写权限的人可改任何 scope | v1 承认（单库）；权限系统 在 Apply 层拦；多库/子模块列入远期 |
 
 **结论：可行。目录即 scope 让 v1 零成本实现。**
 

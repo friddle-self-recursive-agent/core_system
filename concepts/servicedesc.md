@@ -21,7 +21,7 @@ ServiceDesc 是"一个系统应该长成什么样"的全部意图：一组按 Do
 - 不含 Status（P2：现实回写在 Instance）；
 - 不含实现说明（"我用 gitlab CI 实现了它" 属于 Instance 侧 ImplDoc）；
 - 不含外部系统本体（gitlab 是 WorkService，Desc 里只有对它的引用）；
-- 不是文件夹里随便加文件：未注册 DocType 的文档 Policy 拒收（Scheme 闸门）。
+- 不是文件夹里随便加文件：未注册 DocType 的文档 权限系统 拒收（Scheme 闸门）。
 
 ## 3. 对象结构
 
@@ -53,7 +53,7 @@ status: {}                           # 空。Desc 无 Status，Status 长在 Ins
 ## 4. 生命周期
 
 ```
-创建（Apply，Policy 校验必须文档齐全）→ Active
+创建（Apply，权限系统 校验必须文档齐全）→ Active
   ↑ 改文档 → generation+1 → 触发所属 Loop reconcile（level-triggered）
 删除请求 → Finalizer 阶段（清外部副作用）→ 真删（级联删 Instance，owner.md）
 ```
@@ -64,12 +64,12 @@ status: {}                           # 空。Desc 无 Status，Status 长在 Ins
 
 - 是 ServiceInstance 的 owner（级联创建/删除）。
 - 通过 workserviceRefs 声明对外部的依赖；实际驱动靠 Connector。
-- 它的文档集是 Agent 的**主要上下文来源**（docsPolicy.read 授权）。
+- 它的文档集是 Agent 的**主要上下文来源**（docs权限系统.read 授权）。
 
 ## 6. 设计规则
 
 1. Goal/Desc 缺失的 ServiceDesc 不予创建（DocType 强制级）。
-2. Desc 内禁止出现具体厂商/实例名（"用 gitlab"是 WorkService 层的事；Desc 说"需要代码托管能力"）——**能力声明，不绑实现**。验收：文档里出现 `gitlab.com/...` 之类即 Policy 警告。
+2. Desc 内禁止出现具体厂商/实例名（"用 gitlab"是 WorkService 层的事；Desc 说"需要代码托管能力"）——**能力声明，不绑实现**。验收：文档里出现 `gitlab.com/...` 之类即 权限系统 警告。
 3. 文档间引用用相对路径或 `system://<name>/<doc>` URI，不用裸文件路径（为将来换存储留缝）。
 4. 一个系统一个目录，目录名=对象名（instance 仓 layout.md）。
 
@@ -78,7 +78,7 @@ status: {}                           # 空。Desc 无 Status，Status 长在 Ins
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 自然语言 Goal 不可判定 | ⚠️ 中 | "系统要好用"没法验收 | Goal 模板强制含可验证的验收条款（verify 段）；Verifying 阶段以此为判据 |
-| 文档互相矛盾 | ⚠️ 中 | Rule 与 WorkflowDesign 冲突 | Policy 的 Lint 级校验（交叉引用检查）+ Loop 分析阶段显式报告矛盾 |
+| 文档互相矛盾 | ⚠️ 中 | Rule 与 WorkflowDesign 冲突 | 权限系统 的 Lint 级校验（交叉引用检查）+ Loop 分析阶段显式报告矛盾 |
 | 能力抽象过度 | ⚠️ 低 | "不绑实现"抽象到没人懂 | v1 允许注释性提及实现，仅规范性字段禁止 |
 
 **结论：可行。核心风险是自然语言的可判定性，用模板+验证段压住。**

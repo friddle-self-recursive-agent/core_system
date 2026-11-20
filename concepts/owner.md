@@ -51,7 +51,7 @@ owner 被删除 → 级联删除全部被拥有者（各先走自己的 Finalize
 ## 6. 设计规则
 
 1. 单主（v1）；确实双主的需求改为"一主一引用+显式 Finalizer"。
-2. 环禁止（A 的 owner 是 B、B 的 owner 是A）——Policy 校验。
+2. 环禁止（A 的 owner 是 B、B 的 owner 是A）——权限系统 校验。
 3. ownerRef 指向的对象必须存在或正在创建中（同一 Apply 批次允许）。
 4. 级联删除必须可预演：`apply --dry-run` 输出完整删除树供人审。
 

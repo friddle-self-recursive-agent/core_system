@@ -19,7 +19,7 @@
 - 不是 Bind（Bind 是对象↔role；用户系统是人↔role）；
 - 不是 Provider（Provider=外部账号/钥匙包，机器侧；用户系统=人）；
 - 不做认证协议实现（builtin 只是一张表；真需要 SSO/OIDC 是未来 IdP 接入的事）；
-- 不管权限语义（权限仍是 P7 并集 + Policy）。
+- 不管权限语义（权限仍是 P7 并集 + 权限系统）。
 
 ## 3. 对象结构
 
@@ -49,7 +49,7 @@ builtin 起步（Igniter 装载首批用户——至少一个管理员）→ 增
 
 - Bind.status.holders 由本系统回写（投影）。
 - Notification 的 route 按 role 解析到人时查本系统 contact。
-- Policy 的"人审"类动作（ApprovalNeeded）最终送达具体人也要经过本系统。
+- 权限系统 的"人审"类动作（ApprovalNeeded）最终送达具体人也要经过本系统。
 - 未来 IdP 接入形态：WorkService(authentik) + ConnectorProvider(oidc/ldap) + Provider(账号包)——全部复用现有概念，不新增机制。
 
 ## 6. 设计规则

@@ -13,7 +13,7 @@ spec:
   implementationRef: system://core_system_instance/impl/self-recursive-core.md
   codeRepoRef: ref/core-system-workservice-repo
   docs:
-    - rule: 一切写入经 Apply+Policy；Status 机器写；明文凭证永不入库
+    - rule: 一切写入经 Apply+权限系统；Status 机器写；明文凭证永不入库
   loops:
     - {name: core-self-check, resync: 10m}    # Core 自身一致性对账
   connectors: [dsh, gitfs, opslog]

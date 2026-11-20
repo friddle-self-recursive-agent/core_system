@@ -70,7 +70,7 @@ spec:
 ## 6. 设计规则
 
 1. Provider 变更走人审（它是"谁拿钥匙"的答案）。
-2. secret 只允许引用式取值（vault:/env:/keychain:），出现明文=Policy 拒绝+全库扫描告警（原 Credential 扫描规则并入）。
+2. secret 只允许引用式取值（vault:/env:/keychain:），出现明文=权限系统 拒绝+全库扫描告警（原 Credential 扫描规则并入）。
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。

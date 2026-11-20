@@ -18,7 +18,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 ```
 event（触发规则命中）
   → analysis（分析：读文档 L0/L1，对比现实）
-  → 【自己处理 | 上报】（AUTOLEVEL/Policy 决定：auto 直接处理；ask/高危 → 上报走审批或上溯 root）
+  → 【自己处理 | 上报】（AUTOLEVEL/权限系统 决定：auto 直接处理；ask/高危 → 上报走审批或上溯 root）
   → plan / auto（计划；或 auto 直执行 TaskScheme）
   → 直接调用 developer_system / agent / 系统（经 ConnectorOps/子 agent）
   → 更新服务状态（Status 回写）
@@ -82,7 +82,7 @@ spec:
 1. 相位/迁移纯声明；每相位有预算；超预算=该轮 Failed 进 onFailed。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
 3. 每轮成本必记 budget_log（一次 loop 的成本可查、可聚合）。
-4. builtin Workflow（core-loop/default-task/simple-shot/watch-only）修改属高敏 Policy 项。
+4. builtin Workflow（core-loop/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤，A42）。
 
 ## 7. 跨权限完整分析（R7 指定：workflow 跨权限，代码设计与可行性复杂，做完整分析）
@@ -92,7 +92,7 @@ Workflow 天生跨权限：一轮 core-loop 要穿过五个权限域。逐点分
 | # | 穿越点 | 涉及权限 | 谁持有 | 越权风险 | 机制 |
 |---|---|---|---|---|---|
 | 1 | 事件读取 | bus 订阅（按 selector/level） | Workflow 引擎（core plugin） | 低（读信号非资源） | 引擎统一订阅，按 triggers.minLevel 过滤 |
-| 2 | 文档读取 | docsPolicy.read（L0/L1） | 执行 Agent | 中（读越界=信息泄露） | 白名单+按需加载（A31），SessionLog 记 docsLoaded |
+| 2 | 文档读取 | docs权限系统.read（L0/L1） | 执行 Agent | 中（读越界=信息泄露） | 白名单+按需加载（A31），SessionLog 记 docsLoaded |
 | 3 | 计划 | 无副作用 | Agent | 无 | Planning 相位只读 |
 | 4 | 执行 | ConnectorOps 并集 | 执行 Agent | **高（核心风险点）** | 见下"三条越权出路" |
 | 5 | 状态回写/文档回归 | fieldManager（engine/agent） | 引擎与 Agent 分持 | 中 | Status=engine 专写；Spec 类默认 Agent 无权（P6） |
@@ -115,7 +115,7 @@ Workflow 天生跨权限：一轮 core-loop 要穿过五个权限域。逐点分
 
 | 阶段 | 范围 | 风险 |
 |---|---|---|
-| v1 | 出路 1（权限齐备）+ 出路 2（提案）；审批仅 Policy 高危拦截面 | 低——单 owner 权限内执行，引擎校验退化为"步骤 ops ∈ owner 并集"查表 |
+| v1 | 出路 1（权限齐备）+ 出路 2（提案）；审批仅 权限系统 高危拦截面 | 低——单 owner 权限内执行，引擎校验退化为"步骤 ops ∈ owner 并集"查表 |
 | v2 | 出路 3 全量（审批提升 token 制）+ 挂起-恢复完善 | 中 |
 | v3 | 委派矩阵与跨系统成本分摊细化 | 中 |
 

@@ -38,7 +38,7 @@
 
 | 文档 | Kind | 补它是因为 |
 |---|---|---|
-| [plugin.md](plugin.md) | Plugin | R1.2.1：基础 agent=dsh，root 直控子 agent，总控界面——都需要插件机制承载 |
+| ~~plugin.md~~ | ~~Plugin~~ | **已删除（A43）**：系统本身无 plugin 概念；dsh=外部运行时，core 以其 plugin 机制实现 |
 | [task-scheme.md](task-scheme.md) | TaskScheme | R1.2.3：四层执行（意图→Agent→Scheme→代码），长运行不依赖 Agent 即兴 |
 | [template.md](template.md) | WorkServiceTemplate | R1.4：install service 的模板发现/询问/安装流程需要一个 builtin Scheme |
 
@@ -66,6 +66,14 @@
 |---|---|---|
 | [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
 | [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
+
+## v0.9 变更（R8 修正催生）
+
+| 文档 | 变更 | 说明 |
+|---|---|---|
+| [permission.md](permission.md) | 新增（接替 Policy） | 权限系统：scope 权限域（global/system）；默认 global/admin 全权限；只绑 role（user→role、user→group→role，不直接绑权限）；agent 判定灵活（agent/role/上级 agent，跨系统 B 侧裁判）（A44/A45） |
+| ~~plugin.md~~ | 删除 | 系统本身无 plugin 概念；dsh=外部运行时（A43） |
+| ~~policy.md~~ | 删除 | 准入并入权限系统（A44） |
 
 ## v0.8 变更（R7 修正催生）
 

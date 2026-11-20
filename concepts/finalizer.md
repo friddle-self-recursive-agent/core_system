@@ -25,7 +25,7 @@
 **不是**：
 - 不是回收站（没有"恢复"语义；要恢复走 git 历史 + 重建）；
 - 不是备份策略（备份是 Rule/DeployDesign 里声明的系统能力）；
-- 不是权限（能删=Policy 管，删得干净=Finalizer 管）。
+- 不是权限（能删=权限系统 管，删得干净=Finalizer 管）。
 
 ## 3. 结构
 
@@ -46,7 +46,7 @@ status:
 
 - 清理动作用 Owner 链找到责任 Agent，经 Connector.undo 执行——所以 **Finalizer 的可行性依赖 Connector 的 undo 契约**（connector.md §3）。
 - 级联删除（owner.md）每一跳各自走 Finalizer。
-- builtinRoot 无 finalizer 也不可删（更严：Policy 硬禁，连删除请求都拒绝）。
+- builtinRoot 无 finalizer 也不可删（更严：权限系统 硬禁，连删除请求都拒绝）。
 
 ## 6. 设计规则
 
@@ -61,7 +61,7 @@ status:
 |---|---|---|---|
 | 外部副作用漏登记 | ⚠️ 中 | Connector 代码忘了登记 | 规则 1 自动化登记（apply 产生外部创建即注入）；审计对账"外部资源清单 vs finalizer"双向核对（driftScan 的一项） |
 | 墓碑堆积 | ⚠️ 低 | 删不干净的东西越积越多 | 观测面欠债指标 + 定期人工清理会 |
-| undo 做不到的外部系统 | ⚠️ 中 | 部分 API 不可编程删除 | `undoUnsupported` 类型 Policy 强制人参与清理 |
+| undo 做不到的外部系统 | ⚠️ 中 | 部分 API 不可编程删除 | `undoUnsupported` 类型 权限系统 强制人参与清理 |
 
 **结论：可行。关键依赖规则 1 的自动登记 + 双向对账，把"人记得"变成"系统记得"。**
 

@@ -18,7 +18,7 @@ Scheme 层（TaskScheme）   ：确定性步骤图：触发→步骤→失败策
 代码层（Connector/Plugin) ：幂等执行（get/plan/apply/verify/undo）
 ```
 
-核心动机（R1.2.3 原文）：**长时间运行系统肯定不能依赖 Agent 自定义**。Agent 可以"自定义 Scheme"（写一份 TaskScheme 文档经 Apply 入库），但执行永远走已入库的 Scheme 步骤 + 基础调度（常见任务的可配置调度模板），不走 Agent 即兴发挥。收敛性风险从运行时移到评审时（Scheme 入库过 Policy）。
+核心动机（R1.2.3 原文）：**长时间运行系统肯定不能依赖 Agent 自定义**。Agent 可以"自定义 Scheme"（写一份 TaskScheme 文档经 Apply 入库），但执行永远走已入库的 Scheme 步骤 + 基础调度（常见任务的可配置调度模板），不走 Agent 即兴发挥。收敛性风险从运行时移到评审时（Scheme 入库过 权限系统）。
 
 ## 2. 边界
 
@@ -62,7 +62,7 @@ spec:
 1. 步骤只能引用已注册 ConnectorOps 的 op（v0.3：步骤 connector 字段指 ops 名）——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
 2. 每个步骤幂等；整图可重入（断点=已完成步骤集）。
 3. budget 必填；超预算=本轮失败走 onFailure。
-4. 新 Scheme 入库过 Policy（高危 op 如 exec 人审）。
+4. 新 Scheme 入库过 权限系统（高危 op 如 exec 人审）。
 
 ## 6. 可行性分析
 

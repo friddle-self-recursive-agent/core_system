@@ -26,13 +26,13 @@ core_system 是自递归（self-recursive）控制面的根声明：一套用文
 **不是**：
 - 不含实现细节（怎么点火、界面长什么样 → instance 仓）；
 - 不含代码（→ workservice 仓）；
-- 不是只读归档：改这里就是改系统（经 Apply + Policy）。
+- 不是只读归档：改这里就是改系统（经 Apply + 权限系统）。
 
 ## 自举最小集（builtinServices）
 
 | 服务 | 默认实现 | 职责 |
 |---|---|---|
-| self-recursive-core | 核心进程（workservice 仓） | 控制面：Apply/Event/Loop 引擎/Scheme/Policy（R1.1） |
+| self-recursive-core | 核心进程（workservice 仓） | 控制面：Apply/Event/Loop 引擎/Scheme/权限系统（R1.1） |
 | builtin-developer-system | 本地 build + onedev | 开发流水线（R1.3, R1.6） |
 | builtin-deploy-system | 当前机器 | 安装执行器：WorkServiceTemplate 的落地者（R1.3, R1.4） |
 | builtin-storage-system | 本地文件夹 git + NAS + OSS | 文档存储与备份、镜像/产物对象存储（R1.3, R1.6） |

@@ -51,7 +51,7 @@ spec:
 
 **不是**：
 - 不是 Core 进程（A13）；
-- 不校验内容（校验是 Policy 按 Scheme 注册的 schema 做，Scheme 只登记 schema 引用）；
+- 不校验内容（校验是 权限系统 按 Scheme 注册的 schema 做，Scheme 只登记 schema 引用）；
 - 不产生 Event（只在 Event 已发生后查表路由）。
 
 ## 3. 生命周期

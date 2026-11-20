@@ -1,7 +1,7 @@
 # 文档类型注册表（内置首批）
 
 > 机制见 [concepts/doctype.md](../concepts/doctype.md)。本表是首批内置 DocType 的登记与治理属性。
-> 强制级别：**required**（不齐不许建系统）/ **default**（默认建议，缺了 Policy 警告）/ **optional**。
+> 强制级别：**required**（不齐不许建系统）/ **default**（默认建议，缺了 权限系统 警告）/ **optional**。
 > 原稿清单的变更已按 A1–A4 处理，见文末对照。
 
 ## 1. 声明侧（ServiceDesc 下）
@@ -44,7 +44,7 @@ Builtin 只是起源标记（core_system 自带开发，concepts/builtin.md v0.5
 
 ## 4. 全局对象文档（非 DocType，结构即 YAML）
 
-Agent / Connector / WorkService / Ref / Bind / Credential / Loop / Policy / Scheme 的对象定义就是文档本身（结构化 YAML，见各概念文档 §3），不走散文 DocType。
+Agent / Connector / WorkService / Ref / Bind / Credential / Loop / 权限系统 / Scheme 的对象定义就是文档本身（结构化 YAML，见各概念文档 §3），不走散文 DocType。
 
 ## 5. 原稿 → 本表 对照
 

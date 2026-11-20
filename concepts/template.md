@@ -72,7 +72,7 @@ spec:
 1. 模板必须声明 digest（无 digest 拒绝安装——供应链底线）。
 2. asks 非空必须走人工确认；无 asks 也要一次显式确认（防误装）。
 3. install 步骤全部幂等 + 三段 undo（镜像/配置/服务）。
-4. 模板本身来自 GitHub 仓时，克隆件经 Policy 扫描（凭证模式扫描复用 credential.md 规则 1）。
+4. 模板本身来自 GitHub 仓时，克隆件经 权限系统 扫描（凭证模式扫描复用 credential.md 规则 1）。
 
 ## 6. 可行性分析
 
@@ -80,7 +80,7 @@ spec:
 |---|---|---|---|
 | org 内无模板冷启动 | ⚠️ 低 | 起步没人写模板 | 首批官方模板：onedev、prometheus（既是示例又直接服务 developer-system） |
 | 镜像体积与 OSS 依赖 | ⚠️ 低 | 无 OSS 时装不了 | resources.storage 可降级 nas/local（模板声明备选源） |
-| 恶意模板 | ⚠️ 中 | install 段有任意动作 | digest+人审+Policy 高危动作拦截；模板来源限定本 org |
+| 恶意模板 | ⚠️ 中 | install 段有任意动作 | digest+人审+权限系统 高危动作拦截；模板来源限定本 org |
 
 **结论：可行。等价于面向"外部系统"的 Helm，安装执行复用 deploy-system+dsh。**
 

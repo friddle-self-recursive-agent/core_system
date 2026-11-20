@@ -17,12 +17,12 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 两类：
 
-- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。不可删除、不可停用（Policy 硬编码兜底）。
+- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。不可删除、不可停用（权限系统 硬编码兜底）。
 - **ServiceAgent**：普通 Agent，被 ServiceInstance 引用而参与收敛；可挂 Parent/Sub 树（父子=机器级进程派发 + owner 链）。
 
 ## 2. 边界
 
-**是**：读文档做判断的执行者；权限面=引用的 ConnectorOps + Ref + Provider + Bind 的并集，再被 Policy 裁剪（P7）。
+**是**：读文档做判断的执行者；权限面=引用的 ConnectorOps + Ref + Provider + Bind 的并集，再被 权限系统 裁剪（P7）。
 
 **不是**：
 - 不是文档的作者：它不篡改 Spec（P6 不变）；其运转以**记录**留痕（见 §6 规则 1）而非逐写审批；
@@ -51,7 +51,7 @@ spec:
   binds:                              # v0.4：Bind=role（人归用户系统，A34）
     - bind/ci-approver-bind             # 持有者可处理本 agent（与 root 并行，A35）
   escalate: root                        # 默认上溯 root agent；有 bind 则双通道同达
-  docsPolicy:
+  docs权限系统:
     read:  [{scope: systems/developer-system/*}]
     onDemand: true                      # 按需加载：dsh 会话自实现（R2）
   subAgents:
@@ -78,16 +78,16 @@ status:                                 # 由 Loop 引擎回写
 | Agent | 默认 AUTOLEVEL | 理由 |
 |---|---|---|
 | RootAgent（builtinRoot） | `ask` | 管的是 builtin 与其他 agent 生死，无上级→问 Bind 的人 |
-| ServiceAgent | `auto` | 常规任务在 TaskScheme+预算内自动；高危仍被 Policy 拦 |
+| ServiceAgent | `auto` | 常规任务在 TaskScheme+预算内自动；高危仍被 权限系统 拦 |
 
-`all` 永远需要显式声明 + Policy 放行（P8：模型越强，级别可上调，机制不变）。
+`all` 永远需要显式声明 + 权限系统 放行（P8：模型越强，级别可上调，机制不变）。
 
 ## 4. 生命周期（= Workflow `default-task`）
 
 任务态机即 builtin Workflow（concepts/workflow.md §1），Agent 不自定义态机，只引用：
 
 ```
-Idle → (派发) Analyzing → Planning → [Policy命中→AwaitingApproval→人批/驳回]
+Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingApproval→人批/驳回]
      → Executing → Verifying → Reporting → Idle
 任意态 → Failed → backoff 重试 → 超限 Escalate（Bind 的人）→ Idle
 ```
@@ -99,16 +99,16 @@ Idle → (派发) Analyzing → Planning → [Policy命中→AwaitingApproval→
 - 被 ServiceInstance **引用**（agentRefs），被 Loop 引擎派发任务。
 - 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；Bind 是 role 绑定（人经用户系统解析，A34）；Escalate 默认上溯 root，有 Bind 则 role 持有者同达（Notification 送达，A35）。
 - 子 agent：机器 instance 级独立 dsh 进程，由父经 control plugin 直控（plugin.md）；权限=父权限裁剪（agent 继承只减不增）。
-- builtinRoot 的删除/禁用请求一律 Policy 拒绝（硬编码）。
+- builtinRoot 的删除/禁用请求一律 权限系统 拒绝（硬编码）。
 
 ## 6. 设计规则（v0.3 修订）
 
-1. ~~Agent 一切写操作经 Apply，违者 Policy 拒绝~~ **（R2 取消，A29）**。替代：**Agent 的每一次 PLAN、以及每完成一次 Session（看实现粒度），必须记录文档，记在 ServiceInstance 里**（PlanDoc / SessionLog，doctypes 实现侧）。记录写入走 Apply（存储机制），但这是"事后留痕"，不是逐写审批。
-2. 文档按需加载由 dsh 会话自己实现（docsPolicy.onDemand）；Loop 只保证 L0 最低必载（Goal.acceptance + Rule 摘要）。
-3. 使用 ConnectorOps 要权限（ops 并集 + Policy 裁剪，P7 落点）；`undo:none` 的 ops 每次调用人审。
+1. ~~Agent 一切写操作经 Apply，违者 权限系统 拒绝~~ **（R2 取消，A29）**。替代：**Agent 的每一次 PLAN、以及每完成一次 Session（看实现粒度），必须记录文档，记在 ServiceInstance 里**（PlanDoc / SessionLog，doctypes 实现侧）。记录写入走 Apply（存储机制），但这是"事后留痕"，不是逐写审批。
+2. 文档按需加载由 dsh 会话自己实现（docs权限系统.onDemand）；Loop 只保证 L0 最低必载（Goal.acceptance + Rule 摘要）。
+3. 使用 ConnectorOps 要权限（ops 并集 + 权限系统 裁剪，P7 落点）；`undo:none` 的 ops 每次调用人审。
 4. 子 agent 一律机器级进程派发（spawn: machine-instance），禁用 dsh 内部 subagent 共享进程——隔离与直控优先于内存开销（R2 明确"不要管浪费内存"）。
 5. SubAgent 权限=Parent 裁剪，只减不增；环状父子拒绝入库。
-6. AUTOLEVEL 变更走 Apply+Policy（提权动作）；`all` 需显式授权。
+6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
 
 ## 7. 可行性分析
@@ -119,7 +119,7 @@ Idle → (派发) Analyzing → Planning → [Policy命中→AwaitingApproval→
 | Session 记录被省略 | ⚠️ 中 | "看实现"的粒度容易松 | PlanDoc/SessionLog 为 Instance 必备 docType；缺记录=drift（Loop 对账） |
 | 机器级子进程开销 | ⚠️ 低（已接受） | 每 agent 一进程，内存翻倍 | R2 明确接受；换取崩溃隔离+直控+无共享状态 |
 | 按需加载读漏关键约束 | ⚠️ 中 | 会话自主决定读什么可能漏 Rule | L0 最低必载由 Loop 注入（规则 2）；SessionLog 记录 docsLoaded 可审计"读了什么" |
-| Provider/ops 引用膨胀 | ⚠️ 低 | 权限面变大 | 并集+Policy 裁剪不变；无引用 Provider 告警 |
+| Provider/ops 引用膨胀 | ⚠️ 低 | 权限面变大 | 并集+权限系统 裁剪不变；无引用 Provider 告警 |
 
 **结论：可行。v0.3 放松了写路径管制、换上"记录+分级"治理——与 AUTOLEVEL 一样，都是 P8（机制不假设模型能力）的落地。**
 

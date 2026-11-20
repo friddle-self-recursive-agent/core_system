@@ -11,12 +11,12 @@
 
 Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——其行为由 core.desc 等 Builtin 文档声明（自描述，见 instance 仓 loop/bootstrap.md）。
 
-**承载形态（v0.7，A39）**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/Policy 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
+**承载形态（v0.7，A39）**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/权限系统 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
 
 职责五件套：
 
 1. **存储**：封装文档库（v1 = git 仓库目录），提供带乐观锁的读写接口（见 Revision）。
-2. **校验**：所有写入按 Scheme 注册的类型 + Policy 准入校验。
+2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统 准入校验。
 3. **分发**：Event 的产生、去重、路由（按 Selector 派发给 Loop/Agent）。
 4. **调度**：Loop 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。
 5. **观测汇聚**：接收 DriftReport / MetricsInfo 注册表，供观测面查询。
@@ -62,7 +62,7 @@ status:                        # 由 builtinRoot Agent 回写
 
 ## 5. 与其他概念的关系
 
-- 依赖 Scheme（启动时加载）、Policy（写入时调用）、Revision（写入时比较）。
+- 依赖 Scheme（启动时加载）、权限系统（写入时调用）、Revision（写入时比较）。
 - 被 builtinRoot Agent 管理（唯一的上级是点火器）。
 - 对 Agent：Core 是任务派发者；对 Event：是总线；对 Apply：是唯一入口。
 

@@ -1,6 +1,6 @@
 # core_system — 根 ServiceDesc（SystemDesc）
 
-> 本仓库不是一个"放设计稿的地方"。**本仓库本身就是一份 ServiceDesc**：core_system 的意图、约束、数据流的唯一权威声明。改这里=改系统（经 Apply + Policy）。
+> 本仓库不是一个"放设计稿的地方"。**本仓库本身就是一份 ServiceDesc**：core_system 的意图、约束、数据流的唯一权威声明。改这里=改系统（经 Apply + 权限系统）。
 > 用户术语 SystemDesc = 本根对象（A18 待裁决是否全局改名）。
 
 ## 三仓即三概念（自我示范）

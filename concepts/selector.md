@@ -22,7 +22,7 @@ Label 是贴在任何对象上的键值元数据；Selector 是按 Label 选对�
 **不是**：
 - 不是身份（身份=Kind+name+scope；Label 可变，身份不可变）；
 - 不是 Scope（纵向归属，见 scope.md §3）；
-- 不是权限（改 Label 不改权限；但高危 Label 如 `tier=control-plane` 变更属 Policy 敏感项）；
+- 不是权限（改 Label 不改权限；但高危 Label 如 `tier=control-plane` 变更属 权限系统 敏感项）；
 - 不携带语义承诺：Label 不保证对象真有该能力（能力承诺在 WorkService.capabilities 与 Connector.contract，Label 只是索引）。
 
 ## 3. 结构
@@ -52,7 +52,7 @@ metadata:
 
 1. Label 值受约束（小写字母数字中划线，复合逗号分隔），v1 不做表达式引擎。
 2. 保留 Label 前缀 `core/*`（系统用）：`core/tier`、`core/capabilities`。
-3. 修改 `core/*` 前缀 Label 属敏感变更（Policy 加档）。
+3. 修改 `core/*` 前缀 Label 属敏感变更（权限系统 加档）。
 4. 选择不到任何对象不报错（空集合法），但 dispatch 空集要留痕（审计）。
 
 ## 7. 可行性分析
