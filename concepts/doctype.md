@@ -35,9 +35,7 @@ spec:
     - acceptance                   # 验收条款（可验证）
   writers: [human, bind-role:owner] # 默认写者（Agent 默认无权）
   admission: normal | strict
-  mandatory:                       # 强制级别（按 scope）
-    builtin: required
-    global: required
+  mandatory: required              # 必带级别（DocType 注册级，v0.5：与 Builtin 无关，A37）；Service 可加严
   lifecycle: versioned             # 变更走 Apply，generation 联动
 ```
 

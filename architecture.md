@@ -88,7 +88,7 @@ Q4 它是类型还是实例？
 | Policy | Admission Webhook | 文档即权限，准入必选 |
 | Finalizer | Finalizer | 两阶段删除外部副作用 |
 | Bind | RBAC Binding + scheduler binding | 人也是一等被绑定对象 |
-| Builtin | kube-system | scope 标记 + 强制文档集 |
+| Builtin | kube-system（仅"自带"类比） | v0.5：仅起源标记，无强制要求（A37） |
 
 ## 5. 命名规范
 

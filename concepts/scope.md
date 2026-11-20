@@ -9,14 +9,14 @@
 
 ## 1. 定义
 
-Scope 解决"这个东西归谁、在哪儿找、谁能改"。四层，准入严格度自上而下递增：
+Scope 解决"这个东西归谁、在哪儿找"。四层只有**归属与名字解析**语义（v0.5，A37：准入严格度不是 scope 的内生属性，治理档位由 Policy 规则配置，可按 scope/origin 匹配）：
 
-| 层 | 值 | 住哪 | 谁能改 | 例 |
+| 层 | 值 | 住哪 | 语义 | 例 |
 |---|---|---|---|---|
-| Builtin | `builtin` | core/ | 人审+硬禁清单 | builtinRoot、Scheme |
-| Global | `global` | global/ | Policy 常规 | Agent、Connector、Bind、WorkService、Ref |
-| System | `<system-name>` | systems/<name>/ | 系统 owner 域内 | 该系统的文档 |
-| Instance | `<system>/<instance>` | systems/<s>/instances/<i>/ | Instance 的 Agent | ImplDoc、DriftReport |
+| Builtin | `builtin` | core/、systems/builtin/ | **起源标记**：core_system 自带开发（v0.5） | builtinRoot、Scheme、自带三系统 |
+| Global | `global` | global/ | 全局共享 | Agent、Connector、Bind、WorkService、Ref |
+| System | `<system-name>` | systems/<name>/ | 系统私有域 | 该系统的文档 |
+| Instance | `<system>/<instance>` | systems/<s>/instances/<i>/ | 实例私有域 | ImplDoc、DriftReport |
 
 ## 2. 名字解析规则（就近遮蔽）
 
@@ -45,7 +45,7 @@ Instance → System → Global → Builtin
 
 - Policy 按 scope 档位取默认准入策略。
 - Ref 的"属于哪个 System 还是 Global"（原稿问题）= `metadata.scope` 取值问题，由创建者按"谁依赖它"就近声明。
-- Builtin 是四层之一且最严（builtin.md）。
+- Builtin 是四层之一，仅起源标记（builtin.md v0.5）。
 
 ## 6. 设计规则
 

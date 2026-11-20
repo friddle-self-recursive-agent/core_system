@@ -14,7 +14,7 @@
 | [workservice.md](workservice.md) | WorkService | 外部真实系统 | Node/External Provider |
 | [connector.md](connector.md) | ConnectorOps + ConnectorProvider | 外部系统幂等驱动（v0.3 拆类型层/使用层） | CSI driver + Attachment |
 | [ref.md](ref.md) | Ref | 第三方临时指针 | ObjectReference/ExternalName |
-| [builtin.md](builtin.md) | Builtin | 内部标记 + 最严作用域 | kube-system |
+| [builtin.md](builtin.md) | Builtin | 起源标记（core_system 自带开发，v0.5 无强制语义） | kube-system（仅类比自带） |
 | [event.md](event.md) | Event | 变化通知，只触发不修改 | Event/watch |
 | [apply.md](apply.md) | — | 唯一写路径 = 系统间调用 | kubectl apply/SSA |
 | [bind.md](bind.md) | Bind | 人↔Agent↔System 绑定 | RBAC Binding |

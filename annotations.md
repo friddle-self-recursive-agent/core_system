@@ -57,6 +57,7 @@
 | A34 | R3 Bind 重定义 | Bind 不是绑人 | Bind=role；新增用户系统（builtin 本地表，Kind: User；未来评估 authentic/authentik 接入） | concepts/bind.md、concepts/user-system.md、systems/builtin/user-system | ✅ | 已落地 |
 | A35 | R3 责任模型 | "必须有 owner" 被否 | 无主对象合法：信息默认往上走到 root agent；bind=权限插入（role 持有者可处理该 agent），默认 bind 与根同时处理（双通道）；删 escalationChain/SLA | concepts/bind.md、agent/workflow/loop/notification 联动 | ✅ | 已落地 |
 | A36 | R3 约束不写死 | "approver≠executor" 硬规则被否 | 代码不写死治理约束；以引用型 Rule/Policy 数据表达（示例规则库存模板） | concepts/bind.md §6.5 | ✅ | 已落地 |
+| A37 | R4 Builtin 概念 | v0.2 把 Builtin 做成"最严作用域+强制文档集+成员白名单"，语义错误 | Builtin=起源标记：core_system 系统本来开发/代码自带（如默认代码带最基础的 builtin_developer_system）；不携带任何强制要求；必带文档级别归 DocType 注册（Scheme 层）与 Service 自身声明；治理档位由 Policy 规则配置（可按 origin 匹配），非概念内生 | concepts/builtin.md、doctypes/README.md §3、concepts/scope.md、concepts/doctype.md | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

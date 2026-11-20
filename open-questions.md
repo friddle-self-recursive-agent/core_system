@@ -214,6 +214,12 @@
 2. ❷ contact 探测频率与降级链（IM 不可达→email→webhook 日志）？
 3. ❸ IdP 接入后本地表的回退演练节奏（季度？随 storage 演练）？
 
+## builtin（v0.5 起源标记后）
+
+1. ❶ 起源判据：随 core_system 代码仓开发？随默认发版带出？第三方后来合入算不算？
+2. ❷ origin 用 scope+label 双表达后，Policy 默认要不要给 core/origin=builtin 配一条人审规则（配置层默认值）？
+3. ❸ builtin 对象升级随代码发版（R1.3）与文档侧 Apply 的节奏冲突如何对账？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

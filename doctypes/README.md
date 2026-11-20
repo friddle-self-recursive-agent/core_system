@@ -30,15 +30,17 @@
 | `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3（A29）：每完成一次 Session 记录；态机可回放、上下文可审计 |
 | `Runbook` | optional | — | 人 | 人肉处理手册（Escalate 后人看的东西） |
 
-## 3. Builtin 特例（原稿要求的三档）
+## 3. 必带级别归属（v0.5，A37：与 Builtin 无关）
 
-| 档位 | 类型 |
-|---|---|
-| 强制 | Goal / Desc / Rule / Auth |
-| 默认 | Metrics / DataDesign |
-| 可选 | 其余全部已注册类型 |
+三档（required / default / optional）由两层声明，**是 Scheme 与 Service 自己强调的事情**：
 
-Builtin 对象的文档修改一律人审（builtin.md），DocType 的 admission=strict。
+| 层 | 声明处 | 例子 |
+|---|---|---|
+| DocType 注册级（Scheme 层） | doctype 注册的 mandatory 字段 | Goal/Desc 全局 required；Rule 为 default |
+| Service 自身声明级 | system.yaml 的 docs.required（只可加严） | developer-system 自要求 Auth 必带 |
+
+Builtin 只是起源标记（core_system 自带开发，concepts/builtin.md v0.5），**不携带任何必带文档要求**；builtin 起源的对象同样适用上述两层。
+（R0 原稿"Builtin 有默认/强制/可选文档类型"由 R4 修正覆盖，见 annotations A37。）
 
 ## 4. 全局对象文档（非 DocType，结构即 YAML）
 
