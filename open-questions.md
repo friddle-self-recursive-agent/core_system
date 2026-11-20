@@ -190,6 +190,30 @@
 2. ❷ docsLoaded 审计之外，要不要对"该读未读"（漏 Rule）做事后检测？
 3. ❸ RootAgent=ask 时问"Bind 的人"，多人值班如何路由（复用 escalationChain？）？
 
+## apply（v0.4 追加）
+
+1. ❶ no-op 判定的字节级宽容度（空白/注释变化算不算 no-op）？
+2. ❷ 跨系统提案待审区的展示与处理 UX 定在 console 哪个入口？
+3. ❸ force 选项保留给谁（仅 Policy 高权限角色？）？
+
+## revision（v0.4 追加）
+
+1. ❶ LLM 语义 diff 的调用时机：仅 Conflict 时，还是每次 Apply 都出"变更归类"？
+2. ❷ 语义 diff 提案的信任边界：哪些类别（格式噪声）可自动合，哪些必人裁？
+3. ❸ token 成本：语义 diff 进预算（budget_log）吗？
+
+## bind（v0.4 重写后）
+
+1. ❶ role 词表自治度：自定义 role 要不要 Scheme 注册（防拼写爆炸）？
+2. ❷ root 兜底待办的规模化：待办数阈值与分流策略（观测面指标先行）？
+3. ❸ 双通道"同时处理"的冲突：谁先动谁算数？需要锁吗（还是靠幂等+SessionLog）？
+
+## user-system
+
+1. ❶ authentic 还是 authentik？（R3 原文 "authentic"——按 authentik（开源 IdP）理解，待确认）
+2. ❷ contact 探测频率与降级链（IM 不可达→email→webhook 日志）？
+3. ❸ IdP 接入后本地表的回退演练节奏（季度？随 storage 演练）？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

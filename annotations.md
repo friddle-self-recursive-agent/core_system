@@ -52,6 +52,11 @@
 | A29 | R2 取消 Agent 写路径强制规则 | "Agent 一切写操作经 Apply，违者拒绝" 被否 | 取消该规则；替代：每次 PLAN 与每完成一次 Session 必须记录文档（PlanDoc/SessionLog）于 ServiceInstance；文档面写入机制（Apply/Policy）本身保留 | concepts/agent.md §6.1、doctypes | ✅ | 已落地 |
 | A30 | R2 AUTOLEVEL | Agent 无自治分级 | ask/auto/all 三级；默认 RootAgent=ask、ServiceAgent=auto；all 需显式授权（P8 落地） | concepts/agent.md §3.1 | ✅ | 已落地 |
 | A31 | R2 子 agent 形态 | 派发子 dsh agent 的粒度未定 | 子 agent=机器 instance 级独立进程（非 dsh 内部 subagent），接受内存开销换隔离与直控；简单派发走 simple-shot | concepts/agent.md §1/§6.4 | ✅ | 已落地 |
+| A32 | R3 Apply 定位 | "唯一写路径"易被误读为约束 Agent 干活 | 澄清：Apply=文档面唯一写路径（文档做版本管理）；不影响最底层 Agent 干活（A29 沿用）；no-op 不发 Event+fieldManager 白名单豁免自身转正为规则；提案 SLA 机器删除（NOTIF 承担告知） | concepts/apply.md | ✅ | 已落地 |
+| A33 | R3 删字段级归属 | git 无字段级归属概念；文档 diff 是语义活 | 删 SSA/managedFields/三方合并；机器只做文档级比对，语义 diff 与合并提案=LLM（提案制，人裁兜底） | concepts/revision.md | ✅ | 已落地 |
+| A34 | R3 Bind 重定义 | Bind 不是绑人 | Bind=role；新增用户系统（builtin 本地表，Kind: User；未来评估 authentic/authentik 接入） | concepts/bind.md、concepts/user-system.md、systems/builtin/user-system | ✅ | 已落地 |
+| A35 | R3 责任模型 | "必须有 owner" 被否 | 无主对象合法：信息默认往上走到 root agent；bind=权限插入（role 持有者可处理该 agent），默认 bind 与根同时处理（双通道）；删 escalationChain/SLA | concepts/bind.md、agent/workflow/loop/notification 联动 | ✅ | 已落地 |
+| A36 | R3 约束不写死 | "approver≠executor" 硬规则被否 | 代码不写死治理约束；以引用型 Rule/Policy 数据表达（示例规则库存模板） | concepts/bind.md §6.5 | ✅ | 已落地 |
 
 ## 全局可行性判定（详见 feasibility.md）
 

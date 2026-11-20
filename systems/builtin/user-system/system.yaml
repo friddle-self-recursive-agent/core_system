@@ -1,0 +1,14 @@
+---
+name: builtin-user-system
+docType: ServiceDesc
+scope: builtin
+labels: {tier: platform}
+---
+# builtin-user-system —— 用户系统（builtin 默认，A34）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  provides: [user-directory, role-holders, contact-resolution]
+  rule: 用户增删改走人审；至少保留一名管理员；未来 IdP（authentik）接入=WorkService 纳管+本地表转投影
+status: {}

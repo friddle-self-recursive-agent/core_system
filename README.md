@@ -21,7 +21,7 @@ core_system/
 ├── requirements/                        # 原始要求存档（R0 背景 / R1 运行时）
 ├── principles.md                        # 10 条设计原则（冲突裁决依据）
 ├── architecture.md                      # 四层一面 / 边界决策树 / K8s 对照
-├── concepts/                            # 28 个概念（12 原稿 + 10 补充 + 3 v0.2 + 3 v0.3）
+├── concepts/                            # 29 个概念（12 原稿 + 10 补充 + 3 v0.2 + 3 v0.3 + 1 v0.4，部分 v0.4 为重写）
 ├── doctypes/README.md                   # 文档类型注册表（含 Builtin 三档）
 ├── core/scheme.yaml                     # 首版 Scheme：类型注册 + 事件路由 + 运行时基座
 ├── systems/builtin/                     # 自举最小集四个 builtin service 声明

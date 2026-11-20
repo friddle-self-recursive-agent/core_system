@@ -53,7 +53,7 @@ spec:
   onFailed:
     backoff: 30s*2^n
     maxAttempts: 3
-    escalate: {to: bind, sla: 4h}      # 超限 Escalate（Bind 的人）→ 处理后回 Idle
+    escalate: {to: root, notify: bind-role}   # v0.4：默认上溯 root agent；bind role 持有者同达（无 SLA 机器，NOTIF 承担，A35）
   phaseBudget: {Analyzing: 5m, Planning: 5m, Executing: 20m, Verifying: 10m}
 ```
 
@@ -67,7 +67,7 @@ builtin 首批：`default-task`（上述全态机）、`simple-shot`（Idle→Ex
 
 - ConnectorOps.spec.workflow 必填（缺省 default-task）。
 - Agent 任务态机（agent.md §4）= default-task Workflow 的直接引用，不再单独定义。
-- Escalate 出口接 Bind 与 Notification（concepts/notification.md）。
+- Escalate 默认上溯 root agent；对象有 Bind 时 role 持有者经 Notification 同达（双通道，A35）。
 - AwaitingApproval 的进入条件来自 Policy；批准动作=人经 console/Apply。
 
 ## 6. 设计规则

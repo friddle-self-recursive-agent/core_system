@@ -17,6 +17,7 @@ spec:
     - {kind: Workflow,        builtin: true,  storage: global/workflows/<name>.yaml}            # v0.3 态机
     - {kind: Provider,        builtin: true,  storage: global/providers/<name>.yaml}            # v0.3 账号包
     - {kind: Notification,    builtin: true,  storage: global/notifications/<name>.yaml}        # v0.3 通知
+    - {kind: User,           builtin: true,  storage: global/users/<name>.yaml}                       # v0.4 用户系统
     - {kind: Ref,             builtin: true,  storage: global/refs/<name>.yaml}
     - {kind: Bind,            builtin: true,  storage: global/binds/<name>.yaml}
     - {kind: Credential,      builtin: true,  storage: global/credentials/<name>.yaml}
@@ -51,3 +52,5 @@ spec:
     autoLevels:                           # AUTOLEVEL 默认（A30）
       rootAgent: ask
       serviceAgent: auto
+    escalation: root                     # v0.4：默认上溯 root agent；bind=权限插入，双通道（A35）
+    userSystem: builtin                  # v0.4：默认本地用户表；未来评估 authentik 接入（A34）

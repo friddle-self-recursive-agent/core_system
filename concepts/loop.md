@@ -38,10 +38,9 @@ spec:
   workers: 2                      # 并发对账数
   cooldown: 2m                    # 成功后最小间隔（防震荡）
   retry: {maxAttempts: 3, backoff: 30s*2^n}
-  escalation:                     # 失败出路（A6）
+  escalation:                     # 失败出路（A6；v0.4 改默认 root，A35）
     on: [retryExhausted, verifyFailed]
-    to: bind/developer-system-owners
-    sla: 4h
+    to: root                       # 默认上溯 root agent；有 bind 则双通道同达（无 SLA，NOTIF 告知）
   safety:
     dryRunFirst: true             # 先 plan 预演再执行
     maxMutationsPerTick: 10       # 单轮最大变更数（刹车）
@@ -71,7 +70,7 @@ Idle --(触发)--> Reconciling --> InSync --> CoolingDown --> Idle
 
 1. reconcile 函数必须幂等、纯调度视角（同一现实跑两遍结论一致）。
 2. 每轮 reconcile 有预算（时间/token/变更数），超预算本轮作废重排——LLM 不确定性下的确定性护栏。
-3. Escalated 是一等终态不是异常：等待人也是收敛路径的一部分。
+3. Escalated 是一等终态不是异常：等待（root agent 或 bind role 持有者）也是收敛路径的一部分。
 4. Loop 对象自身变更走 Apply+Policy（改重试策略=改系统行为）。
 
 ## 7. 可行性分析

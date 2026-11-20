@@ -1,26 +1,27 @@
-# Apply — 唯一写路径与系统间调用
+# Apply — 文档面唯一写路径与系统间调用
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | kubectl apply / Server-Side Apply（字段归属 ownership） |
+| K8s 对照 | kubectl apply（文档级）——**不再对标 SSA 字段归属（v0.4 删除，A33）** |
 | 形态 | Core 暴露的写接口（动词），不是存储对象 |
 | 作用域 | 全局 |
-| 状态 | 设计稿 v1 |
+| 状态 | 设计稿 v0.4（R3 修正） |
 
 ## 1. 定义
 
-Apply 是**唯一合法的写路径**：人写文档、Agent 回写 Status、系统间调用，全部是对文档的 Apply。没有第二入口（直接改文件、绕过 Core 的 API 调用均违宪，Policy+审计拦截）。
+Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply——**因为文档做版本管理**（R3 确认）。这个"唯一"只作用于**文档面**；**不影响最底层 Agent 干活**——Agent 执行任务走 ConnectorOps（权限校验在 ops），其运转以 PlanDoc/SessionLog 留痕（A29），不逐写审批（A32 澄清）。
 
-原稿"APPLY 系统之间的调用"落为此义：**系统 A 要影响系统 B，就是 A 对 B 的文档 Apply 一个变更**（例如给 B 的 Rule 提案），B 的 Loop 看到后自行收敛。系统间没有点对点 RPC，只有文档面上的声明交换——这是"文档即协议"的机制基础。
+系统间调用仍是文档面语义：系统 A 影响系统 B = A 对 B 的文档 Apply 一个提案，B 的 Loop 看到后自行收敛。没有点对点 RPC。
 
 ## 2. 边界
 
-**是**：写接口 + 字段级归属 + 冲突策略 + 审计记录。
+**是**：文档写接口 + 乐观锁（文档级）+ 审计 + 事件产生。
 
 **不是**：
-- 不是 Event（A12：Apply 改状态，Event 只通知；Apply 完成会发 Event，反之不成立）；
-- 不是任意补丁：只能 Apply 已注册类型的合法对象；
-- 不是 RPC 总线：没有请求-响应语义，收敛是异步的（对方 Loop 何时处理不保证，只保证最终处理）。
+- 不是 Agent 干活的审批关口（A29/A32：Agent 干活不受 Apply 约束）；
+- 不是字段级合并器（SSA/managedFields 已删，A33：git 无字段级归属概念，不做；文档 diff 是语义活，交给 LLM）；
+- 不是 Event（Apply 改状态，Event 只通知）；
+- 不带提案 SLA/超时机器（R3 删除：不是本系统的职责；催办与告知由 Notification 承担）。
 
 ## 3. 语义
 
@@ -28,45 +29,47 @@ Apply 是**唯一合法的写路径**：人写文档、Agent 回写 Status、系
 apply(obj, opts)
   opts: {dryRun: bool, force: bool, fieldManager: "agent/ci-repair-agent"}
 
-流程：读当前 → Policy 准入 → 三方合并（base/last/applied，SSA 语义）
-     → 乐观锁提交（Revision）→ generation+1（若 spec 变）→ 发 DocApplied Event
-冲突：两个 fieldManager 改同一字段且非幂等同值 → 冲突，后写者收 Conflict
-     → 协商（人裁/force/改字段归属），默认不 force
+流程：读当前 → Policy 准入 → 文档级比对（整文档）
+     → 内容相同：no-op（见规则 1）
+     → 内容不同：乐观锁提交（Revision）→ generation+1（若 spec 变）→ DocApplied Event
+冲突：resourceVersion 不符 = Conflict → 后写者重读；
+     需要合并时由 LLM 做**语义 diff**（哪里不同、是否冲突、合并提案），人裁兜底（A33）
 ```
-
-幂等（P4）：Apply 相同内容为 no-op，不发 Event（防自我唤醒循环：自己 Apply 触发自己的 Loop）。
 
 ## 4. 生命周期
 
-无生命周期（接口常在）。语义版本随 Scheme 演进（v1 SSA 子集：整文档归属；v2 字段级归属，见 open-questions）。
+接口常在；语义随 Scheme 演进（v1 起：文档级提交，无字段归属）。
 
 ## 5. 与其他概念的关系
 
-- Revision 提供乐观锁与历史（审计=git log）。
-- Policy 在 Apply 内执行（准入是 Apply 的一环，不是旁挂）。
-- Agent 写 Status、Loop 写 DriftReport、人写 Spec、系统间提案：四种写者同一接口、不同 fieldManager 与权限。
+- Revision 提供乐观锁与历史（审计=git log + ops DB 双轨）。
+- Policy 在 Apply 内执行（准入是写路径的一环）。
+- 写者四种：人写 Spec、Agent 回写 Status/SessionLog、Loop 写 DriftReport、跨系统提案（默认进对方待审区，除非 Policy 放行）。
+- Notification：DocApplied/ApprovalNeeded 的告知出口（无 SLA 机器）。
 
 ## 6. 设计规则
 
-1. 所有写者一视同仁过 Policy；fieldManager 标识写者，责任可追溯到人/Agent。
-2. Status 与 Spec 的写入权限分离：Agent 的 fieldManager 默认无 Spec 写权（P6）。
+1. **no-op 不发 Event + fieldManager 白名单豁免自身**（R3 明确加上）：Apply 相同内容为 no-op，不产生事件；且自身 fieldManager 的回写（如 Loop 写 Status 触发的 DocApplied）在白名单内豁免——双保险防自我唤醒循环。
+2. 任何文档写入必须携带 fieldManager（无主写入拒绝，审计可追溯）。
 3. dryRun 必须零副作用且返回与真执行一致的 plan。
-4. 系统间提案（跨系统 Apply）默认进入对方**待审区**（Proposal 状态），除非 Policy 放行——外部系统的自动合入永远是被授权的例外。
+4. 跨系统提案默认进对方**待审区**；超时/催办**不是本系统机制**——Notification 告知即可（R3：提案 SLA 删除）。
+5. Status 与 Spec 的写权限分离不变（P2/P6）。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 文件夹后端实现 SSA 困难 | ⚠️ 中 | git 无字段级归属概念 | v1 整文档归属+行级 diff 模拟；v2 再上字段归属（登记 open-questions） |
-| 自我唤醒循环 | ⚠️ 中 | Loop 写 Status 又触发自己 | no-op 不发 Event + fieldManager 白名单豁免自身 |
-| 跨系统提案积压 | ⚠️ 低 | 待审区无人处理 | 提案 SLA：超时升级 Bind 的人（与 Loop Escalate 同机制） |
+| 并发写冲突更粗（文档级） | ⚠️ 低 | 接受：文档粒度本就大，写者少 | 乐观锁+重读；真需并行的内容应拆成多份文档 |
+| LLM 语义 diff 幻觉 | ⚠️ 中 | 合并建议可能错 | 事实基础永远是 git 文本 diff；LLM 只做解读与合并提案，落地必须人裁（或 Policy 高危拦截） |
+| ~~SSA 实现复杂~~ | — | 已删除（A33） | — |
 
-**结论：可行。SSA 是 k8s 已趟平的路，v1 用子集。**
+**结论：可行，且比 v0.2 更简单（删掉最难啃的 SSA 子集）。**
 
 ## 8. 原始设计标注
 
-- A12：Apply/Event 正交定界。
-- 原稿"APPLY 系统之间的调用" → §1 的文档面交换语义。
+- A32（R3）：定位澄清（文档版本管理；不约束 Agent 干活）+ no-op/白名单规则转正。
+- A33（R3）：删字段级归属与三方合并；文档 diff=LLM 语义 diff。
+- A12 沿用（Apply/Event 正交）。
 
 ## 9. 待决问题
 

@@ -48,15 +48,15 @@ spec:
   providers:                            # Provider 绑定：API 账号/接口（concepts/provider.md）
     - provider/llm-main
   refs: [ref/jenkins-docs]
-  binds:
-    - {role: approver, user: u-zhang, policy: high-risk-only}
-    - {role: owner,    user: u-li}
+  binds:                              # v0.4：Bind=role（人归用户系统，A34）
+    - bind/ci-approver-bind             # 持有者可处理本 agent（与 root 并行，A35）
+  escalate: root                        # 默认上溯 root agent；有 bind 则双通道同达
   docsPolicy:
     read:  [{scope: systems/developer-system/*}]
     onDemand: true                      # 按需加载：dsh 会话自实现（R2）
   subAgents:
     - {name: ci-verifier, spawn: machine-instance}   # 机器级子进程，非 dsh 内部 subagent
-  retry: {maxAttempts: 3, backoff: 30s*2^n, escalateTo: bind/owner}
+  retry: {maxAttempts: 3, backoff: 30s*2^n, escalateTo: root}   # v0.4：默认 root，bind 可选插入（A35）
 status:                                 # 由 Loop 引擎回写
   phase: Idle | Analyzing | Planning | AwaitingApproval | Executing | Verifying | Reporting | Failed
   workflow: default-task                # 当前运转的 Workflow（agent.md 任务态机=default-task）
@@ -97,7 +97,7 @@ Idle → (派发) Analyzing → Planning → [Policy命中→AwaitingApproval→
 ## 5. 与其他概念的关系
 
 - 被 ServiceInstance **引用**（agentRefs），被 Loop 引擎派发任务。
-- 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；经 Bind 找到人；Escalate 出口接 Notification。
+- 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；Bind 是 role 绑定（人经用户系统解析，A34）；Escalate 默认上溯 root，有 Bind 则 role 持有者同达（Notification 送达，A35）。
 - 子 agent：机器 instance 级独立 dsh 进程，由父经 control plugin 直控（plugin.md）；权限=父权限裁剪（agent 继承只减不增）。
 - builtinRoot 的删除/禁用请求一律 Policy 拒绝（硬编码）。
 

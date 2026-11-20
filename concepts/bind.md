@@ -1,24 +1,31 @@
-# Bind — 人与系统的绑定
+# Bind — Role 绑定（权限插入点）
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | RBAC Binding + Scheduler 的 Binding（把决策落到具体执行者） |
-| 形态 | 对象：global/binds/<name>.yaml |
-| 作用域 | Global（可限定 system 域） |
-| 状态 | 设计稿 v1 |
+| K8s 对照 | RBAC 的 Role/RoleBinding（角色，不是人） |
+| 形态 | 对象：`global/binds/<name>.yaml`（对象 ↔ role） |
+| 作用域 | Global（可限定系统域） |
+| 状态 | 设计稿 v0.4（R3 重写：bind 是 role，不是 bind 人） |
 
 ## 1. 定义
 
-Bind 把**人**作为一等对象接进控制面：谁对哪个 Agent/系统负什么责任（owner）、谁审批什么级别的动作（approver）、谁被升级（escalation 链）、谁值班（oncall）。原稿"BIND 绑定相应用户"与 Loop 中"可配置 bind 人"共同落位于此。
+**Bind 绑定的是 role，不是人**（A34）。人属于用户系统（concepts/user-system.md）。一个 Bind 声明"某对象（Agent/系统/…）上存在某 role"；哪些用户持有该 role 由用户系统分配。
+
+责任模型（R3 重定义，A35）：
+
+- **默认责任上溯**：没有 owner 强制。信息/升级默认**往上走，走到 root agent**——每个对象的默认处理者是它 owner 链向上的第一个（最终是 root）agent。
+- **Bind = 权限插入**：bind 的作用是往对象上插一个 role，持有该 role 的用户**可以去处理这个 agent**。
+- **默认 bind 与根同时处理**：绑定了 role 的对象，其事项同时流向 root agent（上溯通道）与 role 持有者（插入通道）——双通道并行，不是单点责任。
 
 ## 2. 边界
 
-**是**：人↔对象的**责任/审批**关系。它不是权限本体（权限=P7 的文档引用并集+Policy），它是"出事找谁、谁点头"。
+**是**：对象↔role 的绑定 + 权限插入语义。
 
 **不是**：
-- 不是 Credential（那是机器钥匙；Bind 是人的责任关系）；
-- 不是组织架构同步（可以引用 LDAP/IM 的 Ref，但不负责保持同步——那是某个 WorkService+Connector 的事）；
-- 不是审批流引擎：审批动作本身走 Policy 的 ApprovalNeeded Event → Bind 命中的人 → 人 Apply 决定。没有独立工作流组件。
+- 不是"绑人"（人在用户系统；Bind 只认 role）；
+- 不是审批流引擎（没有 SLA/超时机器，R3 删除：催办与告知由 Notification 承担）；
+- 不是强制 owner 登记（无主对象合法，默认上溯 root）；
+- 不承载硬编码约束（如"审批人不得等于执行人"——这类约束走 **Rule/Policy 数据**表达，不写死代码，A36）。
 
 ## 3. 对象结构
 
@@ -26,52 +33,50 @@ Bind 把**人**作为一等对象接进控制面：谁对哪个 Agent/系统负�
 apiVersion: core/v1
 kind: Bind
 metadata:
-  name: developer-system-owners
+  name: ci-approver-bind
   scope: global
 spec:
-  bindings:
-    - {user: u-li,     role: owner,     on: system/developer-system}
-    - {user: u-zhang,  role: approver,  on: agent/ci-repair-agent,
-       when: {policySeverity: high-risk}}       # 只审高危动作
-    - {user: u-wang,   role: oncall,    on: system/developer-system,
-       schedule: ref/oncall-rota}                # 值班表可以是外部 Ref
-  escalationChain: [bind/developer-system-owners, bind/platform-oncall]
-  approvalSla: 4h            # 超时逐级升级
+  role: approver                 # role 名（builtin 词表：owner/approver/oncall/watcher；可自定义）
+  on: agent/ci-repair-agent      # 绑定对象（可多个）
+  # 持有者在用户系统：user.spec.roles 引用本 Bind（或 user-system 同步）
 status:
-  pendingApprovals: 1
-  lastEscalation: {at: ..., to: u-wang}
+  holders: [u-zhang]             # 由 user-system 回写（投影，非权威）
 ```
 
 ## 4. 生命周期
 
-创建（人审，Bind 自身属敏感对象）→ 生效（Policy/Loop 查它路由审批与升级）→ 人变动走 Apply → 失效（对象删除时其审批责任回落到 escalationChain 上一级）。
+创建（对象需要人介入时才建，不是必填）→ role 持有者可处理该对象（与 root 并行）→ 对象删除则级联 → role 空置仅告警不阻塞（默认上溯兜底）。
 
 ## 5. 与其他概念的关系
 
-- Agent.spec.binds 引用 Bind（或内联简化写法，二者取一，见 open-questions）。
-- Loop 的 Escalate 终点、Policy 的 ApprovalNeeded 路由目标都是 Bind。
-- 它是"human-in-the-loop"的唯一挂点：模型弱时这里密、模型强时这里疏（P8 的可配置体现）。
+- **UserSystem**：用户与 role 持有关系；Bind.status.holders 是其投影。
+- **Agent/Loop/Workflow 的 Escalate**：升级默认走 root agent；有 Bind 的对象同时通知 role 持有者（Notification 送达）。
+- **Policy**：审批档位可按 role 配置（如 approver role 放行某类动作）；**约束类规则（如审批人≠执行人）以 Rule/Policy 数据表达**（示例规则库提供模板，引用即用，不进代码）。
 
 ## 6. 设计规则
 
-1. 任何 Agent、任何系统必须有 owner（无主对象 Policy 拒绝创建）——责任不可悬空。
-2. approver 与 executor 不得同一人审批自己发起的高危动作。
-3. escalationChain 必须终点有人（最终落到平台 oncall），禁止空链。
-4. Bind 变更走人审（它是"改谁能审批"的对象，天然高危）。
+1. Bind 只认 role；人只在用户系统出现。
+2. 无主对象合法；信息流默认上溯 root agent。
+3. 有 Bind 的对象：root 与 role 持有者**同时**收到事项（双通道）。
+4. role 词表：builtin 四个（owner/approver/oncall/watcher），自定义 role 需 Scheme 注册命名前缀。
+5. "审批人不得等于执行人"等治理约束：**不在代码里写死**——以引用型 Rule（Rule 文档/Policy 规则）实现，示例规则库存模板（A36）。
+6. Bind 变更走人审（它是"谁能插手"的答案）。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 审批 SLA 无人响应 | ⚠️ 中 | 人是系统里最不可靠的组件 | escalationChain 逐级+SLA 超时；观测面亮"积压审批"指标 |
-| 双写（Agent 内联 binds vs Bind 对象） | ⚠️ 低 | 两处配置漂移 | 规则定死一种（v1：Agent 内联引用 Bind 名，不内联展开） |
-| 用户体系来源 | ⚠️ 低 | 本系统不管账号 | user 用外部身份标识（IM/LDAP id），验证委托给对应 Connector |
+| root 成为兜底瓶颈 | ⚠️ 中 | 无 bind 的对象全走 root | root 默认 ask 级（A30），事项转 Notification 告知相关人；观测面"root 待办数"指标 |
+| 双通道重复处理 | ⚠️ 低 | root 与 role 持有者都动手 | 处理动作幂等（P4）；SessionLog 可见谁先动 |
+| role 持有者与用户系统漂移 | ⚠️ 低 | holders 投影过期 | user-system 为权威，投影带 lastSync；对账探针 |
 
-**结论：可行。风险在组织纪律不在技术；机制上 SLA+升级链兜底。**
+**结论：可行。模型比 v0.2 更简（删 owner 强制与 SLA 机器），root 兜底 + 双通道语义清晰。**
 
 ## 8. 原始设计标注
 
-- 原稿"BIND 绑定相应用户"（Agent 下）与 Loop"可配置 bind 人" → 统一为本对象，Agent 只引用。
+- A34（R3）：Bind=role（非 bind 人）；用户系统新概念（builtin 默认，未来评估 authentic/authentik 接入）。
+- A35（R3）：取消"必须有 owner"；默认责任上溯 root agent；bind=权限插入，默认与根同时处理。
+- A36（R3）：取消 approver≠executor 硬规则——改为引用型 Rule 约束，不写死代码。
 
 ## 9. 待决问题
 

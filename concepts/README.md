@@ -51,6 +51,15 @@
 | [provider.md](provider.md) | Provider | R2：外部能力账号包（auth/config/connector 可空/secret）（A27） |
 | [notification.md](notification.md) | Notification | R2：一个 Scheme 一个 Instance 的通知渠道（A28） |
 
+## v0.4 重写/新增概念（R3 修正催生）
+
+| 文档 | Kind | 说明 |
+|---|---|---|
+| [bind.md](bind.md)（重写） | Bind | R3：Bind=role（非绑人）；责任默认上溯 root；bind=权限插入、与根同时处理；删 SLA 机器（A34/A35） |
+| [user-system.md](user-system.md) | User + builtin 服务 | R3：用户系统（builtin 本地表；未来评估 authentik 接入）（A34） |
+| [apply.md](apply.md)（重写） | — | R3：Apply=文档面唯一写路径（版本管理），不约束 Agent 干活；no-op+白名单规则转正（A32） |
+| [revision.md](revision.md)（重写） | — | R3：删字段级归属/SSA；文档 diff=LLM 语义 diff（提案制）（A33） |
+
 ## 边界矩阵（一屏总览）
 
 | 概念 | 管"意图"还是"现实" | 管内部还是外部 | 是数据还是声明 | 唯一存在理由 |
