@@ -1,0 +1,42 @@
+# core/scheme.yaml —— 首版 Scheme（类型注册 + 事件路由）
+# 概念依据：concepts/scheme.md；v0.2 增补 WorkServiceTemplate / TaskScheme（A19/A20）
+apiVersion: core/v1
+kind: Scheme
+metadata:
+  name: default
+  scope: builtin
+spec:
+  version: core/v1
+  kinds:                        # 对象类型（storage 路径按 instance 仓 layout.md）
+    - {kind: ServiceDesc,     builtin: true,  storage: systems/<name>/system.yaml}
+    - {kind: ServiceInstance, builtin: true,  storage: systems/<s>/instances/<name>/instance.yaml}
+    - {kind: Agent,           builtin: true,  storage: global/agents/<name>/agent.yaml}
+    - {kind: WorkService,     builtin: true,  storage: workservices/<name>/workservice.yaml}
+    - {kind: Connector,       builtin: true,  storage: global/connectors/<type>/connector.yaml}
+    - {kind: Ref,             builtin: true,  storage: global/refs/<name>.yaml}
+    - {kind: Bind,            builtin: true,  storage: global/binds/<name>.yaml}
+    - {kind: Credential,      builtin: true,  storage: global/credentials/<name>.yaml}
+    - {kind: Loop,            builtin: true,  storage: systems/<s>/loops/<name>.yaml}
+    - {kind: Policy,          builtin: true,  storage: global/policies/<name>.yaml}
+    - {kind: TaskScheme,      builtin: true,  storage: systems/<s>/schemes/<name>.yaml}      # v0.2：执行层 Scheme（A19）
+    - {kind: WorkServiceTemplate, builtin: true, storage: global/templates/<name>.yaml}      # v0.2：安装模板（A20）
+    - {kind: Plugin,          builtin: true,  storage: global/plugins/<name>.yaml}           # v0.2：dsh 插件（A21）
+  docTypes:                      # 展开定义见 doctypes/README.md
+    [Goal, Desc, Rule, WorkflowDesign, Metrics, DataDesign, DataMetrics, Auth,
+     DeployDesign, CodeDesign, ImplDoc, VerifyDoc, DriftReport, Runbook, Requirements]
+  eventTypes:
+    - {type: ExternalChanged, source: connector, route: owner-instance-loop}
+    - {type: MetricThreshold, source: metrics,   route: selector-match-loop}
+    - {type: DocApplied,      source: core,      route: owner-loop}
+    - {type: ApprovalNeeded,  source: policy,    route: bind-human}
+    - {type: HeartbeatLost,   source: core,      route: parent-agent}
+    - {type: InstallRequested, source: human,    route: deploy-system-loop}     # v0.2：R1.4 install 流程
+    - {type: TemplateFound,   source: connector, route: deploy-system-loop}
+  dispatch:                      # "dsh"：事件如何找到处理者（缺省路由）
+    - {on: "*",                  for: scope:builtin/*,  dispatch: loops/builtin-root}
+    - {on: ExternalChanged,      for: selector:*,       dispatch: owner-loop}
+    - {on: InstallRequested,     for: selector:*,       dispatch: systems/builtin/deploy-system}
+    - {on: "*",                  for: selector:*,       dispatch: deadletter}   # 兜底死信
+  runtime:                       # v0.2：运行时基座（R1.2）
+    baseAgent: dsh               # 基础 agent 运行时（concepts/plugin.md）
+    executionLayers: [intent, agent, scheme, code]   # 用户意图→Agent→Scheme→代码（concepts/task-scheme.md）

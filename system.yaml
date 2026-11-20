@@ -1,0 +1,34 @@
+---
+name: core_system
+docType: ServiceDesc
+scope: global
+labels: {tier: root, domain: meta}
+annotations:
+  alias: SystemDesc        # 用户术语：根声明称 SystemDesc，Kind 沿用 ServiceDesc（A18 待裁决）
+  repos:
+    desc: friddle-self-recursive-agent/core_system          # 本仓：声明侧
+    instance: friddle-self-recursive-agent/core_system_instance  # 实现形式 + 大部分设计 + 可行性
+    workservice: friddle-self-recursive-agent/core_system_workservice  # 核心代码
+---
+# core_system —— 根 ServiceDesc（SystemDesc）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  docs:
+    - requirements/background.md     # R0 原始要求存档
+    - requirements/runtime.md        # R1 运行时要求存档
+    - principles.md
+    - architecture.md
+    - doctypes/README.md
+  builtinServices:                   # 自举最小集（R1.3 + SelfRecursiveCore）
+    - systems/builtin/self-recursive-core
+    - systems/builtin/developer-system
+    - systems/builtin/deploy-system
+    - systems/builtin/storage-system
+  workserviceRefs:                   # 按能力引用，不点名
+    - {capabilities: scm, ci}        # 由 developer-system 落地（onedev）
+    - {capabilities: object-storage, nfs}  # 由 storage-system 落地（nas+oss）
+  instances:
+    - name: default                  # 对应 core_system_instance 仓
+      repoRef: ref/core-system-instance-repo

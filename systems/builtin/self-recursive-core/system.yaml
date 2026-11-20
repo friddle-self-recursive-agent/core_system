@@ -1,0 +1,20 @@
+---
+name: self-recursive-core
+docType: ServiceDesc
+scope: builtin
+labels: {tier: control-plane}
+finalizers: [core/revoke-credentials]
+---
+# self-recursive-core —— 第一个 builtin service（R1.1）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  implementationRef: system://core_system_instance/impl/self-recursive-core.md
+  codeRepoRef: ref/core-system-workservice-repo
+  docs:
+    - rule: 一切写入经 Apply+Policy；Status 机器写；明文凭证永不入库
+  loops:
+    - {name: core-self-check, resync: 10m}    # Core 自身一致性对账
+  connectors: [dsh, gitfs, opslog]
+status: {}   # Instance 侧回写（core_system_instance/instance.yaml 聚合）

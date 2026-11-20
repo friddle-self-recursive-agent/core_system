@@ -1,0 +1,17 @@
+---
+name: builtin-storage-system
+docType: ServiceDesc
+scope: builtin
+labels: {domain: storage}
+---
+# builtin-storage-system（R1.3：文档默认本地文件夹 git；R1.6：有 nas 和 oss）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  implementationRef: system://core_system_instance/impl/storage-system.md
+  connectors: [gitfs, nas-driver, oss-driver]
+  tiers:
+    - {tier: primary,  kind: local-git, desc: "文档权威副本：本地文件夹 git"}
+    - {tier: backup,   kind: nas,       desc: "git remote 备份 + 大文件/LFS"}
+    - {tier: archive,  kind: oss,       desc: "镜像文件地址 / 产物归档 / 冷备"}

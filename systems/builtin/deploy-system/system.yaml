@@ -1,0 +1,15 @@
+---
+name: builtin-deploy-system
+docType: ServiceDesc
+scope: builtin
+labels: {domain: platform}
+---
+# builtin-deploy-system（R1.3：内置就是当前机器；R1.4：install 流程的执行者）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  implementationRef: system://core_system_instance/impl/deploy-system.md
+  connectors: [dsh, gitfs]      # 安装动作全部走本机 dsh + 本地文件
+  loops:
+    - {name: install-loop, watch: {events: [InstallRequested, TemplateFound]}}

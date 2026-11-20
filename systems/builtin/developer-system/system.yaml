@@ -1,0 +1,21 @@
+---
+name: builtin-developer-system
+docType: ServiceDesc
+scope: builtin
+labels: {domain: devtools}
+finalizers: [core/wipe-workservice-side-effects]
+---
+# builtin-developer-system（R1.3：默认本地 build；R1.6：利用现有 onedev）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  implementationRef: system://core_system_instance/impl/developer-system.md   # 设计（非实现）在 instance 仓
+  docs:
+    - rule: 默认本地 build（executor=dsh 本机插件），不改 Desc 不许上远端池
+  workserviceRefs:
+    - {capabilities: scm, ci}      # 命中 onedev（能力匹配，不点名）
+  connectors: [onedev-driver, dsh]
+  instances:
+    - name: local-ci
+      agentRefs: [agent/dsh]       # 基础 agent 即 dsh（R1.2.1）
