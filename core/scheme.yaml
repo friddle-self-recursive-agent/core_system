@@ -13,6 +13,7 @@ spec:
     - {kind: Agent,           builtin: true,  storage: global/agents/<name>/agent.yaml}
     - {kind: WorkService,     builtin: true,  storage: workservices/<name>/workservice.yaml}
     - {kind: ConnectorProvider, builtin: true, storage: global/connectors/<name>/provider.yaml}  # v0.3 类型层
+    - {kind: Skill,          builtin: true,  storage: systems/<s>/instances/<i>/skills/<name>.yaml} # v0.6 工具使用缓存
     - {kind: ConnectorOps,    builtin: true,  storage: global|systems/<s>/…/connector-ops/<name>.yaml}  # v0.3 使用层
     - {kind: Workflow,        builtin: true,  storage: global/workflows/<name>.yaml}            # v0.3 态机
     - {kind: Provider,        builtin: true,  storage: global/providers/<name>.yaml}            # v0.3 账号包
@@ -53,4 +54,7 @@ spec:
       rootAgent: ask
       serviceAgent: auto
     escalation: root                     # v0.4：默认上溯 root agent；bind=权限插入，双通道（A35）
+    providerResolution:                  # v0.6：ConnectorProvider 命名解析（A38）
+      defaultOrg: friddle-self-recursive-agent   # 无前缀名 ⇒ 默认 org（代码与安装在该 org 生成）
+      prefixed: github                   # 带前缀名 ⇒ github.com/<org>/<name> 找完整配置
     userSystem: builtin                  # v0.4：默认本地用户表；未来评估 authentik 接入（A34）

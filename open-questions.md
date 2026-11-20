@@ -220,6 +220,18 @@
 2. ❷ origin 用 scope+label 双表达后，Policy 默认要不要给 core/origin=builtin 配一条人审规则（配置层默认值）？
 3. ❸ builtin 对象升级随代码发版（R1.3）与文档侧 Apply 的节奏冲突如何对账？
 
+## connector（v0.6 简化后）
+
+1. ❶ 默认 org 的 Provider 仓形态：继续放 workservice 仓 connectors/，还是 org 下独立仓（如 core_system_providers）？
+2. ❷ 带前缀 provider 的版本锁定语法（provider@v1.2 vs ref digest）定哪种？
+3. ❸ tool 形态（外部直接工具）的安全边界：哪些 tool 允许零安装直接引用？
+
+## skill
+
+1. ❶ 沉淀自动化阈值：几次成功调用自动成 Skill（1 次太灵敏，3 次太迟）？
+2. ❷ Skill 提升为 Global 的判据（引用热度？跨实例数？）？
+3. ❸ Skill 与 provider.llmPrompt 冲突的检测时机：加载时校验 or 定期对账？
+
 ## 横切（不属于单一概念）
 
 1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？

@@ -1,97 +1,102 @@
-# Connector — ConnectorOps / ConnectorProvider（v0.3 拆分）
+# Connector — ConnectorOps / ConnectorProvider（v0.6 简化）
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | Provider≈CSI driver 实现（类型+代码绑定）；Ops≈VolumeAttachment/StorageClass（挂载使用） |
-| 形态 | 两个 Kind：`ConnectorProvider`（类型标注+代码绑定，Global）+ `ConnectorOps`（操作挂载，Global/System/Instance） |
-| 状态 | 设计稿 v0.3（R2 修正：原单一 Connector 拆为两个，A25） |
+| K8s 对照 | Provider≈容器镜像引用（名字解析+下载地）；Ops≈已装好的命令行入口 |
+| 形态 | `ConnectorProvider`（绑定声明，Global）+ `ConnectorOps`（工具调用面，Global/System/Instance） |
+| 状态 | 设计稿 v0.6（R5 修正：生命周期大幅简化、命名解析、llmPrompt/download，A38） |
 
-## 1. 定义（为什么拆）
+## 1. 定义
 
-原单一 Connector 混了两件事：**"这类驱动由什么代码实现"**（类型层）和**"这个系统挂了一份什么样的操作"**（使用层）。拆开：
+- **ConnectorProvider**：**就是用来绑定**的声明——把一个"类型名"绑到具体实现上。实现三形态：
+  - `tool`：外部直接工具（现成命令/服务，拿来即用）；
+  - `image`：镜像（下载即跑）；
+  - `source`：源代码（**自己代码仓库管理的用 Ref 指代码地址，统一管理起来**）。
 
-- **ConnectorProvider**（类型层）：支持什么类型（types 标注）、具体对应什么代码或工具（impl 绑定）、契约支持度（get/plan/apply/verify/watch/undo）。纯注册，不含环境信息。
-- **ConnectorOps**（使用层）：挂载在 global 或某个 service/instance 里的"一份可调用操作"。引用一个 Provider，加上环境（endpoint/config/credential）、暴露的 op 子集、绑定的 Workflow。**Agent 默认挂 ConnectorOps**（不是直接挂 Provider）。
+  **命名解析**（A38）：
+  - **不带前缀** = 默认 org：`friddle-self-recursive-agent/`——我们自己有一套默认 Provider，代码与安装在该 org 下生成（workservice 仓 connectors/ 或 org 下独立仓+install 流程）；
+  - **带前缀** = 按 GitHub 找完整配置：`acme/foo-driver` → `github.com/acme/foo-driver`（取 provider yaml、代码与安装说明）。
 
-默认供给：builtin 服务 `builtin-connector`（systems/builtin/connector/）提供全局默认 ops（gitfs/dsh/http 等通用操作）；**每个 ServiceInstance 可以自己实现自己的 ConnectorOps**（就近遮蔽，scope 规则）——"builtin service: connector，每个 service instance 自己实现这个 connector"。
-
-**使用要权限**：Agent 能调哪些 ops = 其引用的 ConnectorOps 并集，再被 Policy 裁剪（P7）。
+- **ConnectorOps**：**直接就是工具调用方式/提供的功能**——引用一个 Provider，配好环境（endpoint/凭证），暴露 op 集。Agent 调 ops = 调工具。**没有复杂生命周期**（v0.3 的探活/漂移/finalizer 机器删除：那些若需要，由所在系统的 Loop 顺带做，不是 Ops 概念的职责）。
 
 ## 2. 边界
 
-**Provider 是**：类型注册项（Scheme 闸门管它）；**不是**：不含 endpoint/凭证/工作流。
-
-**Ops 是**：一份可调用的操作（环境+子集+Workflow）；**不是**：不是代码本体（代码在 Provider 的 impl）；不做业务判断。
-
-**二者都不是**：不是外部系统本体（WorkService）、不是 Plugin（Plugin 扩展 dsh 自身，Ops 对接外部）。
+**Provider 是**：类型名→实现的绑定 + 使用说明书（scheme/usage/llmPrompt/download）。
+**Ops 是**：工具调用面（provider + 环境 + op 子集）。
+**都不是**：外部系统本体（WorkService）、Plugin（扩展 dsh 自身）、业务判断者。
+**Skill**（新概念，concepts/skill.md）：ops 的使用处缓存成的可复用经验，属 Agent 会话层，不属 Connector。
 
 ## 3. 对象结构
 
 ```yaml
-# 类型层：global/connectors/onedev-driver/provider.yaml
+# 类型层：global/connectors/<name>/provider.yaml
 apiVersion: core/v1
 kind: ConnectorProvider
 metadata:
-  name: onedev-driver
+  name: onedev-driver            # 无前缀 ⇒ 默认 org（friddle-self-recursive-agent）
+  # name: acme/foo-driver        # 带前缀 ⇒ github.com/acme/foo-driver 完整配置
   scope: global
 spec:
-  types: [scm, ci]                       # 支持什么类型（类型标注）
-  impl: {repo: workservice, path: connectors/onedev}   # 对应代码或工具
-  contract:
-    get: true  plan: true  apply: true  verify: true
-    watch: true
-    undo: partial                        # none ⇒ 使用处 Policy 强制人审
+  types: [scm, ci]               # 类型标注
+  impl:
+    kind: source                 # tool | image | source（三形态）
+    ref: ref/core-system-workservice-repo   # source 形态：Ref 指代码地址（自己仓统一管理）
+  download: "git://…/connectors/onedev"     # 工具下载地方（image:// git:// pkg:// 皆可）
+  scheme:                        # 使用方式 schema（参数/返回，机器读）
+    ops: [checkout, build-status, gate-status, verify, watch]
+    params: {endpointRef: ref, credentialRef: credential}
+  usage: |                       # 使用方式（人读）
+    onedev REST + git 双通道；watch 用 webhook，抖动降级轮询…
+  llmPrompt: |                   # LLM 注入提示：Agent 会话使用本工具时注入
+    你可用 onedev-driver 管理 onedev：checkout(ref) 拉取代码；
+    build-status(commit,result) 回写构建结果。token 从 credential 解析，禁止写死。
 ---
-# 使用层：systems/<s>/instances/<i>/connector-ops/onedev-ci.yaml（或 global/connectors/ops/<name>.yaml）
+# 使用层：工具调用面
 apiVersion: core/v1
 kind: ConnectorOps
 metadata:
   name: onedev-ci
   scope: builtin-developer-system/local-ci
 spec:
-  provider: onedev-driver                # 类型来源
-  workflow: default-task                 # 绑定的 Workflow（见 concepts/workflow.md）
+  provider: onedev-driver        # 绑定（经命名解析）
   config: {endpointRef: ref/onedev-endpoint}
   credentials: [credential/onedev-robot]
-  ops: [checkout, build-status, gate-status, verify]   # 暴露子集
-status:
-  conditions:
-    - {type: Reachable, status: "True"}
-    - {type: ProviderVersion, status: "True", reason: "v0.1"}
+  ops: [checkout, build-status, gate-status, verify]   # 提供的功能
 ```
 
-## 4. 生命周期
+## 4. 生命周期（极简）
 
-Provider：注册（代码入库+Apply）→ 被引用 → 版本升级（新版并存，兼容期）→ 废弃（无引用后）。
-Ops：创建（引用 Provider+配环境+绑 Workflow）→ 探活（conditions）→ 配置漂移=drift → 删除（Finalizer 清外部注册物，如 webhook）。
+- **Provider**：声明（Apply）→ 被引用 → 不用了就删。（v0.3 的"版本并存/兼容期/废弃探针"删除——需要锁版本就在 Ops 引用时写 `provider@v1.2`。）
+- **Ops**：绑定（引用 Provider+配环境）→ 使用 → 删除。（探活/漂移/finalizer 不是本概念职责。）
 
 ## 5. 与其他概念的关系
 
-- **Workflow**：每个 Ops 必绑一个 Workflow（op 的调用走态机；builtin 有默认），见 concepts/workflow.md。
-- **Provider（大写概念）**：外部能力账号包（auth/config/connector/secret）里的 connector 字段引用 **ConnectorOps**——注意两词：`ConnectorProvider`（驱动类型）与 `Provider`（账号能力包）不同物，见 concepts/provider.md。
-- WorkService 引用 ops 驱动自己；TaskScheme 步骤的 `connector:` 字段指 ConnectorOps 名。
-- 权限：Agent 引用 ops（P7）；ops 的credentials 单独授权（credential.md）。
+- Agent 默认挂 Ops（工具面）；**使用要权限**（P7 并集+Policy 不变）。
+- Provider 的 llmPrompt + Skill 缓存共同构成 Agent 的工具使用上下文（会话按需注入）。
+- Ops 仍可绑 Workflow（缺省 default-task）——相位约束，不是生命周期机器。
+- 默认 org 的 Provider 集 = 我们自带的基础工具箱（onedev/gitfs/nas/oss/dsh…），代码与安装在 org 仓生成。
 
 ## 6. 设计规则
 
-1. Provider 未注册的 type，Ops 不予创建（Scheme 闸门）。
-2. Ops 必绑 Workflow（缺省 default-task）。
-3. `undo: none` 的 Provider，其 Ops 的每次 apply 走人审。
-4. 一个外部系统的驱动只注册一个 Provider；环境差异全在 Ops 层。
+1. 无前缀名必须能在默认 org 解析到；解析不到报错（不静默回退）。
+2. 带前缀名按 GitHub 拉取完整配置后走 Policy 扫描（同 install 流程的安全规则）。
+3. impl 三形态必择一；source 形态必带 Ref（统一管理）。
+4. llmPrompt 必填（哪怕一句话）——它是 Agent 会话注入的工具说明书；download 必填。
+5. Ops 就是调用面：不为它设探活/漂移/finalizer 概念级机制。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 拆分后概念数膨胀 | ⚠️ 低 | 但消除了"类型/使用"混用的双源 | 命名硬区分：Provider=类型，Ops=使用 |
-| 每 instance 自实现 ops 的重复 | ⚠️ 中 | 用户明确要求（不共享状态） | 全局默认 ops 兜底 + 模板生成 |
-| 其余同 v0.2（适配面/幂等/undo） | ⚠️ 中 | 拆分不改变契约难度 | 见原可行性结论：成熟工程，无研究性风险 |
+| 外部 org 配置质量不可控 | ⚠️ 中 | 带前缀拉来的 provider 可能有坑 | Policy 扫描+digest+高危人审（复用 install 规则） |
+| llmPrompt 写得差→Agent 用错工具 | ⚠️ 低 | 说明书质量问题 | Skill 缓存反哺（实战调用模式沉淀回 usage/llmPrompt） |
+| 三形态 impl 的安装差异 | ⚠️ 低 | tool/image/source 安装方式不同 | download 字段统一指路；安装执行归 deploy-system |
 
-**结论：可行。拆分是纯结构改善，把"类型"与"使用"各归其位。**
+**结论：可行。简化后比 v0.3 更轻——绑定+说明书+调用面，其余全删。**
 
 ## 8. 原始设计标注
 
-- A25（R2）：Connector 拆为 ConnectorOps/ConnectorProvider；Agent 默认挂 ops；builtin 服务 `connector` 提供默认 ops；使用要权限。
+- A38（R5）：生命周期简化（就是绑定）；impl 三形态（tool/image/source+Ref 统一管理）；命名解析（无前缀=默认 org，带前缀=GitHub 完整配置）；yaml 增加 scheme/usage/llmPrompt/download；Ops=工具调用面，使用处可缓存为 Skill。
 
 ## 9. 待决问题
 

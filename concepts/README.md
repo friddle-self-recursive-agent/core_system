@@ -60,6 +60,13 @@
 | [apply.md](apply.md)（重写） | — | R3：Apply=文档面唯一写路径（版本管理），不约束 Agent 干活；no-op+白名单规则转正（A32） |
 | [revision.md](revision.md)（重写） | — | R3：删字段级归属/SSA；文档 diff=LLM 语义 diff（提案制）（A33） |
 
+## v0.6 简化/新增概念（R5 修正催生）
+
+| 文档 | Kind | 说明 |
+|---|---|---|
+| [connector.md](connector.md)（重写） | ConnectorOps + ConnectorProvider | R5：生命周期极简（就是绑定）；impl 三形态 tool/image/source+Ref；命名解析（无前缀=默认 org，带前缀=GitHub）；yaml 含 scheme/usage/llmPrompt/download（A38） |
+| [skill.md](skill.md) | Skill | R5：工具使用处缓存为 skill（会话层经验，按需注入）（A38） |
+
 ## 边界矩阵（一屏总览）
 
 | 概念 | 管"意图"还是"现实" | 管内部还是外部 | 是数据还是声明 | 唯一存在理由 |
