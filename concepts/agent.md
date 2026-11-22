@@ -19,7 +19,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 两类：
 
-- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。不可删除、不可停用（权限系统硬规则兜底）。
+- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路（A63）。不可删除、不可停用（权限系统硬规则兜底）。
 - **ServiceAgent**：普通 Agent，被 ServiceInstance 引用而参与收敛；可挂 Parent/Sub 树（父子=机器级进程派发 + owner 链）。
 
 ## 2. 边界
@@ -100,7 +100,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 - 被 ServiceInstance **引用**（agentRefs），被 Loop 引擎派发任务。
 - 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；Bind 是 role 绑定（人经用户系统解析）；Escalate 默认上溯 root，有 Bind 则 role 持有者同达（Notification 送达）。
 - 子 agent：机器 instance 级独立进程，**运行时不限于 dsh**（自写 agent、opencode 等均可），派发/调用经 ConnectorOps 描述或调用；由父经直控通道派发/中断/查询；权限=父权限裁剪（只减不增）。
-- builtinRoot 的删除/禁用请求一律 权限系统 拒绝（硬编码）。
+- builtinRoot 的删除/禁用请求一律 权限系统 拒绝（硬编码）；其权限绑定（内置 role `global/admin`，A63）同样不可更改/换绑/降权。
 
 ## 6. 设计规则（ 修订）
 

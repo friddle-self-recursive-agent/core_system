@@ -83,6 +83,7 @@
 | A58 | R14.3 模块划分 | 内网系统"页面功能模块"在文档面的归属 | 门户服务注册表（90 项，六类）=**公司 git 存实物**；文档面只存模块分类注册（每模块=WorkService 或其 Instance/Ref，按边界决策树 Q2 判定）；清单本身是数据不是文档（Q1），投影进 WorkService 六面体 | instance 仓 impl/kube-inner-integration.md | ✅ | 待裁决 |
 | A59 | R14.8 四项接入 | LDAP/飞书/OneDev/Kafka/SSH 接入是否需要新概念 | **零新概念**：user-system 接 LDAP+飞书=Provider+Instance（账号映射=数据投影）；developer-system 接 OneDev=既有设计落地；deploy-system 多渠道=ConnectorOps 并集按业务 DeployDesign 裁剪（规则不写死）；Kafka=Notification 的传输通道实现（一 Scheme 一 Instance 不变），飞书=Provider，通知落账号=user-system 映射 | instance 仓 impl/user-system.md、impl/deploy-system.md、runtime/event-bus.md | ✅ | 待裁决 |
 | A62 | 子 agent 运行时（更正 A31 表述） | A31 落地文"派发子 dsh agent"把子 agent 绑死在 dsh 上，表述过窄 | **强调：子 agent 运行时不限于 dsh**——自写 agent、opencode 等任意 agent 运行时均可；子 agent 的派发/调用=ConnectorOps 描述或调用（与调用外部工具同一语义，spawn 本身就是一次 ConnectorOps 调用）。不变项：机器 instance 级独立进程、禁任何运行时内部 subagent 共享进程、权限=父裁剪只减不增 | concepts/agent.md §1/§3/§5/规则4、concepts/workflow.md §1、instance 仓 runtime/dsh-plugin.md、agent-session.md、cross-agent.md | ✅ | 已落地（A62 更正 A31 表述） |
+| A63 | root 权限表述（更正） | 落地文把 root 写成"权限系统硬规则兜底"的特例，易读成权限旁路/无权限标志 | **root 有权限标志、走统一权限管理**：builtinRoot 挂内置 role `global/admin`（最高权限、默认内置），只是该绑定不可更改（不可删/不可换绑/不可降权）；其"最高权限"来自 role 授权面，不是身份特权；动作统一过权限判定与审计。dsh-plugin 权限表=该 role 的授权投影，非独立权限面 | concepts/permission.md 规则2b、concepts/agent.md §1/§5、instance 仓 runtime/dsh-plugin.md | ✅ | 已落地（A63 更正） |
 
 ## 全局可行性判定（详见 feasibility.md）
 
