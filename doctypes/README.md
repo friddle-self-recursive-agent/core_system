@@ -12,9 +12,9 @@
 | `Desc` | required | overview / boundaries | 人 | 系统是什么、不是什么（概念边界的文档化） |
 | `Rule` | default | rules[] | 人/owner | 约束（"必须每天备份"）。每条 Rule 建议带 ruleId，供 Status.RulesHeld 引用 |
 | `WorkflowDesign` | optional | flows[] | 人 | **给人看的功能流设计**（原稿 Workflow Desion，A2 改拼写）。不是可执行编排 |
-| `Metrics` | default | indicators[] / thresholds[] | 人 | 监控设计（A1：吸收原稿 Prometheus 类型）。系统行为/健康指标与阈值 |
+| `Metrics` | default | indicators[] / thresholds[] | 人 | 监控设计。系统行为/健康指标与阈值 |
 | `DataDesign` | optional | entities[] / flows[] | 人 | 数据设计：实体、从哪到哪、什么权限 |
-| `DataMetrics` | optional | flows[] / slo[] | 人 | 数据流监控设计（A4：延迟/丢数/血缘），区别于系统健康 |
+| `DataMetrics` | optional | flows[] / slo[] | 人 | 数据流监控设计，区别于系统健康 |
 | `Auth` | default（Builtin: required） | subjects[] / grants[] | 人（人审） | 授权设计：谁可干什么（设计层；钥匙见 Credential） |
 | `DeployDesign` | optional | envs[] / rollout | 人 | 部署设计 |
 | `CodeDesign` | optional | modules[] | 人 | 代码结构设计 |
@@ -26,9 +26,10 @@
 | `ImplDoc` | required | how / mapping | Agent（随实现生成） | "我怎么实现这些功能的"（原稿 DOCS 前半）：声明→实现对照 |
 | `VerifyDoc` | required | guarantees / probes | Agent/owner | "怎么进行约束保障的"（原稿 DOCS 后半）：验证手段、探针、兜底 |
 | `DriftReport` | auto | drifts[] / actions[] | Workflow 生成 | 每轮对账的差距与动作记录；也是下轮的压缩上下文 |
-| `PlanDoc` | required | intent / steps / budget | Agent | v0.3（A29）：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
-| `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3（A29）：每完成一次 Session 记录；态机可回放、上下文可审计 |
+| `PlanDoc` | required | intent / steps / budget | Agent | v0.3：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
+| `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3：每完成一次 Session 记录；态机可回放、上下文可审计 |
 | `Runbook` | optional | — | 人 | 人肉处理手册（Escalate 后人看的东西） |
+| `Memory` | optional | content / refs | Agent | **Agent 记忆条目**（默认记忆系统的载体）：经验/偏好/上下文延续，存 Service 文档域，随 docs_operator 管理；运行中也可提交（如 Ref 记录随手入册） |
 
 ## 3. 必带级别归属（v0.5，A37：与 Builtin 无关）
 
@@ -40,7 +41,7 @@
 | Service 自身声明级 | system.yaml 的 docs.required（只可加严） | developer-system 自要求 Auth 必带 |
 
 Builtin 只是起源标记（core_system 自带开发，concepts/builtin.md v0.5），**不携带任何必带文档要求**；builtin 起源的对象同样适用上述两层。
-（R0 原稿"Builtin 有默认/强制/可选文档类型"由 R4 修正覆盖，见 annotations A37。）
+
 
 ## 4. 全局对象文档（非 DocType，结构即 YAML）
 

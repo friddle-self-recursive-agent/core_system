@@ -90,8 +90,10 @@ status:
 2. llmPrompt/download 在连接面必填（沿 规则）。
 3. 观测/数据/流程是**意图描述**——把抓取数据写进来即违反 Q1（数据进 MetricsInfo）。
 4. 命名解析（无前缀=默认 org）规则随连接面迁入，作用于 impl/download 引用。
+5. **capabilities 词表归 Scheme 管**：global 一套内置词表（scheme.yaml 维护）；非 global 的系统域自加自管（服务前缀命名，如 `<system>:<capability>`）——防"按能力引用"退化成"按名字引用"。
+6. **外部系统所有权冲突不裁决**：同一外部系统被两个系统纳管/同时操作闹崩，不在本系统职责内（各自 connector 自行幂等防护）。
 5. 删除清理职责显式写在 tools/flows 里（代替 Finalizer）：有外部创建动作的 tools 必须成对声明清理 op（Lint）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 8. 可行性分析
 

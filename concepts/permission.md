@@ -13,7 +13,8 @@
 
 1. **权限域按 scope**：global 有 global 权限（管 global 起头的对象与全局动作）；**system 开头的有 system 权限**（各系统域内对象由该系统权限管）。对象落在哪个 scope，就受哪层权限管（scope.md 联动）。
 2. **默认 `global/admin` 拥有所有权限**（内置 role，不可删、不可降权——锁死管理的最后一道门）。
-2b. **builtinRoot 挂内置 `global/admin`**（默认内置绑定，不可更改：不可删/不可换绑/不可降权）——root **有权限标志、走统一权限管理**，无任何旁路；其"最高权限"来自该 role 的授权面，不是身份特权（A63）。
+2a. **登录的 builtin 最小实现**：默认用 **dsh 的 token** 即可（dsh 下直接复用，先不单独建用户登录系统，以后再写）；user-system 必须提供一组 ConnectorOps 让登录非常方便（认证协议实现：login/me/token 交换）。本条是最小起步路径，不是永久形态。
+2b. **builtinRoot 挂内置 `global/admin`**（默认内置绑定，不可更改：不可删/不可换绑/不可降权）——root **有权限标志、走统一权限管理**，无任何旁路；其"最高权限"来自该 role 的授权面，不是身份特权。
 3. **一切只绑 role**：权限只授予 role；**用户绑 role**（user→role）、**用户绑 group**、**group 绑 role**（user→group→role）。**用户和 group 都不直接绑权限**——没有例外通道。
 3b. **对象挂 role**（原 Bind 并入）：`Role.spec.on: [对象]`——哪个 Agent/系统挂了这个 role；持有者可处理该对象（与 root 双通道， 语义不变）。
 4. **Agent 权限判断不限死**：Agent 的动作权限=其绑定 role 的并集（ConnectorOps/Ref/Provider/文档域）；**由谁判定是灵活的**——可以是 agent 自治判定（auto 级）、role 权限表、或**上级 agent**（父级审批/裁剪）。**跨系统**：系统 A 的 agent 需要系统 B 的 agent 协助或询问时，**由 B 侧判定**（B 的 agent/role/上级 agent 任一合法判定方）——被请求方持有裁判权，A 侧不能自判通过。
@@ -82,7 +83,7 @@ spec:
 3. 判定方灵活但**判定必须留痕**（谁判的、依据什么、何时）——灵活性换可审计。
 4. 跨系统裁判权永远在被请求方（B 侧）。
 5. 原则 P7（权限随文档走）不变：改 role/绑定=改权限=高敏变更（人审）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

@@ -70,7 +70,8 @@ bootstrap 时由 builtinRoot 写入首版 → 之后只能**追加与扩容**（
 2. 存储路径写进注册项（对象落在哪个目录由 Scheme 决定，instance 仓 layout.md 与之对齐）。
 3. 类型演进只加不改：删字段、改语义必须升版本。
 4. dispatch 表必须穷举事件类型的缺省路由；路由不到的事件进死信（DeadLetter）并告警，不允许静默丢弃。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+5. **路由表达必须支持相等/集合之外的谓词**：exists / notIn / 前缀 / 正则等（v1 至少相等+集合+notIn+exists；语法随 Scheme 演进）——只有相等/集合不够用。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 6. 可行性分析
 

@@ -78,17 +78,17 @@ Q4 它是类型还是实例？
 | Scheme | scheme + CRD 机制 | 同时注册对象类型与文档类型 |
 | ServiceDesc | Deployment（Spec 部分） | Spec 是一组异构文档而非单 yaml |
 | ServiceInstance | Pod | 含实现侧 Docs 与 MetricsInfo |
-| Agent | Pod 内执行体 + controller 意识 | Agent 是全局对象，Instance 引用而非内嵌（A3） |
+| Agent | Pod 内执行体 + controller 意识 | Agent 是全局对象，Instance 引用而非内嵌 |
 | WorkService | Node / External Provider | 声明"外部有能力的东西" |
-| WorkService（六面体）/ConnectorOps | Node+exporter / 已装工具入口 | v0.13：Provider 并入 WorkService 连接面；层级判例 deploy_system→sybran 实例→jenkins/onedev/bugmgmt（A53） |
+| WorkService（六面体）/ConnectorOps | Node+exporter / 已装工具入口 | v0.13：Provider 并入 WorkService 连接面；层级判例 deploy_system→sybran 实例→jenkins/onedev/bugmgmt |
 | Ref | ObjectReference/ExternalName | 增加 TTL/owner，明确"临时"语义 |
 | Event | Event + watch | 只触发不修改，消费按 P3 |
 | Apply | kubectl apply / SSA | 同时是系统间调用的唯一形态 |
 | Workflow | Controller/Reconciler | 一等对象，可配置触发源与升级策略 |
 | 权限系统 | Admission Webhook | 文档即权限，准入必选 |
-| ~~Finalizer~~ | ~~Finalizer~~ | 已删除（A51）：清理=WorkService tools/flows 成对声明 |
+| ~~Finalizer~~ | ~~Finalizer~~ | 已删除：清理=WorkService tools/flows 成对声明 |
 | Bind | RBAC Binding + scheduler binding | 人也是一等被绑定对象 |
-| Builtin | kube-system（仅"自带"类比） | v0.5：仅起源标记，无强制要求（A37） |
+| Builtin | kube-system（仅"自带"类比） | v0.5：仅起源标记，无强制要求 |
 
 ## 5. 命名规范
 

@@ -51,7 +51,7 @@ resourceVersion：Core 每次成功写入自增；Apply 提交带回读到的版
 3. commit message 结构化：`<fieldManager> <action> <reason-ref>`（reason-ref 指向 DriftReport/PlanDoc/Event）。
 4. 历史不可改写（no force-push）。
 5. **LLM 语义 diff 的输出永远是提案**：事实基础是 git 文本 diff；合并落地必须人裁或 权限系统 明确放行——LLM 不直接改历史。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

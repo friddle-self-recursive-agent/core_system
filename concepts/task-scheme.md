@@ -69,7 +69,7 @@ spec:
 4. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
 5. 模板元数据带 `origin`（builtin/adjusted/imported）与生成相位提示词（prompt 段）——提示词是模板的一部分，随模板版本管理。
 6. 模板四操作（用/调/import/delete）都过权限系统；builtin 起源模板只读，调整必产生副本。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 6. 可行性分析
 

@@ -53,7 +53,7 @@ metadata:
 2. 任何把要求（必带文档/人审/成员审批）绑死在 Builtin 概念上的设计即违宪（本文件 就是反例）。
 3. 起源标记用 scope+label 双表达：scope 管住哪，label 供 权限系统 匹配。
 4. builtinRoot 不可删为独立硬规则（保护关键对象），不泛化为类规则。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

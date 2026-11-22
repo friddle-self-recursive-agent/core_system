@@ -74,9 +74,9 @@ metricsInfo: # ：查询入口声明，非数据本体
 
 1. Instance 目录里允许存在的文档类型白名单：ImplDoc、VerifyDoc、DriftReport、Runbook（按 DocType 注册）。
 2. Status 只由 Workflow/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
-3. MetricsInfo 只存查询声明与最近摘要（如 24h 概要），原始序列在观测面。
+3. MetricsInfo 只存查询声明与最近摘要，原始序列在观测面。**摘要的生产是默认 workflow**：收集由各自的 ConnectorOps 完成 → agent 生成报告（默认勾选，可取消勾选）；保存几天/怎么存/哪些重要=该 workflow 的 LLM 提示词+代码实现，**可编辑**；默认 **7 天记录、1 天一次报告**。
 4. 一个 Instance 的 Agent 集合变更 = 实例配置变更，走 Apply。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

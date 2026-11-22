@@ -15,11 +15,18 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **文档按需加载**：Agent 自己按需加载相应文档——由 dsh 本次会话自己实现（会话内决定读什么），不是外部装配强灌。Workflow 只派任务与预算。
 
+**一个 Service 一个 Agent**：每个 Service（系统）一个负责 Agent（ServiceAgent）；**Agent↔Service 沟通协议的完整设计见 instance 仓 runtime/agent-service-protocol.md**。要点：
+- **上下文预插入**：Agent 处理意图时，Service 内资源按上下文先插入"大概描述"（资源清单+关系摘要），Agent 据此**自行导入**相关内容（文档按需加载不变）；
+- **Service 内 Agent 信息不隔离**：不做 SubAgent 级信息隔离——ServiceAgent 自己判断读什么、给谁看；
+- **一个意图 = 一次 session**（session 粒度=意图，不是消息）；
+- Service 可在运行中**提议更新文档**（提议理论上都应落在 Docs 中），也可**在运行时提交 Ref 类型**记录（解析到的资源随手入册）；
+- **默认记忆系统就在 Service 的文档管理中**：Agent 的记忆（经验/偏好/上下文延续）以文档形式存 Service 文档域（Memory DocType），随 docs_operator 管理——不建独立记忆库。
+
 **默认 Skill（系统文档查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统"作为 skill 喂给它——一组命令式工具（按 scope/name/DocType 取文档与文档信息、读 Status/最近事件），agent 靠调用命令获取文档与文档信息，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
 两类：
 
-- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路（A63）。**AUTOLEVEL 与普通 Agent 同一机制**：autoLevel 可配置（默认 ask，也可 auto/all，all 需显式授权，A64）。不可删除、不可停用（权限系统硬规则兜底）。
+- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路。**AUTOLEVEL 与普通 Agent 同一机制**：autoLevel 可配置（默认 ask，也可 auto/all，all 需显式授权，A64）。不可删除、不可停用（权限系统硬规则兜底）。
 - **ServiceAgent**：普通 Agent，被 ServiceInstance 引用而参与收敛；可挂 Parent/Sub 树（父子=机器级进程派发 + owner 链）。
 
 ## 2. 边界
@@ -43,7 +50,7 @@ metadata:
  labels: {tier: exec, domain: ci}
  ownerRefs: [{kind: Agent, name: dev-ops-root}] # ParentAgent
 spec:
- runtime: dsh # 默认 DSH；子 agent 运行时不限于此（opencode/自写 agent 均可，经 ConnectorOps 描述）
+ runtime: dsh # rootAgent 默认=dsh 的 plugin；子 agent 看实现：可自写 go agent、直接调 opencode、或继续 dsh（经 ConnectorOps 描述）
  autoLevel: auto # AUTOLEVEL：ask | auto | all（§3.1）
  connectorOps: # 默认挂 ConnectorOps（不是 Provider 类型）
  - {ops: onedev-ci, as: onedev} # 子 agent 用什么在这里描述（ops 声明工具与环境）
@@ -111,7 +118,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 5. SubAgent 权限=Parent 裁剪，只减不增；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 
@@ -119,7 +126,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 |---|---|---|---|
 | LLM 不保证收敛 | ❗高（机制兜底） | 修复可能失败/震荡/越改越坏 | Workflow onFailed（backoff+上限）+ dry-run + undo + Escalate（ 结论不变） |
 | Session 记录被省略 | ⚠️ 中 | "看实现"的粒度容易松 | PlanDoc/SessionLog 为 Instance 必备 docType；缺记录=drift（Workflow 对账） |
-| 机器级子进程开销 | ⚠️ 低（已接受） | 每 agent 一进程，内存翻倍 | 已明确接受（annotations 台账）；换取崩溃隔离+直控+无共享状态 |
+| 机器级子进程开销 | ⚠️ 低（已接受） | 每 agent 一进程，内存翻倍 | 已明确接受（架构决议）；换取崩溃隔离+直控+无共享状态 |
 | 按需加载读漏关键约束 | ⚠️ 中 | 会话自主决定读什么可能漏 Rule | L0 最低必载由 Workflow 注入（规则 2）；SessionLog 记录 docsLoaded 可审计"读了什么" |
 | Provider/ops 引用膨胀 | ⚠️ 低 | 权限面变大 | 并集+权限系统裁剪不变；无引用 Provider 告警 |
 

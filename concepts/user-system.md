@@ -58,7 +58,7 @@ builtin 起步（Igniter 装载首批用户——至少一个管理员）→ 增
 2. 用户增删改走人审；root 管理员至少一人（防止全锁死）。
 3. contact 只存引用/地址，不存 IM 凭证（凭证在 Provider/Credential）。
 4. IdP 接入前，本系统是权威；接入后 spec 标 `syncedFrom: workservice/authentik`，本地写只读。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

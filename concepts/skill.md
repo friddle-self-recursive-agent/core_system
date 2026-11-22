@@ -60,7 +60,7 @@ spec:
 2. 沉淀自动、提升人工（提升到 Global 走 Apply+人审）。
 3. 示例必须脱敏（凭证模式扫描同规则）。
 4. invalidateOn.providerVersionChange 默认 true（工具变了经验作废）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

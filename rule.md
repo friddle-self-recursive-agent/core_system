@@ -14,18 +14,18 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 ## R-DOC-2 历史的唯一去处
 
-变更历史只记录在 [annotations.md](annotations.md) 的 A-清单（裁决台账：问题→决议→涉及文档→状态）。概念被删除/合并时不留墓碑文件，直接从 concepts/ 移除，台账记档即可。
+变更历史只在 **git 提交历史**（概念文档无台账文件；裁决记录随提交信息留痕）。概念被删除/合并时不留墓碑文件，直接从 concepts/ 移除。
 
 ## R-DOC-3 按概念落规则
 
 每个概念文档的"设计规则"一节末行固定携带本条：
 
-> 终态制：本文档只展示最终结果，变更历史只在 annotations.md（rule.md）。
+> 终态制：本文档只展示最终结果，变更历史只在 git 历史（rule.md）。
 
 ## R-DOC-4 适用范围
 
 - **适用**：concepts/ 全部概念文档、concepts/README 索引。
-- **不适用**：annotations.md（它就是历史）、concept-review.md（复审记录）、requirements/（原稿存档）、open-questions.md（问题演进允许带上下文）。
+- **不适用**：requirements/（原稿存档）、open-questions.md（活问题清单）、git 历史（唯一历史）。
 
 ---
 

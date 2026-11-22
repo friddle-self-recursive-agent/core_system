@@ -20,6 +20,7 @@ ServiceDesc 是"一个系统应该长成什么样"的全部意图：一组按 Do
 **不是**：
 - 不含 Status（P2：现实回写在 Instance）；
 - 不含实现说明（"我用 gitlab CI 实现了它" 属于 Instance 侧 ImplDoc）；
+- **紧急情况不打折**：需要紧急变更时，**ServiceInstance 与代码一起更新**（意图与实现同批落地）——不存在"能力声明不绑实现所以紧急只改一半"；声明与实现的一致性由 Workflow 对账追平；
 - 不含外部系统本体（gitlab 是 WorkService，Desc 里只有对它的引用）；
 - 不是文件夹里随便加文件：未注册 DocType 的文档 权限系统 拒收（Scheme 闸门）。
 
@@ -72,7 +73,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 2. Desc 内禁止出现具体厂商/实例名（"用 gitlab"是 WorkService 层的事；Desc 说"需要代码托管能力"）——**能力声明，不绑实现**。验收：文档里出现 `gitlab.com/...` 之类即 权限系统 警告。
 3. 文档间引用用相对路径或 `system://<name>/<doc>` URI，不用裸文件路径（为将来换存储留缝）。
 4. 一个系统一个目录，目录名=对象名（instance 仓 layout.md）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

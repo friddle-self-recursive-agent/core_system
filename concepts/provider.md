@@ -74,7 +74,7 @@ spec:
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

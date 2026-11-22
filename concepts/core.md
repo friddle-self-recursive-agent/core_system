@@ -72,7 +72,7 @@ status: # 由 builtinRoot Agent 回写
 2. Core 所有接口必须可 dry-run（预演不改状态）。
 3. Core 无状态化优先：状态全在文档面，Core 重启不丢脑。
 4. 文档库写入必须串行化（单写者队列），读并发不限。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 
@@ -80,7 +80,7 @@ status: # 由 builtinRoot Agent 回写
 |---|---|---|---|
 | git 目录无事务/watch | ⚠️ 中 | 并发写、变更通知都要自己做 | 单写者队列 + 轮询 diff/git hook 模拟 watch；Repository 接口留换 DB 的缝 |
 | Core 自管自举 | ⚠️ 中 | 升级自己时最容易锁死 | 双分区法：新 Core 就绪前旧 Core 不退场；回滚 = reset 到上一代 core.desc |
-| 单点 | ⚠️ 低（v1） | v1 单实例可接受 | 接口幂等化，未来可多实例+选主 |
+| 多实例性能/可用性 | ⚠️ 低（当前） | Core **默认不是单进程**：核心=workflow 解释器+默认 workflow 实现+builtin 实现，本身不可替换；**每个对外的 ConnectorOps 可替换**。不同组件抽象同一套 connector，全局启动标志参数可配部署模式：单机 / 高可用 / 吞吐量 | 高可用暂无要求；预期瓶颈=event 过滤与多调用性能——现在不考虑，真有瓶颈按模式自动演进（换 HA 模式=改启动参数，不改代码） |
 
 **结论：可行，条件是接受"git 后端 + 串行写"的 v1 约束。**
 

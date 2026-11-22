@@ -21,7 +21,7 @@ core_system 是自递归（self-recursive）控制面的根声明：一套用文
 **是**：
 - 声明的唯一权威源（Spec 在这里，Status 在 instance 仓）；
 - 概念（Scheme）的定义处：26 个概念、文档类型、WorkServiceTemplate/TaskScheme 等 builtin Scheme；
-- 裁决台账：annotations.md 的 A-清单跟踪每条对原稿的异议。
+- 复审裁决随提交记录留痕；活问题清单见 open-questions.md。
 
 **不是**：
 - 不含实现细节（怎么点火、界面长什么样 → instance 仓）；

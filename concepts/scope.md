@@ -53,7 +53,7 @@ Instance → System → Global → Builtin
 2. 就近遮蔽只许收敛能力（子域覆盖必须是更受限版本），不许放大权限。
 3. 跨系统依赖只允许三种形态：引用 Global 对象、被 Apply 提案、Ref 指路。
 4. 每层目录结构由 instance 仓 layout.md 固化，目录即 scope（文件系统天然实现了解析路径）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

@@ -62,7 +62,7 @@ status:
 2. 去重窗口强制（同 dedupKey 聚合）；失败重试后降级（im→email→webhook 日志）。
 3. 通知内容不携带敏感明文（凭证/密钥模式扫描同规则）。
 4. 送达记录进 ops DB（approval/escalate 关联审计）。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

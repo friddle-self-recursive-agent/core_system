@@ -51,7 +51,7 @@ spec:
 2. ops 子集 ⊆ WorkService.tools 声明的 op 集（Lint）。
 3. 使用要权限（role 并集+权限系统，P7/）。
 4. `undo: none` 的工具（WorkService.tools 里声明）每次调用人审。
-- 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
 

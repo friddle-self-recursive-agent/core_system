@@ -21,7 +21,7 @@ core_system/
 ├── requirements/                        # 原始要求存档（R0 背景 / R1 运行时）
 ├── principles.md                        # 10 条设计原则（冲突裁决依据）
 ├── architecture.md                      # 四层一面 / 边界决策树 / K8s 对照
-├── concepts/                            # 概念定义（终态制，rule.md；历史见 annotations.md）
+├── concepts/                            # 概念定义（终态制，rule.md）
 ├── doctypes/README.md                   # 文档类型注册表（含 Builtin 三档）
 ├── core/scheme.yaml                     # 首版 Scheme：类型注册 + 事件路由 + 运行时基座
 ├── systems/builtin/                     # 自举最小集四个 builtin service 声明
@@ -29,7 +29,6 @@ core_system/
 │   ├── developer-system/                # onedev + 本地 build（R1.6）
 │   ├── deploy-system/                   # 当前机器 + install 流程执行者（R1.4）
 │   └── storage-system/                  # 本地 git + NAS + OSS（R1.6）
-├── annotations.md                       # A1–A24 裁决台账（在此直接标注裁决）
 └── open-questions.md                    # 每概念 ≥3 问（含 v0.2 新概念）
 ```
 
@@ -42,7 +41,7 @@ core_system/
 
 ## 审阅方式
 
-在 [annotations.md](annotations.md) A-清单改"状态"列（采纳/驳回/存疑），或在各概念文档末尾"审阅标注区"追加行。设计方不逐条来问。
+直接改概念文档终态（或在文档末尾"审阅标注区"追加行）；新问题进 [open-questions.md](open-questions.md)。设计方不逐条来问。
 
 ## Workflow
 
