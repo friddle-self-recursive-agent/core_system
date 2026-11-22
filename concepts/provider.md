@@ -35,7 +35,7 @@ metadata:
  name: llm-main
  scope: global
 spec:
- kind: llm # llm | im | email | cloud | generic
+ kind: llm # llm | im | email | cloud | network | generic（network=网络出口：代理/DNS/域名转发）
  auth:
  scheme: bearer
  secret: {source: "vault:secret/llm-api-key", rotation: 90d} # ：secret 是 Provider 字段，明文不入库
@@ -55,6 +55,19 @@ spec:
  auth: {scheme: oauth2, secret: {source: "keychain:feishu-app"}}
  config: {app: cli_xxx, chatId: oc_xxx}
  connector: ops/http-api # 走通用 http ConnectorOps
+---
+apiVersion: core/v1
+kind: Provider
+metadata:
+ name: net-egress
+ scope: global
+spec:
+ kind: network # 网络出口：外网代理/DNS/域名转发
+ auth: {scheme: none} # 带账号的代理=basic+secret（同样引用式取值）
+ config:
+ proxy: "http://<代理地址>:<端口>" # 运行时实例值只存部署侧，不入公开仓（规则 6）
+ bypass: ["内网网段", "localhost"]
+ connector: "" # 本地工具直接消费（git/ssh/工具链读部署侧配置）
 ```
 
 ## 4. 生命周期
@@ -65,6 +78,7 @@ spec:
 
 - Agent.spec.providers 引用（Agent 的能力账号面；权限并集的一部分，P7）。
 - Notification 的 channel 走 Provider（im/email/webhook 各配其 Provider）。
+- 网络出口类（kind: network）被 git/ssh/工具链的外网访问消费：部署侧读其 config 组装代理/路由；声明面只是接口契约，真实地址在运行时实例（规则 6）。
 
 ## 6. 设计规则
 
@@ -73,6 +87,7 @@ spec:
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
+6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账），**绝不提交公开仓**（rule.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
@@ -81,6 +96,7 @@ spec:
 |---|---|---|---|
 | 密钥信息集中后成为高价值目标 | ⚠️ 中 | Provider 是钥匙集合的索引 | 明文扫描全库（原 credential 规则并入）；Provider 变更人审；source 只允许引用式取值 |
 | Provider 泛滥 | ⚠️ 低 | 每个外部账号一个 | 命名规范 `<kind>-<用途>`；无引用 Provider 告警 |
+| 运行时实例误入公开仓 | ⚠️ 中 | 真实代理地址/账号随声明面泄露 | 规则 6 声明/运行时分离 + R-PUB-1 lint（IP/真实路径扫描）+ secret 引用式取值 |
 
 **结论：可行。纯簿记聚合，风险由边界规则压住。**
 

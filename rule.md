@@ -77,6 +77,7 @@ connector 驱动代码按**来源**分仓，`core_system_workservice/connectors/
 - **判据**：读者不需要知道"部署在哪、用谁家的什么"即可理解设计。
 - 例外：产品名/包名/服务名（dsh-core-agent、@deepseek-ai/dsh）、GitHub org 名——公开身份，保留；文档示例统一用 example.com 段（203.0.113.x / api.example.com）。
 - 占位符约定固定四个：`<内网域名>`、`<部署根目录>`、`<PROVIDER>_API_KEY`、"X 档"表述，实际值只存在于 R-PUB-2 的决策台账。
+- **运行时实例同此**：Provider/连接器的运行时配置（真实代理地址、账号密码、机器锚点）只存部署侧（本地配置/ops DB 或 friddle_decision.md），公开文档一律占位符 + secret 引用式描述（concepts/provider.md 规则 6：声明面与运行时面分离）。
 
 ## R-PUB-2 个人决策不入公开仓
 

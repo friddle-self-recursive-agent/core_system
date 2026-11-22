@@ -134,7 +134,7 @@ spec:
       builtin: true
       storage: global/providers/<name>.yaml
       spec:
-        kind: "llm|im|email|cloud|generic"
+        kind: "llm|im|email|cloud|network|generic"   # network=网络出口（代理/DNS/域名转发，声明/运行时分离见 concepts/provider.md 规则 6）
         auth: "{scheme, secret: {source: 'vault:|env:|keychain:', rotation}}"   # 明文禁
         config: "?map"
         connector: "?ref"                            # 可为空
