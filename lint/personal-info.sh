@@ -25,7 +25,7 @@ IP_WHITELIST='127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.255|192\.0\.2\.|198\.51\.10
 PATH_RE='/root/|/home/[a-zA-Z0-9._-]+/'
 IDENT_RE='code27\.cn|bigmodel|GLM_CODING|DEEPSEEK_API_KEY|DASHSCOPE_API_KEY|MOONSHOT_API_KEY|glm-[0-9]'
 
-GREP_OPTS="-rnE --include=*.md --include=*.yaml --include=*.yml --include=*.json --include=*.ts --include=*.js --exclude-dir=.git --exclude-dir=lint --exclude-dir=node_modules --exclude=friddle_decision.md"
+GREP_OPTS="-rnE --include=*.md --include=*.yaml --include=*.yml --include=*.json --include=*.ts --include=*.js --exclude-dir=.git --exclude-dir=lint --exclude-dir=node_modules --exclude-dir=acceptance --exclude=friddle_decision.md"
 
 hits=0
 

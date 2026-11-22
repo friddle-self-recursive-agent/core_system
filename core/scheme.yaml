@@ -11,6 +11,8 @@ spec:
 
   # ============================================================
   # 一、对象类型（kinds，17 项；已采纳的墓碑概念不注册，见文末不注册清单）
+  # storage=纯路径模板：占位符 <name>=对象名、<s>=系统段、<i>=实例段；
+  # 交替分支以 | 分隔；分支须含 <name> 或为固定单例路径，否则机器不可寻址。
   # ============================================================
   kinds:
 
@@ -106,7 +108,7 @@ spec:
 
     - kind: ConnectorOps             # 工具调用面（v0.13 收窄：描述全在 WorkService）
       builtin: true
-      storage: "global|systems/<s>/…/connector-ops/<name>.yaml"
+      storage: "global/connector-ops/<name>.yaml | systems/<s>/connector-ops/<name>.yaml | systems/<s>/instances/<i>/connector-ops/<name>.yaml"
       spec:
         workservice: "!ref"                          
         workflow: "?string (=default-task)"
@@ -175,7 +177,7 @@ spec:
 
     - kind: Ref                      # 声明式逻辑引用
       builtin: true
-      storage: "global/refs/<name>.yaml | 系统 refs/"
+      storage: "global/refs/<name>.yaml | systems/<s>/refs/<name>.yaml"
       spec:
         resolve: "{system: ref!, type: code|doc|url|resource|service, params: map}"
         purpose: "?string"
