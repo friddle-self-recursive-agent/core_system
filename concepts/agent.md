@@ -24,6 +24,8 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **默认 Skill（系统文档查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统"作为 skill 喂给它——一组命令式工具（按 scope/name/DocType 取文档与文档信息、读 Status/最近事件），agent 靠调用命令获取文档与文档信息，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
+**检索（简单 RAG，分页）**：Session/Doc/TaskScheme 更新时由 LLM **自动打 tag + 评判重要程度**（tags[]/importance 1-5/一句话标题描述——conventions.tags，scheme.yaml）。Agent 查历史靠检索工具（tag 过滤+重要度×时间衰减排序），**一律分页**：默认每页 10 条（可调），列表只给 `[标题+简单描述+重要度+时间]`，Agent 按需拉全文。**结果不对就继续找**：换 tag/翻页迭代（工具与提示词见 instance 仓 runtime/agent-session.md §5）——不导入全量。
+
 两类：
 
 - **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路。**AUTOLEVEL 与普通 Agent 同一机制**：autoLevel 可配置（默认 ask，也可 auto/all，all 需显式授权，A64）。不可删除、不可停用（权限系统硬规则兜底）。

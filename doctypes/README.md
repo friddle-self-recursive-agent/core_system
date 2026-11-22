@@ -29,7 +29,7 @@
 | `PlanDoc` | required | intent / steps / budget | Agent | v0.3：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
 | `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3：每完成一次 Session 记录；态机可回放、上下文可审计 |
 | `Runbook` | optional | — | 人 | 人肉处理手册（Escalate 后人看的东西） |
-| `Memory` | optional | content / refs | Agent | **Agent 记忆条目**（默认记忆系统的载体）：经验/偏好/上下文延续，存 Service 文档域，随 docs_operator 管理；运行中也可提交（如 Ref 记录随手入册） |
+| `Memory` | optional | content / refs（+tags/importance/digest 通用检索元数据，scheme.yaml conventions.tags） | Agent | **Agent 记忆条目**（默认记忆系统的载体）：经验/偏好/上下文延续，存 Service 文档域，随 docs_operator 管理；运行中也可提交（如 Ref 记录随手入册） |
 
 ## 3. 必带级别归属（v0.5，A37：与 Builtin 无关）
 

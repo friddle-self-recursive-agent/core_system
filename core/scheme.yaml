@@ -315,6 +315,10 @@ spec:
       conditions: "[]{type, status: True|False|Unknown, reason(枚举注册), message, lastTransitionTime}"
       drift: "{summary, reportRef}"  # Instance 必有
       writers: {status: workflow-engine(fieldManager), spec: human/agent-by-role}   # P2/P6
+    tags:                            # 检索元数据（LLM 自动打标；Session/Doc/模板更新时）
+      spec.metadata.tags: "?[]string"          # 关键 tag（含 tag 相关性派生排序）
+      spec.metadata.importance: "?int(1-5)"    # 重要程度（LLM 评判）
+      spec.metadata.digest: "?string"          # 一句话标题+描述（检索列表展示用）
     cascade:                         
       rule: 目录即对象——删目录=级联删除其下一切
       crossDir: 跨目录引用走 Ref或跨系统提案
