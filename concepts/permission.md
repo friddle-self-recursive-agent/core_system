@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | RBAC（Role/RoleBinding/Group）+ 准入的权限部分 |
-| 形态 | Kind：`Role`（global/roles/）、`Group`（global/groups/）；User/Bind 已有 |
+| 形态 | Kind：`Role`（global/roles/）、`Group`（global/groups/）；User 由 user-system 提供（人↔role 持有面） |
 | 作用域 | Global |
 | 状态 | 定稿（终态制，rule.md） |
 

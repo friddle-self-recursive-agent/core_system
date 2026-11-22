@@ -48,7 +48,7 @@ builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任�
 
 ## 2. 边界
 
-**是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车与成本 + 文档回归——一个可编辑、可展示、可启停的平台对象。
+**是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车 + 文档回归——一个可编辑、可展示、可启停的平台对象。
 
 **不是**：
 - 不是自由脚本编排（无业务 if-else；迁移条件只有事件与策略；"可编辑"指声明式 spec 的编辑，一切修改过 Apply+权限系统——反模式不变）；
@@ -81,14 +81,11 @@ spec:
  filterLevels: [info, warn, error, fatal]
  phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting, Failed]
  onFailed: {backoff: 30s*2^n, maxAttempts: 3, escalate: {to: root, notify: bind-role}}
- brakes: # ③ 刹车
+ brakes: # ③ 刹车（强制默认：可收紧不可关闭）
  cooldown: 2m # 成功后最小间隔（防震荡）
  maxMutationsPerTick: 10 # 单轮最大变更数
  avoidRepeatFix: true # DriftReport 记录"改过什么"，避免重复同类修复
- cost: # ④ 一次 workflow 的成本
- budget: {minutes: 20, tokens: 200k, mutations: 10}
- record: budget_log # 每轮成本入 ops DB（tokens/变更数/墙钟）
- regression: # ⑤ 文档回归
+ regression: # ④ 文档回归
  statusWriteback: true # Status/Conditions/observedGeneration
  reports: [DriftReport, SessionLog]
 ```
@@ -101,17 +98,17 @@ spec:
 
 - ConnectorOps 必绑 Workflow（缺省 default-task）——op 调用的相位约束。
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
-- Escalate 出口：默认上溯 root agent；有 Bind 时 role 持有者经 Notification 同达（ 不变）。
+- Escalate 出口：默认上溯 root agent；有 role 挂载时 role 持有者经 Notification 同达。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
-- **展示面**（console）：workflow 详情页五 tab——流程图（相位态机自动渲染、当前相位高亮）/ 事件流 / 流转（每轮相位流水，ops DB）/ 数据流（dataflow 拼图）/ 成本（budget_log）；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。
+- **展示面**（console）：workflow 详情页四 tab——流程图（相位态机自动渲染、当前相位高亮）/ 事件流 / 流转（每轮相位流水，ops DB）/ 数据流（dataflow 拼图）；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。
 - **第三方**：其他系统/他人编辑、导入、管理、触发设置，走同一 Apply+权限系统入口；导入=外部编排渲染成 spec（预览=dry-run，导入件首期 observe 模式）。
 - **落地 agent**：新 workflow 的接线/代码化由 `apply-workflow` agent 承担（§1.2）。
 
 ## 6. 设计规则
 
-1. 相位/迁移纯声明；每相位有预算；超预算=该轮 Failed 进 onFailed。
+1. 相位/迁移纯声明（相位机=标准 FSM：引擎按声明执行，规则之外无动作；失败走 onFailed）。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
-3. 每轮成本必记 budget_log（一次 workflow 的成本可查、可聚合）。
+3. **预算/成本不在核心循环语义内**：budget 是 metrics 关注的东西（由 ConnectorOps 收集→agent 报告的默认 workflow 承接），暂不做——核心循环只有触发/整理/相位/回归，不再往里加预算机器。
 4. builtin Workflow（core-workflow/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
 6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 workflow 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
@@ -139,13 +136,13 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 2. **跨系统提案**：步骤落在别的系统域 → 不直接执行，Apply 提案进对方待审区，由对方自己的 workflow 处理（系统间调用=互相 Apply 的语义）。
 3. **审批提升**：缺权限且必须本 workflow 执行 → AwaitingApproval 相位插入，role 持有者人批（一次一批，token 制可选）。
 
-**委派模型**：子 agent 权限=父裁剪只减不增——所以**委派不能用来扩权**；扩权只能走 2/3。这是防提权的关键不变量。
+**委派模型（一次性全量下发）**：上级委派任务=**一次性把权限全给全**——上级 agent 把自己的权限（ConnectorOps/Ref/Provider/role 并集）整包下发，权限 token 与 ref 直接给到执行 agent，不做按步骤细粒度裁剪。子 agent 权限仍 ⊆ 父（只减不增的不变量不变——扩权源头只能是上级/审批，agent 不能自增，扩权路径仍是 2/3）。**运行时发现缺权限 → 直接 ask 上级，上级重新一次性全量申请并整包重发**（挂起-恢复由 SessionLog 断点承接）。root 例：root 的 agent 默认下发任务时，判定为根 → **先向所有 Service 请求权限**（各 Service 侧判定放行），拿到的权限 token 与 ref 直接下发给需要执行的 agent。
 
 **代码设计影响**（复杂度来源与对策）：
 
 - 引擎须按相位做权限校验（Planning 只读放行；Executing 逐步校验 ops 归属）→ 引擎持有权限索引（Agent 引用并集的物化），校验是查表不是即席计算。
 - 提案与审批是异步的 → 相位机要有挂起-恢复（AwaitingApproval ↔ 批准/驳回），断点续跑靠 SessionLog。
-- 成本归属：跨系统提案的 token/变更数记在谁的 budget_log → 规则：记发起方（提案方付费），被提案方执行轮成本记己方。
+- 成本观测归 metrics（预算暂不做）：若日后做跨系统成本分摊，规则沿用"记发起方（提案方付费），被提案方执行轮成本记己方"。
 
 **可行性结论：⚠️ 高复杂度，但可行且有清晰分阶段路径**：
 
@@ -153,7 +150,7 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 |---|---|---|
 | v1 | 出路 1（权限齐备）+ 出路 2（提案）；审批仅 权限系统 高危拦截面 | 低——单 owner 权限内执行，引擎校验退化为"步骤 ops ∈ owner 并集"查表 |
 | v2 | 出路 3 全量（审批提升 token 制）+ 挂起-恢复完善 | 中 |
-| v3 | 委派矩阵与跨系统成本分摊细化 | 中 |
+| v3 | ask-上级重发链路完善；跨系统成本分摊（归 metrics 域） | 中 |
 
 关键判定：**复杂度在权限校验的完备性，不在相位机**（相位机是标准 FSM）。v1 先行不阻塞首圈循环。
 
@@ -162,7 +159,7 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 震荡 | ⚠️ 中 | 修复互踩 | 刹车三件套（§6.2） |
-| 成本失控 | ⚠️ 中 | 高频触发×大上下文 | budget 强制+成本可聚合 |
+| 成本失控 | ⚠️ 中 | 高频触发×大上下文 | 刹车三件套+metrics 事后聚合（预算强制暂不做，budget 归 metrics 域） |
 | 多 workflow 修同一外部资源 | ⚠️ 中 | 交叉写 | 单一 owner Workflow 写；跨域走提案（§7 出路 2） |
 | 第三方编辑权限面 | ⚠️ 中 | 谁能改谁系统的 workflow | scope 写权限+权限系统裁剪；builtin 修改=高敏项 |
 | 导入渲染失真 | ⚠️ 中 | 外部编排语义≠声明式相位 | 导入预览=dry-run；origin=import 首期 observe 模式 |

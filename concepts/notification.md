@@ -9,7 +9,7 @@
 
 ## 1. 定义
 
-Notification 是"把系统里该让人知道的事送到人面前"的声明：**一种通知渠道配置 = 一个 Scheme 注册的类型 + 一个可创建的实例**。触发源接 Event（ApprovalNeeded/Escalate/critical 事件），路由目标接 Bind（人），通道走 Provider（im/email/webhook）。
+Notification 是"把系统里该让人知道的事送到人面前"的声明：**一种通知渠道配置 = 一个 Scheme 注册的类型 + 一个可创建的实例**。触发源接 Event（ApprovalNeeded/Escalate/critical 事件），路由目标接 role 持有者（人经用户系统解析），通道走 Provider（im/email/webhook）。
 
 "一个 Scheme 一个 Instance"的含义：Notification 的**类型**（如 im 通知、邮件通知、webhook 回调）注册进 Scheme；每个渠道落一个**实例**对象——新增渠道=建实例，不改代码。
 
@@ -53,7 +53,7 @@ status:
 
 - 上游：Event 总线（按 on.events+severity 订阅）。
 - 下游：Provider（im/email/webhook 的账号与通道）→ ConnectorOps（非直连时）。
-- 对象：Bind（route.to=bind 时解析责任链）。
+- 对象：Role 挂载（route.to=role-holders 时解析 Role.on 的持有者）。
 - Workflow 的 Escalate 出口、权限系统 的 ApprovalNeeded 默认接一个 Notification 实例（缺省 `approval-im`）。
 
 ## 6. 设计规则

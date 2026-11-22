@@ -45,3 +45,16 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 ## R-ENG-2 数据库初始化幂等
 
 涉及数据库（ops DB SQLite 等）的实现必须带**幂等初始化脚本**：建表/迁移随代码版本走，重复执行无副作用，冷启动时自动补齐（对齐 P4 幂等硬契约）。
+
+## R-ENG-3 Connector 驱动仓库归属
+
+connector 驱动代码按**来源**分仓，`core_system_workservice/connectors/` 只放 **builtin 驱动**：
+
+| 类别 | 判据 | 仓库 | 例 |
+|---|---|---|---|
+| builtin | core_system 自带、自举必需、与具体部署用法无关 | core_system_workservice/connectors/ | gitfs、dsh |
+| 用法型 | 按部署用法决定的对接目标（换了部署就换掉） | 部署侧独立仓，如 **sybran_usage_connector** | onedev、nas、oss |
+
+- 判据看"是否换了部署就不复用"，不看"是否被 builtin 系统引用"——builtin 系统（developer/storage 等）引用 onedev/nas/oss 只是本部署的用法，驱动本身不进 workservice。
+- 用法仓按 A38 命名解析引用（无前缀=默认 org）；WorkService.connector 面 impl/download 指向驱动实际所在仓。
+- workservice 仓不 import 用法仓；依赖方向恒为 用法仓 → workservice（契约层五方法接口）。

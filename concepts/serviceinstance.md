@@ -61,7 +61,7 @@ metricsInfo: # ：查询入口声明，非数据本体
 
 ```
 由 Desc 的 instances 段声明 → Workflow 创建 → 持续对账（Drifting↔InSync↔Remediating）
-→ Failed（重试超限）→ Escalated（等 Bind 的人）→ 人介入后恢复
+→ Failed（重试超限）→ Escalated（等挂载 role 的人）→ 人介入后恢复
 随 owner Desc 删除而级联删除（Finalizer 先清外部副作用）
 ```
 

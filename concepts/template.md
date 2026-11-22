@@ -17,9 +17,9 @@ install service
 → 读 template 仓描述（README/template.yaml）
 → 定位 WorkServiceTemplate 对象（Scheme 级，本类型）
 → 呈现 spec.asks（需要用户确认/提供的项：endpoint、凭证引用、资源确认）
-→ 用户确认（ApprovalNeeded → Bind 人）
+→ 用户确认（ApprovalNeeded → 挂载 role 的人）
 → builtin-deploy-system 执行 install 段（拉镜像→渲染配置→起服务→postInstall 纳管）
-→ 装完自动登记 WorkService 对象 + 注入 finalizer
+→ 装完自动登记 WorkService 对象（外部清理职责随产出物 tools/flows 成对声明，无系统级 Finalizer）
 ```
 
 ## 2. 边界

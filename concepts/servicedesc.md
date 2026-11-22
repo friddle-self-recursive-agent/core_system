@@ -30,11 +30,10 @@ ServiceDesc 是"一个系统应该长成什么样"的全部意图：一组按 Do
 # systems/developer-system/system.yaml
 apiVersion: core/v1
 kind: ServiceDesc
-metadata:
+ metadata:
  name: developer-system
  scope: global
  labels: {domain: devtools}
- finalizers: [core/wipe-workservice-side-effects]
 spec:
  goalRef: goal.md # 必须
  descRef: desc.md # 必须

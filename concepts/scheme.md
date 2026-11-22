@@ -27,19 +27,19 @@ spec:
  - {kind: ServiceDesc, storage: systems/<name>/system.yaml}
  - {kind: ServiceInstance,storage: systems/<s>/instances/<name>/instance.yaml}
  - {kind: WorkService, storage: workservices/<name>/workservice.yaml}
- - {kind: Connector, storage: global/connectors/<type>/connector.yaml}
+ - {kind: ConnectorOps, storage: "…/connector-ops/<name>.yaml"}
+ - {kind: Workflow, storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"}
+ - {kind: Role, storage: global/roles/<name>.yaml}
  - {kind: Ref, storage: global/refs/<name>.yaml}
- - {kind: Bind, storage: global/binds/<name>.yaml}
- - {kind: Credential, storage: "仅引用，明文不入库"}
  docTypes: # 引用 doctypes/README.md 的注册表
  - Goal / Desc / Rule / WorkflowDesign / Metrics / DataDesign /
  DataMetrics / Auth / DeployDesign / CodeDesign /
  ImplDoc / VerifyDoc / DriftReport
  eventTypes:
  - {type: ExternalChanged, source: connector, route: owner-instance-workflow}
- - {type: MetricThreshold, source: metrics, route: selector-match-workflow}
+ - {type: MetricThreshold, source: metrics, route: owner-instance-workflow}
  - {type: DocApplied, source: core, route: owner-workflow}
- - {type: ApprovalNeeded, source: policy, route: bind-human}
+ - {type: ApprovalNeeded, source: permission, route: notification/*}
  - {type: HeartbeatLost, source: core, route: parent-agent}
  dispatch: # “dsh”：事件如何找到处理者
  - {on: ExternalChanged, for: workservice/gitlab, dispatch: instances/*/workflows/*}
@@ -77,7 +77,7 @@ bootstrap 时由 builtinRoot 写入首版 → 之后只能**追加与扩容**（
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 事件路由表随规模膨胀 | ⚠️ 低 | 系统×事件类型组合多 | 缺省路由 + Selector 匹配，不逐系统枚举 |
+| 事件路由表随规模膨胀 | ⚠️ 低 | 系统×事件类型组合多 | 缺省路由 + 按 类型/involved/owner/scope 直达（dispatch 表），不逐系统枚举 |
 | 版本演进复杂度 | ⚠️ 中 | 文档类型改版牵连所有存量文档 | 只加不改策略 + 存量兼容期 + 迁移由 Workflow 执行 |
 | dsh 语义误解 | ⚠️ 低 | 原稿 dsh 若另有所指需重定义 | 已并入 dispatch；待用户裁决 |
 

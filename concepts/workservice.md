@@ -53,7 +53,7 @@ spec:
  connector: # 连接面（原 ConnectorProvider）
  types: [scm, ci]
  impl: {kind: source, ref: ref/workservice-repo}
- download: "git://…/connectors/onedev"
+ download: "git://…/sybran_usage_connector/connectors/onedev" # 用法型驱动：部署侧仓（rule.md R-ENG-3）
  scheme: {ops: [checkout, build-status, gate-status, verify, watch]}
  usage: "REST+git 双通道…"
  llmPrompt: "你可用 onedev 工具…"
@@ -93,6 +93,7 @@ status:
 5. **capabilities 词表归 Scheme 管**：global 一套内置词表（scheme.yaml 维护）；非 global 的系统域自加自管（服务前缀命名，如 `<system>:<capability>`）——防"按能力引用"退化成"按名字引用"。
 6. **外部系统所有权冲突不裁决**：同一外部系统被两个系统纳管/同时操作闹崩，不在本系统职责内（各自 connector 自行幂等防护）。
 5. 删除清理职责显式写在 tools/flows 里（代替 Finalizer）：有外部创建动作的 tools 必须成对声明清理 op（Lint）。
+7. **驱动代码分仓**（rule.md R-ENG-3）：workservice 仓 connectors/ 只放 builtin 驱动（gitfs/dsh）；用法型驱动（onedev/nas/oss 等，换部署即换）在部署侧独立仓（如 sybran_usage_connector），impl/download 指向实际所在仓，依赖方向恒为用法仓→workservice。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 8. 可行性分析

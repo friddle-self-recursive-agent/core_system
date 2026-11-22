@@ -59,13 +59,12 @@ spec:
 
 ## 4. 生命周期
 
-登记（人审——Provider 是钥匙集合的索引，高危）→ 被 Agent/Notification 引用 → 密钥轮换只动 Credential（Provider 不变）→ 注销（Finalizer：确认无引用）。
+登记（人审——Provider 是钥匙集合的索引，高危）→ 被 Agent/Notification 引用 → 密钥轮换=更新 secret source（vault 侧轮换；Provider 对象不变，rotation 超期降权）→ 注销（确认无引用后删）。
 
 ## 5. 与其他概念的关系
 
 - Agent.spec.providers 引用（Agent 的能力账号面；权限并集的一部分，P7）。
 - Notification 的 channel 走 Provider（im/email/webhook 各配其 Provider）。
-- Credential 仍管钥匙本体（轮换/吊销/扫描规则全部沿用）。
 
 ## 6. 设计规则
 

@@ -13,7 +13,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **默认实现**：Agent = 现有 agent + 程序中调用 LLM 来处理，模拟实现需求功能。默认运行时是 **DSH**——系统把自己做到 DSH 里：每个 Agent 就是一个 dsh 进程会话。**派发子 agent 时，子 agent 是机器 instance 级的独立进程（不是运行时内部的 subagent）**——不共享进程状态、不省内存（明确接受资源开销，换取隔离与直控）。**子 agent 的运行时不限于 dsh**：自写 agent、opencode 等任何 agent 运行时都可以——用什么运行时、什么工具、什么通道账号，一律在其引用的 **ConnectorOps 中描述或调用**（connector.md：Agent 引用 ops，ops 声明环境与工具；spawn 子 agent 本身也是一次 ConnectorOps 调用，与调外部工具同一语义）。简单任务派发走 simple-shot Workflow。
 
-**文档按需加载**：Agent 自己按需加载相应文档——由 dsh 本次会话自己实现（会话内决定读什么），不是外部装配强灌。Workflow 只派任务与预算。
+**文档按需加载**：Agent 自己按需加载相应文档——由 dsh 本次会话自己实现（会话内决定读什么），不是外部装配强灌。Workflow 只派任务。
 
 **一个 Service 一个 Agent**：每个 Service（系统）一个负责 Agent（ServiceAgent）；**Agent↔Service 沟通协议的完整设计见 instance 仓 runtime/agent-service-protocol.md**。要点：
 - **上下文预插入**：Agent 处理意图时，Service 内资源按上下文先插入"大概描述"（资源清单+关系摘要），Agent 据此**自行导入**相关内容（文档按需加载不变）；
@@ -79,16 +79,16 @@ status: # 由 Workflow 引擎回写
 
 | 级别 | 语义 |
 |---|---|
-| `ask` | 动作前问上级：上级 agent（有 parent 时）或 Bind 的人 |
-| `auto` | 白名单/Scheme/预算内自动执行；出界或失败升级 |
+| `ask` | 动作前问上级：上级 agent（有 parent 时）或挂载 role 的人（经用户系统解析） |
+| `auto` | 白名单/Scheme 内自动执行；出界或失败升级 |
 | `all` | 全自动不询问（仅显式授权给低风险封闭域） |
 
 **默认级别**：
 
 | Agent | 默认 AUTOLEVEL | 理由 |
 |---|---|---|
-| RootAgent（builtinRoot） | `ask`（默认，可配置） | 与普通 Agent 同一机制：Root 也可配 auto/all（all 需显式授权）；ask 时无上级→问 Bind 的人 |
-| ServiceAgent | `auto` | 常规任务在 TaskScheme+预算内自动；高危仍被 权限系统拦 |
+| RootAgent（builtinRoot） | `ask`（默认，可配置） | 与普通 Agent 同一机制：Root 也可配 auto/all（all 需显式授权）；ask 时无上级→问挂载 role 的人 |
+| ServiceAgent | `auto` | 常规任务在 TaskScheme 内自动；高危仍被 权限系统拦 |
 
 `all` 永远需要显式声明 + 权限系统 放行（P8：模型越强，级别可上调，机制不变）。
 
@@ -99,7 +99,7 @@ status: # 由 Workflow 引擎回写
 ```
 Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingApproval→人批/驳回]
  → Executing → Verifying → Reporting → Idle
-任意态 → Failed → backoff 重试 → 超限 Escalate（Bind 的人）→ Idle
+任意态 → Failed → backoff 重试 → 超限 Escalate（挂载 role 的人）→ Idle
 ```
 
 简单派发走 `simple-shot`（Idle→Executing→Reporting）。任务幂等可重入：任务带 taskId 与断点，Agent 崩溃后由 Workflow 重新派发续跑。
@@ -107,8 +107,8 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 ## 5. 与其他概念的关系
 
 - 被 ServiceInstance **引用**（agentRefs），被 Workflow 引擎派发任务。
-- 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；Bind 是 role 绑定（人经用户系统解析）；Escalate 默认上溯 root，有 Bind 则 role 持有者同达（Notification 送达）。
-- 子 agent：机器 instance 级独立进程，**运行时不限于 dsh**（自写 agent、opencode 等均可），派发/调用经 ConnectorOps 描述或调用；由父经直控通道派发/中断/查询；权限=父权限裁剪（只减不增）。
+- 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；挂载 role 的人经用户系统解析；Escalate 默认上溯 root，有 role 挂载则 role 持有者同达（Notification 送达）。
+- 子 agent：机器 instance 级独立进程，**运行时不限于 dsh**（自写 agent、opencode 等均可），派发/调用经 ConnectorOps 描述或调用；由父经直控通道派发/中断/查询；权限=父**一次性全量下发**（⊆父，只减不增；运行时缺权限直接 ask 上级，上级重新全量申请整包重发，见 workflow.md §7 委派模型）。
 - builtinRoot 的删除/禁用请求一律 权限系统 拒绝（硬编码）；其权限绑定（内置 role `global/admin`，A63）同样不可更改/换绑/降权。
 
 ## 6. 设计规则（ 修订）
@@ -117,7 +117,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 2. 文档按需加载由 dsh 会话自己实现（docs权限系统.onDemand）；Workflow 只保证 L0 最低必载（Goal.acceptance + Rule 摘要）。
 3. 使用 ConnectorOps 要权限（ops 并集 + 权限系统裁剪，P7 落点）；`undo:none` 的 ops 每次调用人审。
 4. 子 agent 一律机器级进程派发（spawn: machine-instance），禁用任何运行时内部的 subagent 共享进程——隔离与直控优先于内存开销。**子 agent 运行时不限于 dsh**（自写 agent、opencode 等皆可）；其派发与调用经 ConnectorOps 描述/调用，与调用外部工具同一语义。
-5. SubAgent 权限=Parent 裁剪，只减不增；环状父子拒绝入库。
+5. SubAgent 权限=Parent 一次性全量下发（⊆父，只减不增；不做按步骤细粒度裁剪），运行时缺权限直接 ask 上级整包重发；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。

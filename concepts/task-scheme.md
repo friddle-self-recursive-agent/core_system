@@ -47,7 +47,6 @@ spec:
  - {id: report, connector: onedev-driver, op: build-status}
  params: [branch] # 可配置（基础调度=模板+参数）
  onFailure: {retry: 2, backoff: 30s, then: escalate}
- budget: {minutes: 20}
 ```
 
 ## 4. 与其他概念的关系
@@ -65,10 +64,9 @@ spec:
 
 1. 步骤只能引用已注册 ConnectorOps 的 op（步骤 connector 字段指 ops 名）——无自由 shell（dsh 的 exec 也是一个 op，参数受白名单）。
 2. 每个步骤幂等；整图可重入（断点=已完成步骤集）。
-3. budget 必填；超预算=本轮失败走 onFailure。
-4. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
-5. 模板元数据带 `origin`（builtin/adjusted/imported）与生成相位提示词（prompt 段）——提示词是模板的一部分，随模板版本管理。
-6. 模板四操作（用/调/import/delete）都过权限系统；builtin 起源模板只读，调整必产生副本。
+3. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
+4. 模板元数据带 `origin`（builtin/adjusted/imported）与生成相位提示词（prompt 段）——提示词是模板的一部分，随模板版本管理。
+5. 模板四操作（用/调/import/delete）都过权限系统；builtin 起源模板只读，调整必产生副本。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 6. 可行性分析

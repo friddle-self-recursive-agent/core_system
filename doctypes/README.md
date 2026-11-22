@@ -15,7 +15,7 @@
 | `Metrics` | default | indicators[] / thresholds[] | 人 | 监控设计。系统行为/健康指标与阈值 |
 | `DataDesign` | optional | entities[] / flows[] | 人 | 数据设计：实体、从哪到哪、什么权限 |
 | `DataMetrics` | optional | flows[] / slo[] | 人 | 数据流监控设计，区别于系统健康 |
-| `Auth` | default（Builtin: required） | subjects[] / grants[] | 人（人审） | 授权设计：谁可干什么（设计层；钥匙见 Credential） |
+| `Auth` | default（Builtin: required） | subjects[] / grants[] | 人（人审） | 授权设计：谁可干什么（设计层；钥匙见 Provider.auth.secret） |
 | `DeployDesign` | optional | envs[] / rollout | 人 | 部署设计 |
 | `CodeDesign` | optional | modules[] | 人 | 代码结构设计 |
 
@@ -26,7 +26,7 @@
 | `ImplDoc` | required | how / mapping | Agent（随实现生成） | "我怎么实现这些功能的"（原稿 DOCS 前半）：声明→实现对照 |
 | `VerifyDoc` | required | guarantees / probes | Agent/owner | "怎么进行约束保障的"（原稿 DOCS 后半）：验证手段、探针、兜底 |
 | `DriftReport` | auto | drifts[] / actions[] | Workflow 生成 | 每轮对账的差距与动作记录；也是下轮的压缩上下文 |
-| `PlanDoc` | required | intent / steps / budget | Agent | v0.3：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
+| `PlanDoc` | required | intent / steps | Agent | v0.3：Agent 每次 PLAN 必须落档；含引用的 TaskScheme/Workflow |
 | `SessionLog` | required | phases / docsLoaded / outcome | Agent/dsh 会话 | v0.3：每完成一次 Session 记录；态机可回放、上下文可审计 |
 | `Runbook` | optional | — | 人 | 人肉处理手册（Escalate 后人看的东西） |
 | `Memory` | optional | content / refs（+tags/importance/digest 通用检索元数据，scheme.yaml conventions.tags） | Agent | **Agent 记忆条目**（默认记忆系统的载体）：经验/偏好/上下文延续，存 Service 文档域，随 docs_operator 管理；运行中也可提交（如 Ref 记录随手入册） |
@@ -45,7 +45,7 @@ Builtin 只是起源标记（core_system 自带开发，concepts/builtin.md v0.5
 
 ## 4. 全局对象文档（非 DocType，结构即 YAML）
 
-Agent / Connector / WorkService / Ref / Bind / Credential / Workflow / 权限系统 / Scheme 的对象定义就是文档本身（结构化 YAML，见各概念文档 §3），不走散文 DocType。
+Agent / ConnectorOps / WorkService / Ref / Role / Group / Workflow / Scheme 的对象定义就是文档本身（结构化 YAML，见各概念文档 §3），不走散文 DocType。
 
 ## 5. 原稿 → 本表 对照
 

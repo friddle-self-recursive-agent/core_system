@@ -14,7 +14,7 @@ Scope 解决"这个东西归谁、在哪儿找"。四层只有**归属与名字�
 | 层 | 值 | 住哪 | 语义 | 例 |
 |---|---|---|---|---|
 | Builtin | `builtin` | core/、systems/builtin/ | **起源标记**：core_system 自带开发 | builtinRoot、Scheme、自带三系统 |
-| Global | `global` | global/ | 全局共享 | Agent、Connector、Bind、WorkService、Ref |
+| Global | `global` | global/ | 全局共享 | Agent、ConnectorOps、Workflow、Role、Ref、WorkService |
 | System | `<system-name>` | systems/<name>/ | 系统私有域 | 该系统的文档 |
 | Instance | `<system>/<instance>` | systems/<s>/instances/<i>/ | 实例私有域 | ImplDoc、DriftReport |
 
@@ -39,7 +39,7 @@ Instance → System → Global → Builtin
 
 ## 4. 生命周期
 
-对象创建时定 scope，之后不可改（改归属=删除重建+级联，走 Finalizer）。
+对象创建时定 scope，之后不可改（改归属=删除重建+级联，目录即对象）。
 
 ## 5. 与其他概念的关系
 

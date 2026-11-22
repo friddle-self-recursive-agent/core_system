@@ -10,7 +10,7 @@ spec:
   goalRef: goal.md
   descRef: desc.md
   implementationRef: system://core_system_instance/impl/storage-system.md
-  connectors: [gitfs, nas-driver, oss-driver]
+  connectors: [gitfs, nas-driver, oss-driver]   # gitfs=builtin（workservice 仓）；nas/oss-driver=用法型（sybran_usage_connector 仓，rule.md R-ENG-3）
   tiers:
     - {tier: primary,  kind: local-git, desc: "文档权威副本：本地文件夹 git"}
     - {tier: backup,   kind: nas,       desc: "git remote 备份 + 大文件/LFS"}

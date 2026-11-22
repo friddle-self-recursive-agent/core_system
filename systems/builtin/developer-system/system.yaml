@@ -15,7 +15,7 @@ spec:
     - rule: 默认本地 build（executor=dsh 本机插件），不改 Desc 不许上远端池
   workserviceRefs:
     - {capabilities: scm, ci}      # 命中 onedev（能力匹配，不点名）
-  connectors: [onedev-driver, dsh]
+  connectors: [onedev-driver, dsh]   # dsh=builtin（workservice 仓）；onedev-driver=用法型（sybran_usage_connector 仓，rule.md R-ENG-3）
   instances:
     - name: local-ci
       agentRefs: [agent/dsh]       # 基础 agent 即 dsh（R1.2.1）

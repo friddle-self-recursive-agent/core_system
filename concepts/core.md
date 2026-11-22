@@ -17,7 +17,7 @@ Core 是控制面运行时：它读文档面、跑 Workflow 引擎、分发 Even
 
 1. **存储**：封装文档库（v1 = git 仓库目录），提供带乐观锁的读写接口（见 Revision）。
 2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统准入校验。
-3. **分发**：Event 的产生、去重、路由（按 Selector 派发给 Workflow/Agent）。
+3. **分发**：Event 的产生、去重、路由（按 Scheme.dispatch：类型+involved/owner/scope 派发给 Workflow/Agent）。
 4. **调度**：Workflow 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。
 5. **观测汇聚**：接收 DriftReport / MetricsInfo 注册表，供观测面查询。
 
