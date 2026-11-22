@@ -79,7 +79,12 @@ spec:
  dedup: {window: 5m}
  group: {by: dedupKey, max: 100}
  filterLevels: [info, warn, error, fatal]
- phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting, Failed]
+ phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting, Failed, Paused]
+ onEscalate: {action: pause, notify: bind-role} # AUTO 处理不了的 Escalate 到达时的暂停策略（可配置）：
+                                                #   pause=立即挂起（相位冻结，现场+断点保留，SessionLog 可续）
+                                                #   finish-tick=跑完本轮再停（防半成品，Execute 中途不打断）
+                                                #   continue=只通知不暂停（低危域可配）
+                                                # 恢复=人处理后在 console 批准 Resume（=Apply）；不自动恢复
  onFailed: {backoff: 30s*2^n, maxAttempts: 3, escalate: {to: root, notify: bind-role}}
  brakes: # ③ 刹车（强制默认：可收紧不可关闭）
  cooldown: 2m # 成功后最小间隔（防震荡）
@@ -115,7 +120,8 @@ spec:
 7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。
 8. **数据流必声明**（spec.dataflow inputs/outputs）——展示与对账依据；缺声明=Lint 报警。
 9. **导入件治理**：origin=import 的 workflow 首期强制 observe 模式（只读跑一段再放开 act）；第三方编辑同权限系统裁剪（P7）。
-10. **落地代码化**：workflow 的接线与连接层实现由 apply-workflow agent 经 developer-system 代码化完成；运行时不做即兴接线。
+10. **暂停策略可配置（onEscalate）**：AUTO 处理不了的 Escalate 到达时——Workflow **可以判断是否暂停**，也可以**按策略自动暂停**；pause=立即挂起（Paused 相位），finish-tick=本轮跑完再停，continue=只通知不停。默认 pause。挂起现场与断点由 SessionLog 承载，恢复=人批 Resume（=Apply），通知走 bind-role 双通道（root 上报+Bind 发送）。
+11. **落地代码化**：workflow 的接线与连接层实现由 apply-workflow agent 经 developer-system 代码化完成；运行时不做即兴接线。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 跨权限完整分析

@@ -56,6 +56,7 @@ status:
 2. 事件不携带大负载：超过 1KB 的上下文放 Ref/DriftReport，Event 只带指针。
 3. 消费者不允许"信任事件内容"，只允许"被叫醒后自己看现实"（P3 的落地）。
 4. 死信必须可见：观测面死信计数是系统健康指标。
+5. **AUTO 处理不了的出口=Escalate 事件**：auto 级 Agent 遇到权限外/能力外/重试耗尽——不自行硬扛，产生 `Escalate` Event（level=error），路由三路齐发：**owner-workflow**（按其 onEscalate 策略决定是否暂停，见 workflow.md）+ **root 上报** + **Notification 送达 Bind role 持有者**。事件只触发不修改——暂停与否是 Workflow 引擎按策略执行的动作，不是事件自带的。
 5. **死信熔断要做**：死信率超阈值自动熔断该源（暂停 watch+告警），防止事件风暴拖垮引擎；恢复=人工或冷却后自动半开试探。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 

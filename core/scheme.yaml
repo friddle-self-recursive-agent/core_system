@@ -123,7 +123,8 @@ spec:
         llm: "?{provider: ref, model: string}"         # 该 workflow 用的 LLM
         triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
-        phases: "[]Phase"
+        phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）
+        onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
         onFailed: "{backoff, maxAttempts, escalate: {to: root, notify: role-holders}}"
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭）
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
@@ -251,7 +252,7 @@ spec:
     - {type: DocApplied,       source: core,      defaultLevel: info,  dedup: "no-op 不发",     route: owner-workflow}
     - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<workflow>:<tick>",       route: observation-bus}
     - {type: ApprovalNeeded,   source: permission,defaultLevel: warn,  dedup: "<rule>:<obj>",        route: notification/*}
-    - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<workflow>:<reason>",     route: root+notification/*}
+    - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<workflow>:<reason>",     route: owner-workflow+root+notification/*}   # owner-workflow 收到后按其 onEscalate 策略决定暂停
     - {type: HeartbeatLost,    source: core,      defaultLevel: error, dedup: "<agent>",             route: parent-agent+notification/*}
     - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-workflow}
     - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-workflow}
