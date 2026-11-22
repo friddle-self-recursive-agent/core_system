@@ -9,7 +9,9 @@
 
 ## 1. 定义
 
-Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事件处理（相位态机）→ 文档回归**。
+Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事件处理（相位态机）→ 文档回归**。一句话：**Workflow 就是一条规则**——声明"何时看、看什么、怎么处理、怎么回归"，引擎按规则执行，规则之外引擎无动作。
+
+**Workflow 可整体开启/关闭**（`spec.enabled`，Apply 切换）：关闭即该规则不再触发、不再消耗，已完成轮次与回归记录保留。**涉及哪些 service、怎么涉及、用哪个 LLM，全部在 Workflow 配置里声明**（`spec.services` / `spec.llm`）——换 LLM、圈 service 都是改配置，不是改代码。
 
 **Loop 一词保留为口语**：一个带触发规则的 Workflow 实例就是一个 loop——**developer_system 就是一种 loop**。不存在独立的 Loop Kind。
 
@@ -20,7 +22,7 @@ event（触发规则命中）
  → analysis（分析：读文档 L0/L1，对比现实）
  → 【自己处理 | 上报】（AUTOLEVEL/权限系统 决定：auto 直接处理；ask/高危 → 上报走审批或上溯 root）
  → plan / auto（计划；或 auto 直执行 TaskScheme）
- → 直接调用 developer_system / agent / 系统（经 ConnectorOps/子 agent）
+ → 直接调用 developer_system / agent / 系统（经 ConnectorOps；派发子 agent 也是 ConnectorOps 调用，子 agent 运行时不限于 dsh）
  → 更新服务状态（Status 回写）
  → 满足现有系统在文档上描述的需求（文档回归：DriftReport/SessionLog 归档）
 ```
@@ -45,6 +47,11 @@ metadata:
  name: developer-system-loop # "developer_system 是一种 loop" 的落地形态
  scope: builtin-developer-system
 spec:
+ enabled: true # 规则开关：false=停用（不触发不消耗；回归记录保留）
+ services: # 涉及哪些 service、怎么涉及（规则的数据面）
+ involved: [developer-system, deploy-system] # 圈定的 service（空=随 scope）
+ mode: observe|act # 怎么涉及：只读观察 / 可执行动作
+ llm: {provider: glm-coding, model: glm-5.3-flash} # 该 workflow 用的 LLM（Agent/生成相位取此配置）
  triggers: # ① 触发规则（原 Loop.watch）
  events: {types: [ExternalChanged, MetricThreshold], minLevel: warn} # 按类型+owner 路由
  timer: {resync: 10m} # 巡检兜底（level-triggered 保险丝）
@@ -84,6 +91,8 @@ spec:
 3. 每轮成本必记 budget_log（一次 loop 的成本可查、可聚合）。
 4. builtin Workflow（core-loop/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
+6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 loop 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
+7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。
 - 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 跨权限完整分析

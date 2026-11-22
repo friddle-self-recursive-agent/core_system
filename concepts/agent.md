@@ -11,9 +11,11 @@
 
 Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分析 → 计划 →（按级别询问）→ 执行 → 验证 → 回写 → 记录。它没有自己的意图，**它的意图就是它被绑定的文档**；管 Agent 不靠盯它，靠改它绑定的文档。
 
-**默认实现**：Agent = 现有 agent + 程序中调用 LLM 来处理，模拟实现需求功能。默认运行时是 **DSH**——系统把自己做到 DSH 里：每个 Agent 就是一个 dsh 进程会话。**dsh agent 派发子 dsh agent 时，子 agent 是机器 instance 级的独立进程（不是 dsh 内部的 subagent）**——不共享进程状态、不省内存（明确接受资源开销，换取隔离与直控）。也可以派发**简单任务**（simple-shot Workflow）；**子 agent 用什么（工具/通道/账号）在 ConnectorOps 中描述**（connector.md：Agent 引用 ops，ops 声明环境与工具）。
+**默认实现**：Agent = 现有 agent + 程序中调用 LLM 来处理，模拟实现需求功能。默认运行时是 **DSH**——系统把自己做到 DSH 里：每个 Agent 就是一个 dsh 进程会话。**派发子 agent 时，子 agent 是机器 instance 级的独立进程（不是运行时内部的 subagent）**——不共享进程状态、不省内存（明确接受资源开销，换取隔离与直控）。**子 agent 的运行时不限于 dsh**：自写 agent、opencode 等任何 agent 运行时都可以——用什么运行时、什么工具、什么通道账号，一律在其引用的 **ConnectorOps 中描述或调用**（connector.md：Agent 引用 ops，ops 声明环境与工具；spawn 子 agent 本身也是一次 ConnectorOps 调用，与调外部工具同一语义）。简单任务派发走 simple-shot Workflow。
 
 **文档按需加载**：Agent 自己按需加载相应文档——由 dsh 本次会话自己实现（会话内决定读什么），不是外部装配强灌。Loop 只派任务与预算。
+
+**默认 Skill（系统文档查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统"作为 skill 喂给它——一组命令式工具（按 scope/name/DocType 取文档与文档信息、读 Status/最近事件），agent 靠调用命令获取文档与文档信息，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
 两类：
 
@@ -41,7 +43,7 @@ metadata:
  labels: {tier: exec, domain: ci}
  ownerRefs: [{kind: Agent, name: dev-ops-root}] # ParentAgent
 spec:
- runtime: dsh # 默认 DSH
+ runtime: dsh # 默认 DSH；子 agent 运行时不限于此（opencode/自写 agent 均可，经 ConnectorOps 描述）
  autoLevel: auto # AUTOLEVEL：ask | auto | all（§3.1）
  connectorOps: # 默认挂 ConnectorOps（不是 Provider 类型）
  - {ops: onedev-ci, as: onedev} # 子 agent 用什么在这里描述（ops 声明工具与环境）
@@ -54,7 +56,7 @@ spec:
  read: [{scope: systems/developer-system/*}]
  onDemand: true # 按需加载：dsh 会话自实现
  subAgents:
- - {name: ci-verifier, spawn: machine-instance} # 机器级子进程，非 dsh 内部 subagent
+ - {name: ci-verifier, spawn: machine-instance} # 机器级子进程；运行时不限 dsh（opencode/自写 agent 均可），派发/调用经 ConnectorOps 描述
  retry: {maxAttempts: 3, backoff: 30s*2^n, escalateTo: root} # ：默认 root，bind 可选插入
 status: # 由 Loop 引擎回写
  phase: Idle | Analyzing | Planning | AwaitingApproval | Executing | Verifying | Reporting | Failed
@@ -97,7 +99,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 
 - 被 ServiceInstance **引用**（agentRefs），被 Loop 引擎派发任务。
 - 经 ConnectorOps 打外部（工具与环境在 ops 声明）；经 Provider 拿账号；Bind 是 role 绑定（人经用户系统解析）；Escalate 默认上溯 root，有 Bind 则 role 持有者同达（Notification 送达）。
-- 子 agent：机器 instance 级独立 dsh 进程，由父经 dsh 直控通道派发/中断/查询；权限=父权限裁剪（只减不增）。
+- 子 agent：机器 instance 级独立进程，**运行时不限于 dsh**（自写 agent、opencode 等均可），派发/调用经 ConnectorOps 描述或调用；由父经直控通道派发/中断/查询；权限=父权限裁剪（只减不增）。
 - builtinRoot 的删除/禁用请求一律 权限系统 拒绝（硬编码）。
 
 ## 6. 设计规则（ 修订）
@@ -105,7 +107,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 1. Agent 的每一次 PLAN、以及每完成一次 Session（粒度看实现），必须记录文档，记在 ServiceInstance 里（PlanDoc / SessionLog）。记录写入走 Apply（存储机制）——事后留痕，不是逐写审批。
 2. 文档按需加载由 dsh 会话自己实现（docs权限系统.onDemand）；Loop 只保证 L0 最低必载（Goal.acceptance + Rule 摘要）。
 3. 使用 ConnectorOps 要权限（ops 并集 + 权限系统裁剪，P7 落点）；`undo:none` 的 ops 每次调用人审。
-4. 子 agent 一律机器级进程派发（spawn: machine-instance），禁用 dsh 内部 subagent 共享进程——隔离与直控优先于内存开销。
+4. 子 agent 一律机器级进程派发（spawn: machine-instance），禁用任何运行时内部的 subagent 共享进程——隔离与直控优先于内存开销。**子 agent 运行时不限于 dsh**（自写 agent、opencode 等皆可）；其派发与调用经 ConnectorOps 描述/调用，与调用外部工具同一语义。
 5. SubAgent 权限=Parent 裁剪，只减不增；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
