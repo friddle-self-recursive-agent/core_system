@@ -8,7 +8,8 @@ annotations:
   repos:
     desc: friddle-self-recursive-agent/core_system          # 本仓：声明侧
     instance: friddle-self-recursive-agent/core_system_instance  # 实现形式 + 大部分设计 + 可行性
-    workservice: friddle-self-recursive-agent/core_system_workservice  # 核心代码
+    workservice: friddle-self-recursive-agent/core_system_workservice  # 核心代码（Go build → cored）
+    plugin: friddle-self-recursive-agent/core_system_dsh_plugin          # dsh plugin 宿主 + connectors；submodule core_system 指向 workservice 最新
 ---
 # core_system —— 根 ServiceDesc（SystemDesc）
 

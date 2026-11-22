@@ -10,6 +10,7 @@
 | **core_system**（本仓） | ServiceDesc | 声明：requirements 存档、Goal/Desc、概念定义（Scheme 层）、builtin 服务声明、A-清单裁决台账 |
 | [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Workflow 管线与 bootstrap、developer_system(onedev)/storage(nas+oss)/deploy 设计、可行性报告 |
 | [core_system_workservice](https://github.com/friddle-self-recursive-agent/core_system_workservice) | 代码 | Igniter、Core 进程、dsh 插件宿主、内置 Connector（builtin 系统=代码+connector 内置，R1.3） |
+| [core_system_dsh_plugin](https://github.com/friddle-self-recursive-agent/core_system_dsh_plugin) | 代码（plugin 面） | dsh plugin 宿主 + connector 实现；core 本体仍 Go build 于 workservice 仓，经 submodule `core_system/` 指向最新 |
 
 第一个 builtin service 是 **SelfRecursiveCore**（systems/builtin/self-recursive-core/）。按本描述开发、按本描述 Workflow（R1.1）。
 
