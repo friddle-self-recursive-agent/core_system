@@ -47,7 +47,7 @@ resourceVersion：Core 每次成功写入自增；Apply 提交带回读到的版
 ## 6. 设计规则
 
 1. 任何写入必须携带 fieldManager；无主写入拒绝。
-2. Conflict 重试上限与 Loop.backoff 共享预算（防活锁）。
+2. Conflict 重试上限与 Workflow.backoff 共享预算（防活锁）。
 3. commit message 结构化：`<fieldManager> <action> <reason-ref>`（reason-ref 指向 DriftReport/PlanDoc/Event）。
 4. 历史不可改写（no force-push）。
 5. **LLM 语义 diff 的输出永远是提案**：事实基础是 git 文本 diff；合并落地必须人裁或 权限系统 明确放行——LLM 不直接改历史。

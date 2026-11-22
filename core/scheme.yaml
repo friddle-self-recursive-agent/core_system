@@ -114,7 +114,7 @@ spec:
         auth: "?{provider: ref}"
         ops: "[]string"                              # ⊆ WorkService.tools（Lint）
 
-    - kind: Workflow                 # v0.8 吸收 Loop（A41）
+    - kind: Workflow                 # v0.8 吸收 Workflow（A41）
       builtin: true
       storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"
       spec:
@@ -128,7 +128,7 @@ spec:
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认
         cost: "{budget: {minutes, tokens, mutations}, record: budget_log}"
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
-      builtinSet: [core-loop, default-task, simple-shot, watch-only]
+      builtinSet: [core-workflow, default-task, simple-shot, watch-only]
 
     - kind: Provider                 # 账号包（A27/A40）
       builtin: true
@@ -250,12 +250,12 @@ spec:
     - {type: ExternalChanged,  source: connector, defaultLevel: info,  dedup: "<obj>:<change>:hash", route: owner-workflow}
     - {type: MetricThreshold,  source: metrics,   defaultLevel: warn,  dedup: "<metric>:<window>",   route: owner-workflow}
     - {type: DocApplied,       source: core,      defaultLevel: info,  dedup: "no-op 不发(A32)",     route: owner-workflow}
-    - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<loop>:<tick>",       route: observation-bus}
+    - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<workflow>:<tick>",       route: observation-bus}
     - {type: ApprovalNeeded,   source: permission,defaultLevel: warn,  dedup: "<rule>:<obj>",        route: notification/*}
-    - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<loop>:<reason>",     route: root+notification/*}
+    - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<workflow>:<reason>",     route: root+notification/*}
     - {type: HeartbeatLost,    source: core,      defaultLevel: error, dedup: "<agent>",             route: parent-agent+notification/*}
-    - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-loop}
-    - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-loop}
+    - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-workflow}
+    - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-workflow}
     - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}   # A29
 
   # ============================================================
@@ -269,8 +269,8 @@ spec:
     - {on: ApprovalNeeded,   for: "any",            dispatch: notification/*}
     - {on: Escalate,         for: "any",            dispatch: root-agent, cc: notification/*}
     - {on: HeartbeatLost,    for: "owner:agent",    dispatch: parent-agent, cc: notification/*}
-    - {on: InstallRequested, for: "any",            dispatch: workflows/deploy-system-loop}
-    - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-loop}
+    - {on: InstallRequested, for: "any",            dispatch: workflows/deploy-system-workflow}
+    - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-workflow}
     - {on: SessionClosed,    for: "owner:instance", dispatch: instance-docs}
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: deadletter}    # 死信必须可见
@@ -281,7 +281,7 @@ spec:
   runtime:
     baseAgent: dsh                  # 外部运行时（deepseek 插件机制）；core 即 dsh plugin（A39/A43）
     executionLayers: [intent, agent, scheme, code]
-    workflows: {default: default-task, builtin: [core-loop, default-task, simple-shot, watch-only]}
+    workflows: {default: default-task, builtin: [core-workflow, default-task, simple-shot, watch-only]}
     autoLevels: {rootAgent: "ask（默认，可配置 auto/all）", serviceAgent: auto, all: "需显式授权+权限系统放行"}  # A64：RootAgent 与普通 Agent 同一 AUTOLEVEL 机制
     escalation: root                # A35：默认上溯；Role.on 挂载=权限插入双通道（A49）
     permissionSystem:

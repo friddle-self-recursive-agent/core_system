@@ -41,7 +41,7 @@ status:
  phase: InSync | Drifting | Remediating | Failed | Escalated
  drift:
  summary: "3 项偏差：runner 数不足/1 条 rule 未满足/…"
- reportRef: docs/drift-2026-11-20.md # DriftReport 文档（Loop 生成）
+ reportRef: docs/drift-2026-11-20.md # DriftReport 文档（Workflow 生成）
  conditions:
  - {type: Ready, status: "False", reason: runners-shortage}
  - {type: RulesHeld, status: "True"}
@@ -60,7 +60,7 @@ metricsInfo: # ：查询入口声明，非数据本体
 ## 4. 生命周期
 
 ```
-由 Desc 的 instances 段声明 → Loop 创建 → 持续对账（Drifting↔InSync↔Remediating）
+由 Desc 的 instances 段声明 → Workflow 创建 → 持续对账（Drifting↔InSync↔Remediating）
 → Failed（重试超限）→ Escalated（等 Bind 的人）→ 人介入后恢复
 随 owner Desc 删除而级联删除（Finalizer 先清外部副作用）
 ```
@@ -68,12 +68,12 @@ metricsInfo: # ：查询入口声明，非数据本体
 ## 5. 与其他概念的关系
 
 - owner 是 ServiceDesc；引用全局 Agent；MetricsInfo 指向观测面存储。
-- DriftReport 是 Instance 侧最重要的产物：它既是 Loop 的分析输出，也是下一次任务的压缩上下文（防上下文膨胀的关键层）。
+- DriftReport 是 Instance 侧最重要的产物：它既是 Workflow 的分析输出，也是下一次任务的压缩上下文（防上下文膨胀的关键层）。
 
 ## 6. 设计规则
 
 1. Instance 目录里允许存在的文档类型白名单：ImplDoc、VerifyDoc、DriftReport、Runbook（按 DocType 注册）。
-2. Status 只由 Loop/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
+2. Status 只由 Workflow/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
 3. MetricsInfo 只存查询声明与最近摘要（如 24h 概要），原始序列在观测面。
 4. 一个 Instance 的 Agent 集合变更 = 实例配置变更，走 Apply。
 - 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
@@ -82,7 +82,7 @@ metricsInfo: # ：查询入口声明，非数据本体
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 实现侧 Docs 腐化 | ⚠️ 中 | 代码改了文档没改，ImplDoc 说谎 | ImplDoc 与 Connector 版本号联动校验；Loop 对账把"文档过期"也当作一种 drift |
+| 实现侧 Docs 腐化 | ⚠️ 中 | 代码改了文档没改，ImplDoc 说谎 | ImplDoc 与 Connector 版本号联动校验；Workflow 对账把"文档过期"也当作一种 drift |
 | MetricsInfo 与文档的边界被侵蚀 | ⚠️ 中 | 图省事把数据写进 .md | 权限系统 Lint：Instance 下 .md 出现指标序列表即警告 |
 | 多实例语义 | ⚠️ 低 | v1 无实例级 Spec，实例间只差名字 | 如需差异化，升级为实例级 Spec 覆盖（overlay），列入 open-questions |
 

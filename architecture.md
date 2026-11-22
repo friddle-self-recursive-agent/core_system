@@ -7,7 +7,7 @@
 | 层 | 组成 | 只负责 | 绝不负责 |
 |---|---|---|---|
 | 文档面 | ServiceDesc / ServiceInstance / 各对象声明 | 存意图与约束 | 执行任何动作 |
-| 控制面 | Core 进程（Apply / Loop 引擎 / Event 分发 / Scheme / 权限系统） | 存取校验文档、调度收敛 | 干活（干活是 Agent 的事） |
+| 控制面 | Core 进程（Apply / Workflow 引擎 / Event 分发 / Scheme / 权限系统） | 存取校验文档、调度收敛 | 干活（干活是 Agent 的事） |
 | 执行面 | Agent / Connector / WorkService | 收敛意图、驱动外部系统 | 定义意图 |
 | 观测面 | Event 汇聚 / MetricsInfo / DriftReport | 让人看得见 | 反过来直接改状态 |
 
@@ -15,7 +15,7 @@
 
 ```
                     ┌────────── Core（控制面进程，Builtin scope 自描述）──────────┐
-                    │  Scheme ── Apply ── 权限系统 ── Loop引擎 ── Event分发          │
+                    │  Scheme ── Apply ── 权限系统 ── Workflow引擎 ── Event分发          │
                     └───────┬───────────────────────────────────┬────────────────┘
                             │ 管理                                │ 分发
               ┌─────────────▼──────────┐            ┌───────────▼─────────────┐
@@ -84,7 +84,7 @@ Q4 它是类型还是实例？
 | Ref | ObjectReference/ExternalName | 增加 TTL/owner，明确"临时"语义 |
 | Event | Event + watch | 只触发不修改，消费按 P3 |
 | Apply | kubectl apply / SSA | 同时是系统间调用的唯一形态 |
-| Loop | Controller/Reconciler | 一等对象，可配置触发源与升级策略 |
+| Workflow | Controller/Reconciler | 一等对象，可配置触发源与升级策略 |
 | 权限系统 | Admission Webhook | 文档即权限，准入必选 |
 | ~~Finalizer~~ | ~~Finalizer~~ | 已删除（A51）：清理=WorkService tools/flows 成对声明 |
 | Bind | RBAC Binding + scheduler binding | 人也是一等被绑定对象 |
@@ -102,7 +102,7 @@ Q4 它是类型还是实例？
 
 ## 6. 反模式清单（看到即判"不合设计"）
 
-- 在 Loop 里写 if-else 分支脚本 → 那是 workflow 引擎，本系统只声明意图（原稿"Workflow Design"文档是**给人看的功能流设计**，不是可执行编排，见 doctypes）。
+- 在 Workflow 里写 if-else 分支脚本 → 那是 workflow 引擎，本系统只声明意图（原稿"Workflow Design"文档是**给人看的功能流设计**，不是可执行编排，见 doctypes）。
 - Agent 绕过 Apply 直接改文件 → 破坏 P4/P7。
 - Status 由人手写 → 破坏 P2。
 - 把抓取到的监控数据写成 .md 文档 → 破坏 Q1（现实不是文档），应进 MetricsInfo。

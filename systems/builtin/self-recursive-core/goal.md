@@ -8,7 +8,7 @@ ownerRefs: [{kind: ServiceDesc, name: self-recursive-core}]
 
 ## intent
 
-维持整个控制面的存在与自洽：文档面可信（Apply 唯一写路径+准入）、事件不丢不淹、Loop 引擎按声明运转、ops 流水可查（git=文档版本，DB=操作日志，R1.5.4）。自身也是被管对象：用本系统管理本系统。
+维持整个控制面的存在与自洽：文档面可信（Apply 唯一写路径+准入）、事件不丢不淹、Workflow 引擎按声明运转、ops 流水可查（git=文档版本，DB=操作日志，R1.5.4）。自身也是被管对象：用本系统管理本系统。
 
 ## acceptance
 

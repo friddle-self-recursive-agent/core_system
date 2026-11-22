@@ -11,7 +11,7 @@
 
 Apply 是**文档面的唯一写路径**：任何文档更新必须经 Apply——**因为文档做版本管理**。这个"唯一"只作用于**文档面**；**不影响最底层 Agent 干活**——Agent 执行任务走 ConnectorOps（权限校验在 ops），其运转以 PlanDoc/SessionLog 留痕，不逐写审批（ 澄清）。
 
-系统间调用仍是文档面语义：系统 A 影响系统 B = A 对 B 的文档 Apply 一个提案，B 的 Loop 看到后自行收敛。没有点对点 RPC。
+系统间调用仍是文档面语义：系统 A 影响系统 B = A 对 B 的文档 Apply 一个提案，B 的 Workflow 看到后自行收敛。没有点对点 RPC。
 
 ## 2. 边界
 
@@ -44,12 +44,12 @@ apply(obj, opts)
 
 - Revision 提供乐观锁与历史（审计=git log + ops DB 双轨）。
 - 权限系统 在 Apply 内执行（准入是写路径的一环）。
-- 写者四种：人写 Spec、Agent 回写 Status/SessionLog、Loop 写 DriftReport、跨系统提案（默认进对方待审区，除非 权限系统 放行）。
+- 写者四种：人写 Spec、Agent 回写 Status/SessionLog、Workflow 写 DriftReport、跨系统提案（默认进对方待审区，除非 权限系统 放行）。
 - Notification：DocApplied/ApprovalNeeded 的告知出口（无 SLA 机器）。
 
 ## 6. 设计规则
 
-1. **no-op 不发 Event + fieldManager 白名单豁免自身**：Apply 相同内容为 no-op，不产生事件；且自身 fieldManager 的回写（如 Loop 写 Status 触发的 DocApplied）在白名单内豁免——双保险防自我唤醒循环。
+1. **no-op 不发 Event + fieldManager 白名单豁免自身**：Apply 相同内容为 no-op，不产生事件；且自身 fieldManager 的回写（如 Workflow 写 Status 触发的 DocApplied）在白名单内豁免——双保险防自我唤醒循环。
 2. 任何文档写入必须携带 fieldManager（无主写入拒绝，审计可追溯）。
 3. dryRun 必须零副作用且返回与真执行一致的 plan。
 4. 跨系统提案默认进对方**待审区**；超时/催办不是本系统机制——Notification 告知即可。

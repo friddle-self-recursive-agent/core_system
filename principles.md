@@ -11,14 +11,14 @@
 声明（Spec：期望是什么）与现实（Status：观测到什么）物理分离，写在不同的地方、由不同的角色写：
 
 - Spec 由人或上游系统通过 Apply 写入；
-- Status 只能由 Loop/Agent 回写，人不能手改 Status；
+- Status 只能由 Workflow/Agent 回写，人不能手改 Status；
 - 收敛程度由 `observedGeneration` 表达：Status 记录的是哪个版本的 Spec 的现实。
 
 违反分离的文档类型不予注册（见 DocType）。
 
 ## P3. Level-triggered，不是 Edge-triggered
 
-Loop 不依赖事件的完整性。事件只是"该看一眼了"的信号，收到信号后**重新全量对比期望与现实**。丢事件、乱序、重复都不会导致错误状态，最多导致一次多余的对账。这是从 k8s controller 直接继承的容错根基。
+Workflow 不依赖事件的完整性。事件只是"该看一眼了"的信号，收到信号后**重新全量对比期望与现实**。丢事件、乱序、重复都不会导致错误状态，最多导致一次多余的对账。这是从 k8s controller 直接继承的容错根基。
 
 ## P4. 幂等是硬契约
 
@@ -26,11 +26,11 @@ Loop 不依赖事件的完整性。事件只是"该看一眼了"的信号，收�
 
 ## P5. 收敛，而非成功
 
-Loop 没有"完成"状态，只有 `InSync`（此刻一致）。一致性是持续维持的属性，不是达成的里程碑。任何"跑完即结束"的语义属于任务（Task），不属于 Loop。
+Workflow 没有"完成"状态，只有 `InSync`（此刻一致）。一致性是持续维持的属性，不是达成的里程碑。任何"跑完即结束"的语义属于任务（Task），不属于 Workflow。
 
 ## P6. 意图不可被运行时私自修改
 
-Agent/Loop 发现"现实改不动"或"意图本身错了"，**不允许就地篡改 Spec**，只能：
+Agent/Workflow 发现"现实改不动"或"意图本身错了"，**不允许就地篡改 Spec**，只能：
 
 1. 继续收敛失败 → 重试 → 升级（Escalate 到 Bind 的人）；
 2. 生成提案（Proposal，一种 Event/文档），走 Apply 由有权限者合入。
@@ -47,7 +47,7 @@ Agent/Loop 发现"现实改不动"或"意图本身错了"，**不允许就地篡
 
 ## P9. 最小自举
 
-允许一个不可被文档管理的小内核存在（builtinRoot 点火器 + Core 常驻进程），但它必须：足够小、自身有 Builtin 文档声明、接受最严准入。除此之外不许有任何"文档之外的状态"。（见 instance 仓 loop/bootstrap.md）
+允许一个不可被文档管理的小内核存在（builtinRoot 点火器 + Core 常驻进程），但它必须：足够小、自身有 Builtin 文档声明、接受最严准入。除此之外不许有任何"文档之外的状态"。（见 instance 仓 runtime/bootstrap.md）
 
 ## P10. 概念边界单一职责
 

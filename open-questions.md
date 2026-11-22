@@ -12,7 +12,7 @@
 ## scheme
 
 1. ❶ dispatch 表的路由表达能力 v1 只到 Selector 相等/集合，够吗？需要 exists/notIn 吗？
-2. ❷ 类型演进的兼容期多长？迁移由 Loop 自动执行还是人审每一步？
+2. ❷ 类型演进的兼容期多长？迁移由 Workflow 自动执行还是人审每一步？
 3. ❸ 死信的保留与重放策略：重放由谁触发、有没有毒丸（poison event）熔断？
 4. dsh（A15）如果原意不是 dispatch 索引，正确语义是什么？
 
@@ -54,8 +54,8 @@
 ## ref
 
 1. ❶ TTL 默认值与年检 Event 的节奏（90d/180d？）重要吗，还是全部 manual 起步？
-2. ❷ Ref 的 probe 探测失败算 drift 吗（会触发 Loop 修复吗），还是只告警不修复？
-3. ❸ "被 Loop 依赖的目标必须是 WorkService"（规则 2）怎么机器识别违规——Lint 扫描 Agent 上下文里的 Ref 用途吗？
+2. ❷ Ref 的 probe 探测失败算 drift 吗（会触发 Workflow 修复吗），还是只告警不修复？
+3. ❸ "被 Workflow 依赖的目标必须是 WorkService"（规则 2）怎么机器识别违规——Lint 扫描 Agent 上下文里的 Ref 用途吗？
 
 ## builtin
 
@@ -81,11 +81,11 @@
 2. ❷ approver 与 executor 不得同人（规则 2）——单人团队如何豁免而不破坏审计？
 3. ❸ escalationChain 跨系统吗（developer-system 的升级终点是平台 oncall，平台 oncall 的 Bind 在另一个系统）？环状升级链怎么防？
 
-## loop
+## workflow
 
 1. ❶ 预算制的具体预算单位与默认值：token 数、分钟、变更数——三者怎么组合成"一轮预算"？
 2. ❷ CoolDown 与外部紧急变更的矛盾：生产事故时能跳过冷却吗（人工 Event 带高优先级）？
-3. ❸ 多系统 Loop 并发修同一外部系统：唯一 owner 规则的注册在哪（WorkService 上加 ownerSystem 字段？）
+3. ❸ 多系统 Workflow 并发修同一外部系统：唯一 owner 规则的注册在哪（WorkService 上加 ownerSystem 字段？）
 4. Escalated 后人处理完的"重新触发"是自动（检测到 Status 变化）还是手动按钮？
 
 ## status
@@ -109,19 +109,19 @@
 ## owner
 
 1. ❶ 双主需求出现时（两系统共管一个 WorkService）："一主一引用+Finalizer" 的具体写法示例？
-2. ❷ 孤儿告警的核实 Loop 是全局的还是每系统一份？
+2. ❷ 孤儿告警的核实 Workflow 是全局的还是每系统一份？
 3. ❸ owner 链过深（>4 层）时责任上溯效率：要不要强制最大深度？
 
 ## finalizer
 
 1. ❶ 自动登记（规则 1）依赖 Connector.apply 返回副作用清单——契约要不要加 `sideEffects[]` 返回段？
 2. ❷ 墓碑对象的观测指标阈值：多少条算"删不干净欠债超标"触发平台级告警？
-3. ❸ 24h Escalate 之前要不要先自动重试清理（复用 Loop.backoff）？
+3. ❸ 24h Escalate 之前要不要先自动重试清理（复用 Workflow.backoff）？
 
 ## doctype
 
 1. ❶ 必填段 ≤3 的约束对 Rule 这类"列表型"文档够用吗（rules[] 算一段）？
-2. ❷ DocType 版本化（Goal/v2）的存量迁移：Loop 自动改写文档？还是只标记兼容、由 owner 择机改写？
+2. ❷ DocType 版本化（Goal/v2）的存量迁移：Workflow 自动改写文档？还是只标记兼容、由 owner 择机改写？
 3. ❸ 语义质量评估（drift 计入）的评分标准：谁定义"Goal 写得好不好"的量尺？
 
 ## policy
@@ -238,9 +238,9 @@
 2. ❷ 多机时 core plugin 是否仍单实例（v1 单机接受；跨机的预留点）？
 3. ❸ "做通畅了"的判据定什么（首圈循环稳定跑 N 周？）作为启动独立 Core 界面的触发条件？
 
-## workflow（v0.8 吸收 Loop 后）
+## workflow（v0.8 吸收 Workflow 后）
 
-1. ❶ core-loop 与 default-task 的边界：core-loop 是系统级循环、default-task 是单任务态机——同一轮里嵌套时（core-loop 的 Executing 内跑 default-task 任务）成本与刹车按哪层计？
+1. ❶ core-workflow 与 default-task 的边界：core-workflow 是系统级循环、default-task 是单任务态机——同一轮里嵌套时（core-workflow 的 Executing 内跑 default-task 任务）成本与刹车按哪层计？
 2. ❷ 跨权限三出路的判定顺序写在哪：引擎硬编码（1→2→3）还是 Workflow 声明？
 3. ❸ 提案方付费的成本规则：被提案方拒绝时成本是否返还记账（纯审计语义）？
 
@@ -289,7 +289,7 @@
 
 ## 横切（不属于单一概念）
 
-1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Loop 主链路。确认？
+1. ❶ 首个落地系统选谁：建议 developer-system（示例即它），因为它最"内"（gitlab/jenkins 都是标准 API），能最快验证 Connector+Workflow 主链路。确认？
 2. ❷ Core 的实现语言与技术栈（Go 最贴近 k8s 生态？）。
 3. ❸ 观测面 v1 的形态：Event 流查看器 + drift 仪表盘，用现成（Grafana）还是自持最小 UI？
 4. 这套设计先开源晒还是先内部跑通？影响 Connector 仓与凭证模型的默认值。

@@ -54,14 +54,14 @@ spec:
 1. 每个类型必须声明 `writers`，默认最窄（人/owner）。
 2. 必填段控制在 ≤3 个：文档类型的职责是"防缺关键段"，不是"格式化写作"。
 3. 同一语义不允许两个类型（ 教训：Prometheus 型被并入 Metrics 型就是本规则的应用）。
-4. `acceptance` 类可验证段是 Loop 的 Verifying 依据——**没有验收条款的 Goal 不予入库**（servicedesc.md 可行性的核心缓解）。
+4. `acceptance` 类可验证段是 Workflow 的 Verifying 依据——**没有验收条款的 Goal 不予入库**（servicedesc.md 可行性的核心缓解）。
 - 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 自然语言段无法机器校验 | ⚠️ 中 | 段存在≠段合格 | 分级校验：结构段 权限系统 硬校验；语义质量由 Loop 分析阶段评估并计入 drift |
+| 自然语言段无法机器校验 | ⚠️ 中 | 段存在≠段合格 | 分级校验：结构段 权限系统 硬校验；语义质量由 Workflow 分析阶段评估并计入 drift |
 | 类型 proliferation | ⚠️ 低 | 人人想加新类型 | 注册=Builtin 级人审，天然高门槛 |
 | 模板僵化 | ⚠️ 低 | 必填段过死 | 规则 2 限段数；anotations 可放自由内容 |
 

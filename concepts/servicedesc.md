@@ -54,7 +54,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 
 ```
 创建（Apply，权限系统 校验必须文档齐全）→ Active
- ↑ 改文档 → generation+1 → 触发所属 Loop reconcile（level-triggered）
+ ↑ 改文档 → generation+1 → 触发所属 Workflow reconcile（level-triggered）
 删除请求 → 执行外部清理（WorkService.tools 成对 cleanup op）→ 真删（删目录即级联，含全部 Instance）
 ```
 
@@ -79,7 +79,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 自然语言 Goal 不可判定 | ⚠️ 中 | "系统要好用"没法验收 | Goal 模板强制含可验证的验收条款（verify 段）；Verifying 阶段以此为判据 |
-| 文档互相矛盾 | ⚠️ 中 | Rule 与 WorkflowDesign 冲突 | 权限系统 的 Lint 级校验（交叉引用检查）+ Loop 分析阶段显式报告矛盾 |
+| 文档互相矛盾 | ⚠️ 中 | Rule 与 WorkflowDesign 冲突 | 权限系统 的 Lint 级校验（交叉引用检查）+ Workflow 分析阶段显式报告矛盾 |
 | 能力抽象过度 | ⚠️ 低 | "不绑实现"抽象到没人懂 | v1 允许注释性提及实现，仅规范性字段禁止 |
 
 **结论：可行。核心风险是自然语言的可判定性，用模板+验证段压住。**

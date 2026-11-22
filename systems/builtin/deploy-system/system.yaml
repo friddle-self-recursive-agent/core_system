@@ -11,5 +11,5 @@ spec:
   descRef: desc.md
   implementationRef: system://core_system_instance/impl/deploy-system.md
   connectors: [dsh, gitfs]      # 安装动作全部走本机 dsh + 本地文件
-  loops:
-    - {name: install-loop, watch: {events: [InstallRequested, TemplateFound]}}
+  workflows:
+    - {name: install-workflow, watch: {events: [InstallRequested, TemplateFound]}}

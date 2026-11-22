@@ -13,9 +13,9 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 
 **Workflow 可整体开启/关闭**（`spec.enabled`，Apply 切换）：关闭即该规则不再触发、不再消耗，已完成轮次与回归记录保留。**涉及哪些 service、怎么涉及、用哪个 LLM，全部在 Workflow 配置里声明**（`spec.services` / `spec.llm`）——换 LLM、圈 service 都是改配置，不是改代码。
 
-**Loop 一词保留为口语**：一个带触发规则的 Workflow 实例就是一个 loop——**developer_system 就是一种 loop**。不存在独立的 Loop Kind。
+**Workflow 是平台对象，不只是内部机制**：可编辑（spec=文档，Apply 修改，每一步可调整）、可展示（流程图/事件/流转/数据流，见 console）、可被第三方编辑与管理（导入/克隆/触发设置，同走 Apply+权限系统）、可启停（spec.enabled）。**developer_system 就是一种 workflow 实例**；不存在独立的循环 Kind。
 
-### 内置最核心 workflow：`core-loop`
+### 内置最核心 workflow：`core-workflow`
 
 ```
 event（触发规则命中）
@@ -27,14 +27,31 @@ event（触发规则命中）
  → 满足现有系统在文档上描述的需求（文档回归：DriftReport/SessionLog 归档）
 ```
 
-builtin 集合：`core-loop`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）。
+builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）。
+
+### 1.1 默认研发 workflow：`dev-delivery`（默认文档，每步可调整）
+
+系统自带的完整研发闭环，入口 event（错误日志 ≥error / 新需求 / 用户请求）触发**全自动**流转：
+
+```
+触发(event) → Analyze（定位错误/拆解需求） → Gate（高危人批，auto 白名单直过）
+ → Plan（选 TaskScheme 模板） → Execute（developer-system pull → 本地 build+test
+   红线全绿 → 产物 digest） → Verify（探针复测） → Deploy（deploy-system 按
+   DeployDesign.envs 升序发布，prod 人批） → Report（Status 追平+归档+Event）
+```
+
+每一步=声明的相位与 TaskScheme 引用，调整=改 spec/模板参数后 Apply；整条可 `enabled: false` 一键停用。
+
+### 1.2 Workflow 落地 = 专用 agent（`apply-workflow`）
+
+把一份 Workflow 声明落到真实系统，本身也是 workflow 干的活——专用 agent 承担：解析 spec 接线触发源（注册 Connector watch）→ 缺的连接层调 **developer-system**（pull/写**自定义 connector** 代码/build，每层调用代码化）→ 落地后注册一条 `watch-only` 监控新 workflow 的成功率/死信/成本（自监控闭环，异常回 Event 走修复循环）。即：**流程实现=代码；写代码=调研发系统；监控 workflow 的=内置 workflow（自举）**。运行时细节见 instance 仓 runtime/workflow-runtime.md。
 
 ## 2. 边界
 
-**是**：触发规则 + 事件整理规则 + 相位态机 + 刹车与成本 + 文档回归，五件事一个对象。
+**是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车与成本 + 文档回归——一个可编辑、可展示、可启停的平台对象。
 
 **不是**：
-- 不是可执行业务编排（无业务 if-else；迁移条件只有事件与策略——反模式不变）；
+- 不是自由脚本编排（无业务 if-else；迁移条件只有事件与策略；"可编辑"指声明式 spec 的编辑，一切修改过 Apply+权限系统——反模式不变）；
 - 不是 TaskScheme（TaskScheme 是 Executing 相位内的步骤图；Workflow 是包着它的整个循环）；
 - 不是 WorkflowDesign 文档（那是给人看的功能流设计）。
 
@@ -44,7 +61,7 @@ builtin 集合：`core-loop`（上述全流程）、`default-task`（单任务�
 apiVersion: core/v1
 kind: Workflow
 metadata:
- name: developer-system-loop # "developer_system 是一种 loop" 的落地形态
+ name: developer-system-workflow # "developer_system 是一种 workflow" 的落地形态
  scope: builtin-developer-system
 spec:
  enabled: true # 规则开关：false=停用（不触发不消耗；回归记录保留）
@@ -52,7 +69,10 @@ spec:
  involved: [developer-system, deploy-system] # 圈定的 service（空=随 scope）
  mode: observe|act # 怎么涉及：只读观察 / 可执行动作
  llm: {provider: glm-coding, model: glm-5.3-flash} # 该 workflow 用的 LLM（Agent/生成相位取此配置）
- triggers: # ① 触发规则（原 Loop.watch）
+ dataflow: # 数据流声明（展示层拼系统级数据流图的依据）
+   inputs: [{events: [MetricThreshold], docs: "systems/developer-system/*"}]
+   outputs: [{status: self, notify: [bind-role], artifacts: "oss://builds"}]
+ triggers: # ① 触发规则（原 Workflow.watch）
  events: {types: [ExternalChanged, MetricThreshold], minLevel: warn} # 按类型+owner 路由
  timer: {resync: 10m} # 巡检兜底（level-triggered 保险丝）
  ingest: # ② 事件整理规则
@@ -65,7 +85,7 @@ spec:
  cooldown: 2m # 成功后最小间隔（防震荡）
  maxMutationsPerTick: 10 # 单轮最大变更数
  avoidRepeatFix: true # DriftReport 记录"改过什么"，避免重复同类修复
- cost: # ④ 一次 loop 的成本
+ cost: # ④ 一次 workflow 的成本
  budget: {minutes: 20, tokens: 200k, mutations: 10}
  record: budget_log # 每轮成本入 ops DB（tokens/变更数/墙钟）
  regression: # ⑤ 文档回归
@@ -83,21 +103,27 @@ spec:
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
 - Escalate 出口：默认上溯 root agent；有 Bind 时 role 持有者经 Notification 同达（ 不变）。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
+- **展示面**（console）：workflow 详情页五 tab——流程图（相位态机自动渲染、当前相位高亮）/ 事件流 / 流转（每轮相位流水，ops DB）/ 数据流（dataflow 拼图）/ 成本（budget_log）；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。
+- **第三方**：其他系统/他人编辑、导入、管理、触发设置，走同一 Apply+权限系统入口；导入=外部编排渲染成 spec（预览=dry-run，导入件首期 observe 模式）。
+- **落地 agent**：新 workflow 的接线/代码化由 `apply-workflow` agent 承担（§1.2）。
 
 ## 6. 设计规则
 
 1. 相位/迁移纯声明；每相位有预算；超预算=该轮 Failed 进 onFailed。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
-3. 每轮成本必记 budget_log（一次 loop 的成本可查、可聚合）。
-4. builtin Workflow（core-loop/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
+3. 每轮成本必记 budget_log（一次 workflow 的成本可查、可聚合）。
+4. builtin Workflow（core-workflow/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
-6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 loop 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
+6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 workflow 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
 7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。
+8. **数据流必声明**（spec.dataflow inputs/outputs）——展示与对账依据；缺声明=Lint 报警。
+9. **导入件治理**：origin=import 的 workflow 首期强制 observe 模式（只读跑一段再放开 act）；第三方编辑同权限系统裁剪（P7）。
+10. **落地代码化**：workflow 的接线与连接层实现由 apply-workflow agent 经 developer-system 代码化完成；运行时不做即兴接线。
 - 终态制：本文档只展示最终结果，变更历史只在 annotations.md（[rule.md](../rule.md) R-DOC-1/3）。
 
 ## 7. 跨权限完整分析
 
-Workflow 天生跨权限：一轮 core-loop 要穿过五个权限域。逐点分析：
+Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐点分析：
 
 | # | 穿越点 | 涉及权限 | 谁持有 | 越权风险 | 机制 |
 |---|---|---|---|---|---|
@@ -138,6 +164,9 @@ Workflow 天生跨权限：一轮 core-loop 要穿过五个权限域。逐点分
 | 震荡 | ⚠️ 中 | 修复互踩 | 刹车三件套（§6.2） |
 | 成本失控 | ⚠️ 中 | 高频触发×大上下文 | budget 强制+成本可聚合 |
 | 多 workflow 修同一外部资源 | ⚠️ 中 | 交叉写 | 单一 owner Workflow 写；跨域走提案（§7 出路 2） |
+| 第三方编辑权限面 | ⚠️ 中 | 谁能改谁系统的 workflow | scope 写权限+权限系统裁剪；builtin 修改=高敏项 |
+| 导入渲染失真 | ⚠️ 中 | 外部编排语义≠声明式相位 | 导入预览=dry-run；origin=import 首期 observe 模式 |
+| 展示数据双源 | ⚠️ 低 | 前端自建状态会漂移 | 渲染数据全部来自 Scheme+ops DB（硬性约定） |
 
 ## 9. 待决问题
 

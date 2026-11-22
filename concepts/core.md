@@ -9,16 +9,16 @@
 
 ## 1. 定义
 
-Core 是控制面运行时：它读文档面、跑 Loop 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——其行为由 core.desc 等 Builtin 文档声明（自描述，见 instance 仓 loop/bootstrap.md）。
+Core 是控制面运行时：它读文档面、跑 Workflow 引擎、分发 Event、执行 Apply 写路径。它**自己不定义任何意图**——其行为由 core.desc 等 Builtin 文档声明（自描述，见 instance 仓 runtime/bootstrap.md）。
 
-**承载形态**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Loop 引擎/Scheme/权限系统 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
+**承载形态**：默认用 **dsh plugin 承接 Core**——Apply/Event 分发/Workflow 引擎/Scheme/权限系统 打包为 dsh 宿主里的 `core` 插件，不再另立独立服务形态；**单独的 Core 界面暂缓**——界面就是 console plugin，后面做通畅了再单独做 Core 界面。
 
 职责五件套：
 
 1. **存储**：封装文档库（v1 = git 仓库目录），提供带乐观锁的读写接口（见 Revision）。
 2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统准入校验。
-3. **分发**：Event 的产生、去重、路由（按 Selector 派发给 Loop/Agent）。
-4. **调度**：Loop 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。
+3. **分发**：Event 的产生、去重、路由（按 Selector 派发给 Workflow/Agent）。
+4. **调度**：Workflow 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。
 5. **观测汇聚**：接收 DriftReport / MetricsInfo 注册表，供观测面查询。
 
 ## 2. 边界
@@ -47,8 +47,8 @@ spec:
  docs: # 引用 core/ 目录下的 Builtin 文档
  - rule: core.rule.md # 如：所有写入必须留审计记录
  - auth: core.auth.md # 谁能改 Builtin
- loops: # Core 自身也受 Loop 管
- - ref: loop/core-self-check
+ workflows: # Core 自身也受 Workflow 管
+ - ref: workflow/core-self-check
 status: # 由 builtinRoot Agent 回写
  conditions:
  - {type: Available, status: "True"}
@@ -58,7 +58,7 @@ status: # 由 builtinRoot Agent 回写
 
 ## 4. 生命周期
 
-启动（bootstrap 点火 → 起 dsh 宿主 → 载入 core plugin）→ 加载 Scheme → 校验文档库自洽 → 启动 Loop 引擎 → 常驻（驻于 dsh 宿主内）。升级 = Apply 新的 core.desc + builtinRoot 滚动重启自身（类似 k8s self-hosting）。Core 崩溃 → builtinRoot 拉起；builtinRoot 崩溃 → 看门狗（进程级，文档外最后一道，见 bootstrap）。
+启动（bootstrap 点火 → 起 dsh 宿主 → 载入 core plugin）→ 加载 Scheme → 校验文档库自洽 → 启动 Workflow 引擎 → 常驻（驻于 dsh 宿主内）。升级 = Apply 新的 core.desc + builtinRoot 滚动重启自身（类似 k8s self-hosting）。Core 崩溃 → builtinRoot 拉起；builtinRoot 崩溃 → 看门狗（进程级，文档外最后一道，见 bootstrap）。
 
 ## 5. 与其他概念的关系
 

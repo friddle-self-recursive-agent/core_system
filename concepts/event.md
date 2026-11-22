@@ -11,7 +11,7 @@
 
 Event 是"世界变了"的一次通知。五种来源：Connector watch 外部变化、Metrics 阈值越线、定时巡检到点、Apply 写入完成、人工触发。
 
-Event **只触发，不修改**：收到事件的反应永远是"触发一次 Loop 对账"，对账结论才驱动动作。事件可丢、可重、可乱序——系统正确性不依赖它（P3 level-triggered）。
+Event **只触发，不修改**：收到事件的反应永远是"触发一次 Workflow 对账"，对账结论才驱动动作。事件可丢、可重、可乱序——系统正确性不依赖它（P3 level-triggered）。
 
 ## 2. 边界
 
@@ -41,7 +41,7 @@ status:
 
 ## 4. 生命周期
 
-产生 → 去重（dedupKey+时间窗聚合，防风暴）→ 按 Scheme.dispatch 路由 → 触发对应 Loop → 归档（保留 30d，critical 1y）。路由不到 → 死信 + 告警。
+产生 → 去重（dedupKey+时间窗聚合，防风暴）→ 按 Scheme.dispatch 路由 → 触发对应 Workflow → 归档（保留 30d，critical 1y）。路由不到 → 死信 + 告警。
 
 ## 5. 与其他概念的关系
 

@@ -36,13 +36,13 @@ spec:
  DataMetrics / Auth / DeployDesign / CodeDesign /
  ImplDoc / VerifyDoc / DriftReport
  eventTypes:
- - {type: ExternalChanged, source: connector, route: owner-instance-loop}
- - {type: MetricThreshold, source: metrics, route: selector-match-loop}
- - {type: DocApplied, source: core, route: owner-loop}
+ - {type: ExternalChanged, source: connector, route: owner-instance-workflow}
+ - {type: MetricThreshold, source: metrics, route: selector-match-workflow}
+ - {type: DocApplied, source: core, route: owner-workflow}
  - {type: ApprovalNeeded, source: policy, route: bind-human}
  - {type: HeartbeatLost, source: core, route: parent-agent}
  dispatch: # “dsh”：事件如何找到处理者
- - {on: ExternalChanged, for: workservice/gitlab, dispatch: instances/*/loops/*}
+ - {on: ExternalChanged, for: workservice/gitlab, dispatch: instances/*/workflows/*}
 ```
 
 ## 2. 边界
@@ -77,7 +77,7 @@ bootstrap 时由 builtinRoot 写入首版 → 之后只能**追加与扩容**（
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
 | 事件路由表随规模膨胀 | ⚠️ 低 | 系统×事件类型组合多 | 缺省路由 + Selector 匹配，不逐系统枚举 |
-| 版本演进复杂度 | ⚠️ 中 | 文档类型改版牵连所有存量文档 | 只加不改策略 + 存量兼容期 + 迁移由 Loop 执行 |
+| 版本演进复杂度 | ⚠️ 中 | 文档类型改版牵连所有存量文档 | 只加不改策略 + 存量兼容期 + 迁移由 Workflow 执行 |
 | dsh 语义误解 | ⚠️ 低 | 原稿 dsh 若另有所指需重定义 | 已并入 dispatch；待用户裁决 |
 
 **结论：可行，成熟模式（CRD 注册的翻版）。**

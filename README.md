@@ -8,10 +8,10 @@
 | 仓库 | 对应概念 | 放什么 |
 |---|---|---|
 | **core_system**（本仓） | ServiceDesc | 声明：requirements 存档、Goal/Desc、概念定义（Scheme 层）、builtin 服务声明、A-清单裁决台账 |
-| [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Loop 管线与 bootstrap、developer_system(onedev)/storage(nas+oss)/deploy 设计、可行性报告 |
+| [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Workflow 管线与 bootstrap、developer_system(onedev)/storage(nas+oss)/deploy 设计、可行性报告 |
 | [core_system_workservice](https://github.com/friddle-self-recursive-agent/core_system_workservice) | 代码 | Igniter、Core 进程、dsh 插件宿主、内置 Connector（builtin 系统=代码+connector 内置，R1.3） |
 
-第一个 builtin service 是 **SelfRecursiveCore**（systems/builtin/self-recursive-core/）。按本描述开发、按本描述 Loop（R1.1）。
+第一个 builtin service 是 **SelfRecursiveCore**（systems/builtin/self-recursive-core/）。按本描述开发、按本描述 Workflow（R1.1）。
 
 ## 目录
 
@@ -44,6 +44,6 @@ core_system/
 
 在 [annotations.md](annotations.md) A-清单改"状态"列（采纳/驳回/存疑），或在各概念文档末尾"审阅标注区"追加行。设计方不逐条来问。
 
-## Loop
+## Workflow
 
-管线状态机、自举顺序、developer_system 如何满足循环：全部在 instance 仓（loop/、impl/）。本仓只声明"必须有 Workflow、Workflow 的契约是什么"（concepts/workflow.md）。
+管线状态机、自举顺序、developer_system 如何满足循环：全部在 instance 仓（workflow/、impl/）。本仓只声明"必须有 Workflow、Workflow 的契约是什么"（concepts/workflow.md）。

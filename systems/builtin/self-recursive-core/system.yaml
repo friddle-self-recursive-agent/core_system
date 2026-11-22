@@ -13,7 +13,7 @@ spec:
   codeRepoRef: ref/core-system-workservice-repo
   docs:
     - rule: 一切写入经 Apply+权限系统；Status 机器写；明文凭证永不入库
-  loops:
+  workflows:
     - {name: core-self-check, resync: 10m}    # Core 自身一致性对账
   connectors: [dsh, gitfs, opslog]
 status: {}   # Instance 侧回写（core_system_instance/instance.yaml 聚合）
