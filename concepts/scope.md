@@ -13,10 +13,12 @@ Scope 解决"这个东西归谁、在哪儿找"。四层只有**归属与名字�
 
 | 层 | 值 | 住哪 | 语义 | 例 |
 |---|---|---|---|---|
-| Builtin | `builtin` | core/、systems/builtin/ | **起源标记**：core_system 自带开发 | builtinRoot、Scheme、自带三系统 |
+| Builtin | `builtin` | core/、systems/builtin/ | **起源标记**：core_system 自带开发（仅限固定单例文档） | builtinRoot、Scheme 本体 |
 | Global | `global` | global/ | 全局共享 | Agent、ConnectorOps、Workflow、Role、Ref、WorkService |
 | System | `<system-name>` | systems/<name>/ | 系统私有域 | 该系统的文档 |
 | Instance | `<system>/<instance>` | systems/<s>/instances/<i>/ | 实例私有域 | ImplDoc、DriftReport |
+
+> **系统对象恒落系统 scope**：系统（含 builtin 系统）的 scope=系统名，物化在 `systems/<s>/`；`scope: builtin` 只是打包/起源标记，不作系统对象的寻址键（builtin.md §3，layout.md「路径=scope」）。
 
 ## 2. 名字解析规则（就近遮蔽）
 

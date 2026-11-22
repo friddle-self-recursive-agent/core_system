@@ -31,10 +31,12 @@ builtin 的内容就是**最基础的循环调用代码**：使用某个基座�
 ```yaml
 # 无独立对象。表达方式：
 metadata:
- scope: builtin # 居住地（core/ 或 systems/builtin/）
+ scope: builtin # 居住地（core/ 或 systems/builtin/）——仅限随代码打包的固定单例文档（如 Scheme 本体 core/scheme.yaml）
  labels:
  core/origin: builtin # 起源标记（权限系统可按此匹配治理规则，可选）
 ```
+
+**系统对象不落 builtin scope**：系统的 scope 恒等于系统名（`systems/<s>/` 即 `<s>`，layout.md「路径=scope」），builtin 系统也不例外——`scope: builtin` 不是系统对象的寻址键。builtin 系统的"自带"由**代码仓打包布局 + `core/origin: builtin` label** 表达；文档库物化（种子/装入）一律按系统 scope 落位（`systems/<s>/`，frontmatter `scope: <s>`）。
 
 ## 4. 生命周期
 
@@ -42,7 +44,7 @@ metadata:
 
 ## 5. 与其他概念的关系
 
-- Scope（concepts/scope.md）：builtin 是四层 scope 之一，但**只有归属与名字解析语义**，无严格度语义。
+- Scope（concepts/scope.md）：builtin 是四层 scope 之一，但**只有归属与名字解析语义**，无严格度语义；系统对象（含 builtin 系统）恒落系统 scope，见 scope.md §1 系统对象例外。
 - DocType/Service：必带文档级别由它们自己声明。
 - 权限系统：要给"自带物"配人审可以，写规则匹配 `core/origin: builtin` 即可——配置层的事。
 - Builtin 起源的对象清单：self-recursive-core、developer/deploy/storage 三系统、builtin-connector、builtin-user-system、builtinRoot、Scheme 本体。
