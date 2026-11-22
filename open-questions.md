@@ -51,3 +51,4 @@
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。
 2. LLM 网关单点依赖的兜底（多 provider 路由已有，故障演练未做）。
+3. **公开仓 git 历史泄露处置**（2026-11-22 发现，规范见 rule.md R-PUB）：core_system_instance 历史含内网 IP/内网域名（提交 18d738f、f8c3758 等），core_design 历史含个人模型选型名；工作树均已脱敏（R-PUB-1，lint/personal-info.sh 守护）。待裁决：① git filter-repo 重写两仓历史 + force push；② 不动历史（IP 为 RFC1918 内网段，换地址即失效；选型名非凭据）。若选①，此后建议给各仓加 CI lint（R-TYPE：R-PUB-1 已是 lint 型）。

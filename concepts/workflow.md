@@ -68,7 +68,7 @@ spec:
  services: # 涉及哪些 service、怎么涉及（规则的数据面）
  involved: [developer-system, deploy-system] # 圈定的 service（空=随 scope）
  mode: observe|act # 怎么涉及：只读观察 / 可执行动作
- llm: {provider: glm-coding, model: glm-5.3-flash} # 该 workflow 用的 LLM（Agent/生成相位取此配置）
+ llm: {provider: llm-main, model: flash-tier} # 该 workflow 用的 LLM（Agent/生成相位取此配置；具体选型不入公开仓，R-PUB）
  dataflow: # 数据流声明（展示层拼系统级数据流图的依据）
    inputs: [{events: [MetricThreshold], docs: "systems/developer-system/*"}]
    outputs: [{status: self, notify: [bind-role], artifacts: "oss://builds"}]

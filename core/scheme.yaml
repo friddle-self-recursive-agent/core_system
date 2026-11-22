@@ -225,7 +225,7 @@ spec:
   docTypes:
     - {name: Goal,           mandatory: required, sections: [intent, acceptance],          writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
     - {name: Desc,           mandatory: required, sections: [overview, boundaries],        writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
-    - {name: Rule,           mandatory: default,  sections: [rules],                       writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
+    - {name: Rule,           mandatory: default,  sections: [rules],                       writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}   # 条目带 ruleId?/type: policy|lint；type=lint ⇒ 必挂 checker（rule.md R-TYPE）
     - {name: WorkflowDesign, mandatory: optional, sections: [flows],                       writers: [human],              appliesTo: ServiceDesc, admission: normal}
     - {name: Metrics,        mandatory: default,  sections: [indicators, thresholds],      writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}
     - {name: DataDesign,     mandatory: optional, sections: [entities, flows],             writers: [human],              appliesTo: ServiceDesc, admission: normal}

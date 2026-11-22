@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | `Goal` | required | intent / acceptance | 人 | 系统必须干什么。**acceptance 必须可验证**（Verifying 的判据） |
 | `Desc` | required | overview / boundaries | 人 | 系统是什么、不是什么（概念边界的文档化） |
-| `Rule` | default | rules[] | 人/owner | 约束（"必须每天备份"）。每条 Rule 建议带 ruleId，供 Status.RulesHeld 引用 |
+| `Rule` | default | rules[] | 人/owner | 约束（"必须每天备份"）。每条规则条目建议带 ruleId（供 Status.RulesHeld 引用），可带 `type: policy\|lint`——lint 型必须挂 checker 代码（core_system `lint/` 或独立仓，rule.md R-TYPE） |
 | `WorkflowDesign` | optional | flows[] | 人 | **给人看的功能流设计**（原稿 Workflow Desion，A2 改拼写）。不是可执行编排 |
 | `Metrics` | default | indicators[] / thresholds[] | 人 | 监控设计。系统行为/健康指标与阈值 |
 | `DataDesign` | optional | entities[] / flows[] | 人 | 数据设计：实体、从哪到哪、什么权限 |

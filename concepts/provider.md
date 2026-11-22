@@ -41,7 +41,7 @@ spec:
  secret: {source: "vault:secret/llm-api-key", rotation: 90d} # ：secret 是 Provider 字段，明文不入库
  config:
  baseUrl: https://api.example.com/v1
- models: [glm-5, glm-4-flash]
+ models: [main-model, flash-tier]
  rateLimit: {rpm: 60}
  connector: "" # 可为空（直连 HTTP，无 ConnectorOps）
 ---
