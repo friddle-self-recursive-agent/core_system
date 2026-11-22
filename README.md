@@ -66,6 +66,7 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 | [core_system_workservice](https://github.com/friddle-self-recursive-agent/core_system_workservice) | 代码 | Igniter、Core 进程、dsh 插件宿主、内置 Connector |
 | [core_system_dsh_plugin](https://github.com/friddle-self-recursive-agent/core_system_dsh_plugin) | 代码（plugin 面） | dsh plugin 宿主 + connector 实现；core 本体 Go build 于 workservice 仓，经 submodule `core_system/` 指向最新 |
 | [sybran_usage_connector](https://github.com/friddle-self-recursive-agent/sybran_usage_connector) | 代码（用法型 connector） | 按部署用法决定的驱动（onedev/nas/oss）；workservice 仓 connectors/ 只收 builtin 驱动 |
+| [common_connector](https://github.com/friddle-self-recursive-agent/common_connector) | 代码（通用 connector） | 跨部署复用的通用 connector（通知/邮件 OpsConnector、SMTP；default user-system Event 默认通知） |
 
 六个 builtin service（[systems/builtin/](systems/builtin/)）构成自举最小集：**self-recursive-core**（控制面本体）、developer-system（开发流水线）、deploy-system（安装执行）、storage-system（文档与产物存储）、connector（默认 Ops 宿主）、user-system（用户目录）。冷启动 = Igniter 点火 → Core 按文档把全部 builtin service 拉到 InSync，全程无需人工编辑运行时状态。
 

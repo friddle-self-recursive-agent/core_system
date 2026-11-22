@@ -29,6 +29,8 @@ event（触发规则命中）
 
 builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）。
 
+builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）。
+
 ### 1.1 默认研发 workflow：`dev-delivery`（默认文档，每步可调整）
 
 系统自带的完整研发闭环，入口 event（错误日志 ≥error / 新需求 / 用户请求）触发**全自动**流转：

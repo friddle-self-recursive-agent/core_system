@@ -58,6 +58,7 @@ connector 驱动代码按**来源**分仓，`core_system_workservice/connectors/
 - 判据看"是否换了部署就不复用"，不看"是否被 builtin 系统引用"——builtin 系统（developer/storage 等）引用 onedev/nas/oss 只是本部署的用法，驱动本身不进 workservice。
 - 用法仓按 A38 命名解析引用（无前缀=默认 org）；WorkService.connector 面 impl/download 指向驱动实际所在仓。
 - workservice 仓不 import 用法仓；依赖方向恒为 用法仓 → workservice（契约层五方法接口）。
+- 通用 connector（跨部署复用、不绑单一部署用法，如通知/邮件）进 **common_connector** 仓；依赖方向同上。
 
 ---
 
