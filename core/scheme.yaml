@@ -118,6 +118,9 @@ spec:
       builtin: true
       storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"
       spec:
+        enabled: "?bool (=true)"                       # 规则开关：false=停用（不触发不消耗）
+        services: "{involved: []ref, mode: observe|act}"   # 涉及哪些 service、怎么涉及
+        llm: "?{provider: ref, model: string}"         # 该 workflow 用的 LLM
         triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
         phases: "[]Phase"
@@ -279,7 +282,7 @@ spec:
     baseAgent: dsh                  # 外部运行时（deepseek 插件机制）；core 即 dsh plugin（A39/A43）
     executionLayers: [intent, agent, scheme, code]
     workflows: {default: default-task, builtin: [core-loop, default-task, simple-shot, watch-only]}
-    autoLevels: {rootAgent: ask, serviceAgent: auto, all: "需显式授权+权限系统放行"}
+    autoLevels: {rootAgent: "ask（默认，可配置 auto/all）", serviceAgent: auto, all: "需显式授权+权限系统放行"}  # A64：RootAgent 与普通 Agent 同一 AUTOLEVEL 机制
     escalation: root                # A35：默认上溯；Role.on 挂载=权限插入双通道（A49）
     permissionSystem:
       defaultAdminRole: global/admin
@@ -297,7 +300,7 @@ spec:
     sessions: {record: [PlanDoc, SessionLog]}       # A29
     skills: {cachePolicy: {ttl: 30d, invalidateOnProviderVersionChange: true}, promote: "高频→Global 走人审"}
     storage:
-      docs: 本地文件夹 git（权威；Repository 接口可换后端）
+      docs: 本地文件夹 git（权威；机器预装 git 是默认假设；Repository 接口可换后端）
       opsLog: SQLite WAL（六表；git=内容版本，DB=操作流水；每日对账）
       refResolution: {cacheTtl: 10m, 失败降级旧缓存+Event}
 

@@ -19,7 +19,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 两类：
 
-- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路（A63）。不可删除、不可停用（权限系统硬规则兜底）。
+- **builtinRoot**（RootAgent）：根 Agent，Builtin scope，管理 Core、Scheme 与其他 Agent 的生死。**有权限标志**：挂内置 role `global/admin`（最高权限、默认内置、绑定不可更改），走统一权限管理，无旁路（A63）。**AUTOLEVEL 与普通 Agent 同一机制**：autoLevel 可配置（默认 ask，也可 auto/all，all 需显式授权，A64）。不可删除、不可停用（权限系统硬规则兜底）。
 - **ServiceAgent**：普通 Agent，被 ServiceInstance 引用而参与收敛；可挂 Parent/Sub 树（父子=机器级进程派发 + owner 链）。
 
 ## 2. 边界
@@ -78,7 +78,7 @@ status: # 由 Loop 引擎回写
 
 | Agent | 默认 AUTOLEVEL | 理由 |
 |---|---|---|
-| RootAgent（builtinRoot） | `ask` | 管的是 builtin 与其他 agent 生死，无上级→问 Bind 的人 |
+| RootAgent（builtinRoot） | `ask`（默认，可配置） | 与普通 Agent 同一机制：Root 也可配 auto/all（all 需显式授权）；ask 时无上级→问 Bind 的人 |
 | ServiceAgent | `auto` | 常规任务在 TaskScheme+预算内自动；高危仍被 权限系统拦 |
 
 `all` 永远需要显式声明 + 权限系统 放行（P8：模型越强，级别可上调，机制不变）。
