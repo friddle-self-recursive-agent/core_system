@@ -36,7 +36,7 @@
 |---|---|---|---|
 | ServiceDesc | 意图 | 内 | 说清系统应该是什么 |
 | ServiceInstance | 现实快照与证据 | 内 | 证明系统现在是什么 |
-| WorkService | 外部系统的六面体描述 | 外 | 把外部系统纳入文档面 |
+| WorkService | 外部系统的六面体描述 | 外 | 把外部系统（含代码仓库）纳入管控面 |
 | Agent | — | 内 | 干活与收敛 |
 | ConnectorOps | — | 边界 | 工具调用面 |
 | Ref | 声明 | 外 | 说要什么；地址由 owning system 给 |

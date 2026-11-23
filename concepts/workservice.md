@@ -15,7 +15,7 @@ System = deploy_system（ServiceDesc）
 WorkService = jenkins / onedev / bug-management 系统
 ```
 
-即：deploy_system 声明意图 → sybran 实例落地 → 依赖 jenkins/onedev/bug-management 三个 WorkService。WorkService 不限于 devops——**任何被纳管的外部系统**（含 bug-management 这类业务系统）都是。
+即：deploy_system 声明意图 → sybran 实例落地 → 依赖 jenkins/onedev/bug-management 三个 WorkService。WorkService 不限于 devops——**任何被纳管的外部系统**（含代码仓库，含 bug-management 这类业务系统）都是。
 
 ## 2. 定义（六个面）
 

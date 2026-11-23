@@ -53,7 +53,7 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 | Workflow | Controller / Reconciler | 循环本体（一等对象，可启停、可配置触发源） |
 | Apply | kubectl apply | 文档面唯一写路径 = 系统间调用的唯一形态 |
 | 权限系统 | Admission | 文档即权限，准入必选 |
-| WorkService | Node / 外部 Provider | 把外部系统（gitlab/jenkins/…）纳入文档面 |
+| WorkService | Node / 外部 Provider | 把外部系统（gitlab/jenkins/代码仓库/…）纳入管控面 |
 
 ## 三仓即三概念（自我示范）
 
