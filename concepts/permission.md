@@ -63,6 +63,8 @@ spec:
  c. 上级 agent（父级审批；root 为终点）
  → 全部不过 = 拒绝 + 记审计；命中人审档 = ApprovalNeeded
 
+人审档机读判定（首段，event.md 规则 9 联动）：**写路径权限准入拒绝 ∧ 被拒对象属授权面装载类（kind ∈ Role|Group——本系统装载进权威快照的对象即授权面本体）**。锚=规则 5/P7「改 role/绑定=改权限=高敏变更（人审）」：对授权面自身的写被拒，说明有主体在试图变更权限结构——这正是需要人知悉/人审的档位，写路径引擎据此自产 ApprovalNeeded（source=permission，主路 notification/* 送达 role 持有者）。两处边界：**hard rules 拒绝≠人审档**（代码级不可放宽=永不可批，只拒绝+记审计，不产事件）；**dry-run 零副作用不产事件**。对象类清单可扩（User/Provider/builtin scope 等人审类随声明面扩展入表），首段只收 Role|Group 与装载面同源。
+
 跨系统（A 的 agent 请求 B 的 agent）
  → A 发请求（提案/询问），**B 侧判定**（B 的 agent/role/上级 agent）
  → B 判定留痕（SessionLog/审计）；A 无自判权
