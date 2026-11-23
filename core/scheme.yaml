@@ -260,6 +260,8 @@ spec:
     - {type: DocApplied,       source: core,      defaultLevel: info,  dedup: "apply 落库必发；engine 自写豁免",     route: owner-workflow}
     - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<workflow>:<tick>",       route: observation-bus}
     - {type: ApprovalNeeded,   source: permission,defaultLevel: warn,  dedup: "<rule>:<obj>",        route: notification/*}
+    - {type: ApprovalGranted,  source: human,     defaultLevel: info,  dedup: "approval:<obj>",      route: dead-letter}   # 审批信号族（workflow.md 规则 13/event.md 规则 11）：run 域迁移事件——involved=Workflow 引用即锚；dispatch 派发面无目标
+    - {type: ApprovalRejected, source: human,     defaultLevel: warn,  dedup: "approval:<obj>",      route: dead-letter}   # 同上：驳回=闸锚终态迁移
     - {type: Escalate,         source: engine,    defaultLevel: error, dedup: "<workflow>:<reason>",     route: owner-workflow+root+notification/*}   # owner-workflow 收到后按其 onEscalate 策略决定暂停
     - {type: HeartbeatLost,    source: core,      defaultLevel: error, dedup: "<agent>",             route: parent-agent+notification/*}
     - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-workflow}
@@ -276,6 +278,8 @@ spec:
     - {on: DocApplied,       for: "owner:*",        dispatch: owner-workflow}
     - {on: DriftFixed,       for: "any",            dispatch: observation-bus}
     - {on: ApprovalNeeded,   for: "any",            dispatch: notification/*}
+    - {on: ApprovalGranted,  for: "any",            dispatch: dead-letter}   # 审批信号族：run 域迁移事件（workflow.md 规则 13）——dispatch 派发面无目标，不另起新 run
+    - {on: ApprovalRejected, for: "any",            dispatch: dead-letter}   # 同上
     - {on: Escalate,         for: "any",            dispatch: root-agent, cc: notification/*}
     - {on: HeartbeatLost,    for: "owner:agent",    dispatch: parent-agent, cc: notification/*}
     - {on: InstallRequested, for: "any",            dispatch: workflows/deploy-system-workflow}

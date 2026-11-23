@@ -159,7 +159,12 @@ spec:
 9. **导入件治理**：origin=import 的 workflow 首期强制 observe 模式（只读跑一段再放开 act）；第三方编辑同权限系统裁剪（P7）。
 10. **暂停策略可配置（onEscalate）**：AUTO 处理不了的 Escalate 到达时——Workflow **可以判断是否暂停**，也可以**按策略自动暂停**；pause=立即挂起（Paused 相位），finish-tick=本轮跑完再停，continue=只通知不停。默认 pause。挂起现场与断点由 SessionLog 承载，恢复=人批 Resume（=Apply），通知走 bind-role 双通道（root 上报+Bind 发送）。
 11. **落地代码化**：workflow 的接线与连接层实现由 apply-workflow agent 经 developer-system 代码化完成；运行时不做即兴接线。
-12. **相位推进器首段——迁移判定=声明序列单调前进（引擎真实驱动）**：run 受理即启动信号——引擎在受理路径上执行**单步迁移判定**：builtin run 从声明首相位**沿声明相位序列（§1 映射表）单调前进一步**（Idle→Analyzing），run 状态词翻转 `triggered→running`（触发已受理→首步进行中）。迁移规则=**序列前进**（「相位机=标准 FSM，序即声明」的机读落点：builtin 相位序列为线性声明，序列本身即迁移声明；显式 Transition 表、挂起-恢复、异步推进属推进器后续段，声明先行再落实现）；object 源 run 相位不投影=无从迁移，status 恒 `triggered`；已居序列尾（Failed 等终点相位）不再前进。**run 出现 ≠ 对账执行完毕口径不变**：`running`=首步进行中（Analyzing 进行中），后续相位推进仍由引擎逐段承接，不冒充执行完毕。
+12. **相位推进器首段——迁移判定=声明序列单调前进（引擎真实驱动）**：run 受理即启动信号——引擎在受理路径上执行**单步迁移判定**：builtin run 从声明首相位**沿声明相位序列（§1 映射表）单调前进一步**（Idle→Analyzing），run 状态词翻转 `triggered→running`（触发已受理→首步进行中）。迁移规则=**序列前进**（「相位机=标准 FSM，序即声明」的机读落点：builtin 相位序列为线性声明，序列本身即迁移声明；显式 Transition 表、异步推进属推进器更后续段，声明先行再落实现）；object 源 run 相位不投影=无从迁移，status 恒 `triggered`；已居序列尾（Failed 等终点相位）不再前进。**run 出现 ≠ 对账执行完毕口径不变**：`running`=首步进行中（Analyzing 进行中），后续相位推进仍由引擎逐段承接，不冒充执行完毕。
+13. **相位推进器后续段首段——挂起-恢复（闸锚挂起判定+审批信号迁移，引擎真实驱动）**：闸锚=声明相位序列中的 `AwaitingApproval` 锚（§7 出路 3 人批闸；dev-delivery 的 Gate=同词锚位——**闸锚必须在声明序列内**，无闸锚的序列无挂起面）。三层判定（迁移判定在序列前进之上的扩展，判定器同一落点）：
+    - **闸锚挂起**：run 迁移判定落点=闸锚 → run 挂起（status 词=`suspended`）——挂起=相位机等待外部审批信号，非终态、非执行完毕；
+    - **审批提升**：审批提升信号（`ApprovalNeeded`，involved=Workflow 对象引用，event.md 规则 11）到达 → 该锚最新 run 相位落闸锚挂起（§7「AwaitingApproval 相位插入」的机读落点）；声明无闸锚的序列=零动作；
+    - **批准恢复/驳回终态**：批准信号（`ApprovalGranted`）→ 闸锚沿声明序列续行（status 翻回 `running`——恢复=序列续行，原相位不回跳；细粒度断点续跑靠 SessionLog，载体未落地挂账）；驳回信号（`ApprovalRejected`）→ 终态（相位=声明终点锚 Failed，status=`failed`）。
+    审批信号按 involved 的 workflow 锚寻径（event.md 规则 11），作用于**该锚最新 run**；**审批信号是相位机的迁移事件，不是新对账触发**——不另起新 run（规则 6「事件只触发」的触发对象=run 相位机迁移判定）；零动作防御面：object 源无从迁移、终态不迁移、非挂起态无可恢复、锚无 run 无可作用。**run 出现 ≠ 对账执行完毕口径不变**（挂起/恢复都是相位机推进留痕）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 跨权限完整分析
