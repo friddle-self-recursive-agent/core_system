@@ -58,7 +58,7 @@ status:
 4. 死信必须可见：观测面死信计数是系统健康指标。
 5. **AUTO 处理不了的出口=Escalate 事件**：auto 级 Agent 遇到权限外/能力外/重试耗尽——不自行硬扛，产生 `Escalate` Event（level=error），路由三路齐发：**owner-workflow**（按其 onEscalate 策略决定是否暂停，见 workflow.md）+ **root 上报** + **Notification 送达 Bind role 持有者**。事件只触发不修改——暂停与否是 Workflow 引擎按策略执行的动作，不是事件自带的。
 5. **死信熔断要做**：死信率超阈值自动熔断该源（暂停 watch+告警），防止事件风暴拖垮引擎；恢复=人工或冷却后自动半开试探。
-6. **dispatch 表 `for:` 谓词机读口径（首段，订阅面 v0.12）**：谓词=`any` 或 `<selector>:<pattern>`（selector ∈ owner/scope）。`any`、`owner:*` 恒命中；`scope:<root>/*` 前缀式命中 involved scope（scope 是路径：global、builtin、systems/<s>，路径=scope）；**`owner:<字面量>` 首段不解析**（owner 解析属引擎主体：involved scope 根 `systems/<s>`→`<s>`，global/builtin 同名）——未激活的行不命中、事件顺延后行。命中=表序首个（`on` 匹配类型 ∧ 谓词命中）行，其 `route:` 即命中行投影（执行=派发，引擎主体）；全表未命中 → `route=dead-letter`（rule 4 死信兜底可见）。订阅集合=表 `on:` 值去重；含 `on: "*"` → 坍缩为单条全类型订阅（通配已覆盖枚举）。
+6. **dispatch 表 `for:` 谓词与 owner 解析机读口径**：谓词=`any` 或 `<selector>:<pattern>`（selector ∈ owner/scope）。`any`、`owner:*` 恒命中；`scope:<root>/*` 前缀式命中 involved scope（scope 是路径：global、builtin、systems/<s>，路径=scope）；**`owner:<字面量>` 按 owner 解析命中**——owner 解析模型：involved scope 根 `systems/<s>`→`<s>`，global/builtin 同名（owner=scope 根本身）——解析不等则不命中、事件顺延后行。命中=表序首个（`on` 匹配类型 ∧ 谓词命中）行，其 `route:`/`cc:` 即派发目标投影；**派发决策面可查询**：对当前表快照解析「这一事件若到达会路由到哪」（投影 route/cc/for/owner/row）——纯决策零事件注入零留痕零派发，owner 谓词的 live 机械验证落点；执行=派发仍属引擎主体（相位态机/刹车/冷却另行接入）。全表未命中 → `route=dead-letter`（rule 4 死信兜底可见）。订阅集合=表 `on:` 值去重；含 `on: "*"` → 坍缩为单条全类型订阅（通配已覆盖枚举）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
