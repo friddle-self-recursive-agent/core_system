@@ -258,6 +258,7 @@ spec:
   eventTypes:
     # ExternalChanged（event.md 规则 12 v0.30 watch 桥首段）：装配层驱动 connectors.Watch 契约通道自产——source 服务侧判定恒 connector，dedupKey=驱动侧因由声明（<obj>:<change>:hash 投影），detail 不进总线；落 run 同拍即拍（workflow.md 规则 15 v0.30 段）。
     - {type: ExternalChanged,  source: connector, defaultLevel: info,  dedup: "<obj>:<change>:hash", route: owner-workflow}
+    # MetricThreshold（event.md 规则 13 v0.31 阈值桥首段）：装配层阈值桥数据面样本通道服务侧判定自产——source 服务侧判定恒 metrics，dedupKey=<metric>:<window>（同指标同窗口越限聚合防风暴）；阈值判定是服务侧动作（数据面只产样本不带判定）；落 run 同拍即拍（workflow.md 规则 15）。
     - {type: MetricThreshold,  source: metrics,   defaultLevel: warn,  dedup: "<metric>:<window>",   route: owner-workflow}
     - {type: DocApplied,       source: core,      defaultLevel: info,  dedup: "apply 落库必发；engine 自写豁免",     route: owner-workflow}
     - {type: DriftFixed,       source: engine,    defaultLevel: info,  dedup: "<workflow>:<tick>",       route: observation-bus}
