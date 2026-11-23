@@ -128,7 +128,7 @@ spec:
         triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
         phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）；引擎词汇基座=Agent.status.phase 八相位 + workflow 域交付锚 Deploying（concepts/workflow.md §1 映射表）
-        transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（workflow.md 规则 14；v0.25 首段=builtin 表=序列物化相邻行+审批边表行先例，对象自声明表解析 deferred 声明先行）
+        transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（workflow.md 规则 14；v0.25 首段=builtin 表=序列物化相邻行+审批边表行先例；v0.27 对象自声明表解析首段=object 源投影（规则 16）——相位投影与判定接线顺延）
         onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
         onFailed: "{backoff, maxAttempts, escalate: {to: root, notify: role-holders}}"
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭）
