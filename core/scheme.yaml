@@ -264,7 +264,8 @@ spec:
     - {type: HeartbeatLost,    source: core,      defaultLevel: error, dedup: "<agent>",             route: parent-agent+notification/*}
     - {type: InstallRequested, source: human,     defaultLevel: info,  dedup: "<template>:<target>", route: workflows/deploy-system-workflow}
     - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-workflow}
-    - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}   
+    - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}
+    - {type: ReconcileTick,    source: core,      defaultLevel: info,  dedup: "reconcile:<at>",      route: workflows/core-workflow}   # 定时巡检到点（level-triggered 保险丝，event.md §7；引擎内部源二段=cored 定时器自产）
 
   # ============================================================
   # 四、事件路由（穷举缺省 + 死信兜底）
@@ -280,6 +281,7 @@ spec:
     - {on: InstallRequested, for: "any",            dispatch: workflows/deploy-system-workflow}
     - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-workflow}
     - {on: SessionClosed,    for: "owner:instance", dispatch: instance-docs}
+    - {on: ReconcileTick,    for: "any",            dispatch: workflows/core-workflow}   # 巡检到点→一次全量对账 run（对账锚=系统级循环本体）
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: dead-letter}   # 死信必须可见（词汇=hub 合成死信/eventbus routed_to 同一词）
 
