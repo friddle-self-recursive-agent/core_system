@@ -59,6 +59,7 @@ connector 驱动代码按**来源**分仓，`core_system_workservice/connectors/
 - 用法仓按 A38 命名解析引用（无前缀=默认 org）；WorkService.connector 面 impl/download 指向驱动实际所在仓。
 - workservice 仓不 import 用法仓；依赖方向恒为 用法仓 → workservice（契约层五方法接口）。
 - 通用 connector（跨部署复用、不绑单一部署用法，如通知/邮件）进 **common_connector** 仓；依赖方向同上。
+- **宿主工具面贡献不算 connector 驱动**（2026-11-25 注记，E5b 归属裁决）：agent-comm 四 op 工具（dispatch/query/interrupt/inbox，cross-agent.md §5 v0.1）是 core_system_dsh_plugin 对 dsh 宿主 `ctx.tools.register` 的贡献——进程内通道、无独立通信栈、不绑部署用法，工具宿主=plugin 仓本体，不入 common_connector、不建新仓；声明集种子（ConnectorOps/WorkService 对象）是文档库数据，非代码。
 
 ---
 
