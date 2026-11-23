@@ -29,6 +29,19 @@ event（触发规则命中）
 
 builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）。
 
+**builtin 六项相位词汇映射**（引擎投影面同源——运行时注册表按此表构造声明相位序列；相位语义只加不改，§4）：
+
+| builtin | 声明相位序列（引擎词汇） | 设计依据 |
+|---|---|---|
+| core-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | 系统级循环（§1 流程图，八相位全量） |
+| default-task | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | 单任务态机（Agent 引用，与 core-workflow 同族词汇） |
+| simple-shot | Idle→Executing→Reporting | 简单派发（无分析/计划段） |
+| watch-only | Idle→Analyzing→Reporting | 只观察不执行（无执行/验证段） |
+| dev-delivery | Idle→Analyzing（Analyze）→AwaitingApproval（Gate）→Planning（Plan）→Executing（Execute）→Verifying（Verify）→**Deploying**（Deploy）→Reporting（Report）→Failed | §1.1 步锚映射；**Deploying=相位词汇只加不改的新锚**（Deploy 步=deploy-system 按 DeployDesign.envs 升序发布、prod 人批——交付段独立于通用 Executing） |
+| apply-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | §1.2 落地 agent 任务态机=**default-task 词汇全量复用**（不另立词汇——语义差异在触发接线与 agent 角色，不在相位词汇） |
+
+> 相位词汇基座=Agent.status.phase 八相位（scheme.yaml）；Deploying 是 workflow 域交付相位扩展（只加，不入 Agent 任务态机枚举）。Gate→AwaitingApproval 锚位：dev-delivery 的人批闸在 Analyze 之后 Plan 之前（§1.1 流程序），与 core-workflow 的 Planning→AwaitingApproval 序各按各自声明——相位机=标准 FSM，序即声明。
+
 builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）：
 
 ```yaml
@@ -64,11 +77,11 @@ spec:
    DeployDesign.envs 升序发布，prod 人批） → Report（Status 追平+归档+Event）
 ```
 
-每一步=声明的相位与 TaskScheme 引用，调整=改 spec/模板参数后 Apply；整条可 `enabled: false` 一键停用。
+每一步=声明的相位与 TaskScheme 引用，调整=改 spec/模板参数后 Apply；整条可 `enabled: false` 一键停用。步锚→引擎相位词汇映射见 §1 映射表（Analyze→Analyzing、Gate→AwaitingApproval、Deploy→Deploying 交付锚，其余同名同族）。
 
 ### 1.2 Workflow 落地 = 专用 agent（`apply-workflow`）
 
-把一份 Workflow 声明落到真实系统，本身也是 workflow 干的活——专用 agent 承担：解析 spec 接线触发源（注册 Connector watch）→ 缺的连接层调 **developer-system**（pull/写**自定义 connector** 代码/build，每层调用代码化）→ 落地后注册一条 `watch-only` 监控新 workflow 的成功率/死信/成本（自监控闭环，异常回 Event 走修复循环）。即：**流程实现=代码；写代码=调研发系统；监控 workflow 的=内置 workflow（自举）**。运行时细节见 instance 仓 runtime/workflow-runtime.md。
+把一份 Workflow 声明落到真实系统，本身也是 workflow 干的活——专用 agent 承担：解析 spec 接线触发源（注册 Connector watch）→ 缺的连接层调 **developer-system**（pull/写**自定义 connector** 代码/build，每层调用代码化）→ 落地后注册一条 `watch-only` 监控新 workflow 的成功率/死信/成本（自监控闭环，异常回 Event 走修复循环）。即：**流程实现=代码；写代码=调研发系统；监控 workflow 的=内置 workflow（自举）**。运行时细节见 instance 仓 runtime/workflow-runtime.md。任务态机=default-task 相位词汇全量复用（§1 映射表——不另立词汇，解耦口径）。
 
 ## 2. 边界
 
@@ -138,7 +151,7 @@ spec:
 1. 相位/迁移纯声明（相位机=标准 FSM：引擎按声明执行，规则之外无动作；失败走 onFailed）。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
 3. **预算/成本不在核心循环语义内**：budget 是 metrics 关注的东西（由 ConnectorOps 收集→agent 报告的默认 workflow 承接），暂不做——核心循环只有触发/整理/相位/回归，不再往里加预算机器。
-4. builtin Workflow（core-workflow/default-task/simple-shot/watch-only）修改属高敏 权限系统 项。
+4. builtin Workflow（六项：core-workflow/default-task/simple-shot/watch-only/dev-delivery/apply-workflow）修改属高敏 权限系统 项；builtin 相位词汇映射（§1 映射表）是声明面，运行时注册表与它同源——映射未落设计的 workflow 不进注册表（不即兴发明）。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
 6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 workflow 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
 7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。

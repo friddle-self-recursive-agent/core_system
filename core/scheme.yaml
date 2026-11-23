@@ -127,12 +127,12 @@ spec:
         llm: "?{provider: ref, model: string}"         # 该 workflow 用的 LLM
         triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
-        phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）
+        phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）；引擎词汇基座=Agent.status.phase 八相位 + workflow 域交付锚 Deploying（concepts/workflow.md §1 映射表）
         onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
         onFailed: "{backoff, maxAttempts, escalate: {to: root, notify: role-holders}}"
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭）
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
-      builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；预算/成本归 metrics 域（暂不做）
+      builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；六项相位词汇映射见 concepts/workflow.md §1（运行时注册表同源）；预算/成本归 metrics 域（暂不做）
 
     - kind: Provider                 # 账号包
       builtin: true
