@@ -159,6 +159,7 @@ spec:
 9. **导入件治理**：origin=import 的 workflow 首期强制 observe 模式（只读跑一段再放开 act）；第三方编辑同权限系统裁剪（P7）。
 10. **暂停策略可配置（onEscalate）**：AUTO 处理不了的 Escalate 到达时——Workflow **可以判断是否暂停**，也可以**按策略自动暂停**；pause=立即挂起（Paused 相位），finish-tick=本轮跑完再停，continue=只通知不停。默认 pause。挂起现场与断点由 SessionLog 承载，恢复=人批 Resume（=Apply），通知走 bind-role 双通道（root 上报+Bind 发送）。
 11. **落地代码化**：workflow 的接线与连接层实现由 apply-workflow agent 经 developer-system 代码化完成；运行时不做即兴接线。
+12. **相位推进器首段——迁移判定=声明序列单调前进（引擎真实驱动）**：run 受理即启动信号——引擎在受理路径上执行**单步迁移判定**：builtin run 从声明首相位**沿声明相位序列（§1 映射表）单调前进一步**（Idle→Analyzing），run 状态词翻转 `triggered→running`（触发已受理→首步进行中）。迁移规则=**序列前进**（「相位机=标准 FSM，序即声明」的机读落点：builtin 相位序列为线性声明，序列本身即迁移声明；显式 Transition 表、挂起-恢复、异步推进属推进器后续段，声明先行再落实现）；object 源 run 相位不投影=无从迁移，status 恒 `triggered`；已居序列尾（Failed 等终点相位）不再前进。**run 出现 ≠ 对账执行完毕口径不变**：`running`=首步进行中（Analyzing 进行中），后续相位推进仍由引擎逐段承接，不冒充执行完毕。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 跨权限完整分析
