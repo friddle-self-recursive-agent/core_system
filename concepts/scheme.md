@@ -26,7 +26,7 @@ spec:
  - {kind: Agent, storage: global/agents/<name>/agent.yaml}
  - {kind: ServiceDesc, storage: systems/<name>/system.yaml}
  - {kind: ServiceInstance,storage: systems/<s>/instances/<name>/instance.yaml}
- - {kind: WorkService, storage: workservices/<name>/workservice.yaml}
+ - {kind: WorkService, storage: global/workservices/<name>/workservice.yaml}
  - {kind: ConnectorOps, storage: "…/connector-ops/<name>.yaml"}
  - {kind: Workflow, storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"}
  - {kind: Role, storage: global/roles/<name>.yaml}

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | K8s 对照 | Node + 其上的 exporter/工具面（一个对象管全一个外部节点） |
-| 形态 | workservices/<name>/workservice.yaml（六面体 spec） |
+| 形态 | global/workservices/<name>/workservice.yaml（六面体 spec；作用域=Global 同表行——v0.44 起物化落 global/ 桶，根级旧布局随同轮迁移） |
 | 作用域 | Global |
 | 状态 | 定稿（终态制，rule.md） |
 

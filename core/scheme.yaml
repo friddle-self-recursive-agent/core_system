@@ -84,7 +84,7 @@ spec:
 
     - kind: WorkService              # 六面体
       builtin: true
-      storage: workservices/<name>/workservice.yaml
+      storage: global/workservices/<name>/workservice.yaml   # 作用域=Global（workservice.md §头表）——物化落 global/ 桶（layout.md §2 路径=scope 准绳；无 scope 段根级模板不可寻址=v0.44 收口前缺口）
       spec:
         category: "developer|storage|tool|business|…"   # tool 型=本机工具（dsh/http）
         connector:                                  # 连接面（原 ConnectorProvider 并入）
