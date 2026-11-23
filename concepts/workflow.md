@@ -29,7 +29,29 @@ event（触发规则命中）
 
 builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）。
 
-builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）。
+builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）：
+
+```yaml
+# systems/<s>/workflows/dev-delivery.yaml —— override 对象（global/workflows/dev-delivery.yaml=builtin 本体不动）
+apiVersion: core/v1
+kind: Workflow
+metadata:
+ name: dev-delivery # 同名覆盖
+ scope: <s> # 系统层生效
+ labels: {core/origin: override-of-builtin} # origin 标注（builtin.md label 惯例）
+spec:
+ # ……继承 builtin spec 其余字段（override 只写差异面，本例只动 phases）：
+ phases:
+ - {name: report, title: Report} # builtin 原尾相位（Status 追平+归档+Event）
+ - name: notify-report # 追加的邮件尾节点（Report 之后）
+   title: Notify Report
+   op: notify/send-email # 通知 ConnectorOps 的 send-email 操作（connector.md）
+   connector: notify-send-email # global/connector-ops/notify-send-email.yaml
+   provider: provider/email-notify # 通道账号包（secret 引用式取值，provider.md 规则 6）
+   input: {subject: "loop 验收报告摘要", body: "验收报告摘要段"}
+```
+
+每轮 loop 的验收报告摘要即经此节点发到配置面收件人清单（收件人可配置；Event 报告默认通知 → 邮件）。
 
 ### 1.1 默认研发 workflow：`dev-delivery`（默认文档，每步可调整）
 

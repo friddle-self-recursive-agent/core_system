@@ -59,6 +59,21 @@ spec:
 apiVersion: core/v1
 kind: Provider
 metadata:
+ name: email-notify
+ scope: global
+spec:
+ kind: email # 通知默认通道（Event 默认通知 → 邮件，event.md 规则 7）
+ auth: {scheme: plain, secret: {source: "env:QQ_SMTP_AUTH_CODE", rotation: 90d}} # 引用式取值（规则 2）；真实授权码只存部署侧 env（规则 6）
+ config:
+  host: "<smtp-host>" # 运行时实例值只存部署侧（规则 6）
+  port: 465 # implicit TLS（SSL）
+  from: "<发件账号>"
+  to: ["<收件人清单>"] # 收件人清单可配置（Provider/WorkService 配置面）
+ connector: notify/send-email # 走通知 ConnectorOps（ops=notify/send-email，connector.md；实现=common_connector notify OpsConnector）
+---
+apiVersion: core/v1
+kind: Provider
+metadata:
  name: net-egress
  scope: global
 spec:
@@ -88,6 +103,7 @@ spec:
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
 6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账），**绝不提交公开仓**（rule.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
+7. **通知类 Provider 的 secret 引用面即实现契约**：kind=email/im 类 Provider 的通道实现挂靠 ConnectorOps（connector 字段）→ 运行时经 connectors 包 **OpsConnector 五方法**（工具调用域：Type/Version/Ops/Invoke/Probe，R-ENG-3 契约层）出站——声明面只写引用式 secret 与占位符 config，授权码真实值永不入任何仓（R-PUB-1 凭据红线）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析

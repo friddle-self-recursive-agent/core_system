@@ -33,6 +33,19 @@ spec:
  config: {endpointRef: ref/onedev-endpoint} # 逻辑声明
  auth: {provider: provider/onedev-robot} # 账号走 Provider
  ops: [checkout, build-status, gate-status, verify] # 提供的功能子集
+---
+# 通知类 Ops（default user-system 的 Event 默认通知挂载面，event.md 规则 7）：
+apiVersion: core/v1
+kind: ConnectorOps
+metadata:
+ name: notify-send-email
+ scope: global # default user-system 全局挂载（通知通道不属单一系统）
+spec:
+ workservice: notify # 通知 WorkService（实现=common_connector notify OpsConnector，契约=connectors 包 OpsConnector 五方法）
+ workflow: default-task
+ config: {} # 收件人清单在 Provider 配置面（provider/email-notify 的 config.to）
+ auth: {provider: provider/email-notify} # 账号走 Provider（secret 引用式取值）
+ ops: [notify, send-email] # ⊆ notify WorkService.tools（Lint）
 ```
 
 ## 4. 生命周期
