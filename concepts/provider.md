@@ -64,6 +64,8 @@ metadata:
 spec:
  kind: email # 通知默认通道（Event 默认通知 → 邮件，event.md 规则 7）
  auth: {scheme: plain, secret: {source: "env:QQ_SMTP_AUTH_CODE", rotation: 90d}} # 引用式取值（规则 2）；真实授权码只存部署侧 env（规则 6）
+ # 同一取值面的 secret: 来源（默认走 Secret 的部署口径）：auth: {scheme: plain, secret: {source: "secret:email-auth-code", rotation: 90d}}
+ # ——secret:<name> 引用部署侧秘密存储（SQLite 0600 独立文件，--secrets-db 装配；值只进不出，查询面零值出）
  config:
   host: "<smtp-host>" # 运行时实例值只存部署侧（规则 6）
   port: 465 # implicit TLS（SSL）
@@ -98,11 +100,11 @@ spec:
 ## 6. 设计规则
 
 1. Provider 变更走人审（它是"谁拿钥匙"的答案）。
-2. secret 只允许引用式取值（vault:/env:/keychain:），出现明文=权限系统 拒绝+全库扫描告警（原 Credential 扫描规则并入）。
+2. secret 只允许引用式取值（secret:/env:/vault:/keychain:），出现明文=权限系统 拒绝+全库扫描告警（原 Credential 扫描规则并入）。`secret:<name>` 引用部署侧秘密存储（SQLite 独立文件 0600，--secrets-db 装配——凭据真实值的权威运行时面，scheme.yaml runtime.storage.secrets）：真实值只落该库，任何查询/导出面只出名称零值出（运行时态不导出）。
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
-6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账），**绝不提交公开仓**（rule.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
+6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账，凭据值走部署侧秘密存储 `secret:<name>`——规则 2），**绝不提交公开仓**（rule.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
 7. **通知类 Provider 的 secret 引用面即实现契约**：kind=email/im 类 Provider 的通道实现挂靠 ConnectorOps（connector 字段）→ 运行时经 connectors 包 **OpsConnector 五方法**（工具调用域：Type/Version/Ops/Invoke/Probe，R-ENG-3 契约层）出站——声明面只写引用式 secret 与占位符 config，授权码真实值永不入任何仓（R-PUB-1 凭据红线）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 

@@ -96,7 +96,7 @@ spec:
           llmPrompt: "!string"
           nameResolution: "无前缀=默认org | 带前缀=github.com/<org>/<name>"   
         observation:                                # 观测面（意图；数据在 MetricsInfo）
-          metrics: "[]{name, query}"
+          metrics: "[]{name, query, thresholds: ?[]{op: gt|gte|lt|lte, limit: number}}"   # thresholds=告警面声明（v0.33 数据面首段：装配层阈值桥绑定锚——声明面外谓词不绑定不即兴语义）
           logs: "?{ref: ref}"
         data:                                       # 数据面（Ref 解析权威之一）
           entities: "[]{name, store: ref, access}"
@@ -140,7 +140,7 @@ spec:
       storage: global/providers/<name>.yaml
       spec:
         kind: "llm|im|email|cloud|network|generic"   # network=网络出口（代理/DNS/域名转发，声明/运行时分离见 concepts/provider.md 规则 6）
-        auth: "{scheme, secret: {source: 'vault:|env:|keychain:', rotation}}"   # 明文禁
+        auth: "{scheme, secret: {source: 'secret:|vault:|env:|keychain:', rotation}}"   # 明文禁（引用式取值四前缀——provider.md 规则 2；secret:=部署侧秘密库 runtime.storage.secrets，v0.34 起与 vault:/env:/keychain: 并列）
         config: "?map"
         connector: "?ref"                            # 可为空
 
@@ -317,8 +317,9 @@ spec:
     sessions: {record: [PlanDoc, SessionLog]}       
     skills: {cachePolicy: {ttl: 30d, invalidateOnProviderVersionChange: true}, promote: "高频→Global 走人审"}
     storage:
-      docs: 本地文件夹 git（权威；机器预装 git 是默认假设；Repository 接口可换后端）
-      opsLog: SQLite WAL（六表；git=内容版本，DB=操作流水；每日对账）
+      docs: "git 布局 | sqlite docs DB（二选一单权威，--docs-backend 装配；缺省 git=既有行为面零翻转。sqlite 后端：doc 表=文档内容权威（(kind,scope,name) 键+resourceVersion 乐观锁），git 布局降级为导入导出格式——空库一次性种子导入（保留 rv），非空库不导入=幂等迁移路径；Repository 接口同一套写语义（串行写+乐观锁+apply_log 双写），后端可换=接口既定）"
+      opsLog: SQLite WAL（六表；DB=操作流水可丢弃可重建；每日对账）
+      secrets: "SQLite 0600 独立文件（部署侧凭据真实值权威运行时面——secret: 引用的解析源；独立于 ops DB（秘密非缓存不可重建）与 docs DB（脱敏红线——值只进不出，任何查询/导出面只出名称零值出）；缺省关断，--secrets-db 显式装配）"
       refResolution: {cacheTtl: 10m, 失败降级旧缓存+Event}
 
   # ============================================================
