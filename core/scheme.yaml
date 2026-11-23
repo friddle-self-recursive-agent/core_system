@@ -249,6 +249,10 @@ spec:
 
   # ============================================================
   # 三、事件类型
+  # 发布面（v0.20，event.md 规则 8）：全部注册类型可经写面注入端点发布——类型注册校验
+  # +level 缺省=defaultLevel 投影+同管线去重/派发/归档（零旁路）；发布动作=publish × events
+  # 资源域，与 apply 写权限域分立；注入通道的 source 由服务侧判定恒 human（本表 source 列
+  # 是引擎内部来源声明，不是注入载荷参数）。
   # ============================================================
   eventTypes:
     - {type: ExternalChanged,  source: connector, defaultLevel: info,  dedup: "<obj>:<change>:hash", route: owner-workflow}

@@ -75,6 +75,7 @@ spec:
 - Scope：权限域划分依据（global/system）。
 - Workflow §7 跨权限三出路中的"审批提升"，人审档位由本系统配置。
 - Apply：写路径的准入环节调用本系统（权限+人审）；结构校验另走 Scheme。
+- Event 发布面：`publish` 动作 × `events` 资源域（concepts/event.md 规则 8）——与对象写（write × 对象 scope）分立的权限域，两域不互为准入。
 
 ## 6. 设计规则
 
