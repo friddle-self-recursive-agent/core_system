@@ -150,7 +150,7 @@ spec:
       spec:
         channel: "{kind: im|email|webhook, provider: ref}"
         on: "{events: []string, levels: []string}"
-        route: "{to: role-holders, dedup: {window}}"   
+        route: "{to: role-holders, dedup: {window}, minLevel}"   # v0.35 阶段门段：minLevel=等级下限（低于下限零受理 filtered 计数可见）；窗口内同 dedupKey 至多一封（deduped 计数可见）——通知只由相位终态事实触发（notification.md 规则 5，apply 写入不触发用户通知）
         template: "?ref"
       status: {delivered: "{last24h, failed}"}
 
