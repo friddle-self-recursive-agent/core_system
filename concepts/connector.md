@@ -70,6 +70,8 @@ spec:
 
 6. **ConnectorOps=节点流转实现面（不是触发器）**：触发/相位/刹车/记账归 Workflow 引擎；节点内容与节点间流转归绑定的 ConnectorOps（Service 调用/Agent 唤醒/嵌套其他 ConnectorOps）。命名约定：缺省=`<workflow 名>` 同名；空绑定或未实现 → 决策面 `execution=unbound` 可见（缺口不静默）。
 
+7. **代码归属与生命周期（R-ENG-3）**：ConnectorOps 的代码一律归 **deploy-system** 管理的 git 仓库，按小概念命名 `connectops-<concept>`（如 connectops-chrome/connectops-dsh/connectops-opencode/connectops-gh）；生命周期=声明（docs）→ 仓库代码 → **build 生效** → 运行时；**每次变更必定提交**（override 亦同），不存在运行时改代码；未 build 生效=运行态不可引用（`execution=unbound` 可见）。
+
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |

@@ -104,6 +104,22 @@ spec:
  secret: {}
 ```
 
+```yaml
+apiVersion: core/v1
+kind: Provider
+metadata:
+ name: gh # GitHub 本身就是一种 Provider（账号 + API + 权限面）
+ scope: global
+spec:
+ kind: generic # 外部 SaaS API 账号包
+ auth: {scheme: bearer, secret: {source: "secret:gh-token", rotation: 90d}}
+ config:
+  api: github # GitHub API（gh CLI/REST 同源；仓/PR/issue/runner 管理面的统一出口）
+  baseUrl: https://api.github.com
+  org: <org>
+ connector: connectops-gh # 代码承载面=deploy-system 仓 connectops-gh（R-ENG-3）
+```
+
 ## 4. 生命周期
 
 登记（人审——Provider 是钥匙集合的索引，高危）→ 被 Agent/Notification 引用 → 密钥轮换=更新 secret source（vault 侧轮换；Provider 对象不变，rotation 超期降权）→ 注销（确认无引用后删）。

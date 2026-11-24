@@ -48,18 +48,20 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 ## R-ENG-3 Connector 驱动仓库归属
 
-connector 驱动代码按**来源**分仓，`core_system_workservice/connectors/` 只放 **builtin 驱动**：
+**代码承载的部署能力按小概念归 deploy-system 的 git 仓库**（2026-11-24 用户裁决，取代按来源分仓的旧口径）：
 
-| 类别 | 判据 | 仓库 | 例 |
-|---|---|---|---|
-| builtin | core_system 自带、自举必需、与具体部署用法无关 | core_system_workservice/connectors/ | gitfs、dsh |
-| 用法型 | 按部署用法决定的对接目标（换了部署就换掉） | 部署侧独立仓，如 **sybran_usage_connector** | onedev、nas、oss |
+| 项 | 口径 |
+|---|---|
+| 归属 | 凡以代码承载的部署能力（ConnectorOps 驱动、通道适配、工具型 skill 实现等）一律归 **deploy-system**（默认实现=default-deploy-system）管理的 git 仓库 |
+| 命名 | 按小概念建仓 `connectops-<concept>`：如 `connectops-chrome`、`connectops-dsh`、`connectops-opencode`、`connectops-gh`（builtin 系统默认使用 github → 该仓） |
+| 生命周期 | 声明（docs/scheme）→ 仓库代码 → **build 生效** → 运行时；**每次变更必定提交**（override 亦同，github 等远端一样走提交，不存在"运行时改代码"） |
+| 构建产物 | digest 入账（幂等，P4）；未 build 生效的实现不得被运行态引用（缺口可见=`execution=unbound`） |
+| 豁免 | core_system 引擎本体（workservice/plugin）不在此列；随引擎打包的最小驱动（gitfs/dsh 等）保留在 `core_system_workservice/connectors/` 并注明理由 |
 
-- 判据看"是否换了部署就不复用"，不看"是否被 builtin 系统引用"——builtin 系统（developer/storage 等）引用 onedev/nas/oss 只是本部署的用法，驱动本身不进 workservice。
-- 用法仓按 A38 命名解析引用（无前缀=默认 org）；WorkService.connector 面 impl/download 指向驱动实际所在仓。
-- workservice 仓不 import 用法仓；依赖方向恒为 用法仓 → workservice（契约层五方法接口）。
-- 通用 connector（跨部署复用、不绑单一部署用法，如通知/邮件）进 **common_connector** 仓；依赖方向同上。
-- **宿主工具面贡献不算 connector 驱动**（2026-11-25 注记，E5b 归属裁决）：agent-comm 四 op 工具（dispatch/query/interrupt/inbox，cross-agent.md §5 v0.1）是 core_system_dsh_plugin 对 dsh 宿主 `ctx.tools.register` 的贡献——进程内通道、无独立通信栈、不绑部署用法，工具宿主=plugin 仓本体，不入 common_connector、不建新仓；声明集种子（ConnectorOps/WorkService 对象）是文档库数据，非代码。
+- 依赖方向恒为：deploy-system 仓 → workservice 契约层（connectors 五方法接口），反向禁止。
+- 旧口径的"用法型/通用型"分类由本模型吸收：分仓判据=是否属于**部署能力代码**，不以跨部署复用性区分。
+- 存量仓（common_connector / sybran_usage_connector）按新命名逐步迁移（迁移期双轨；新代码一律 `connectops-*`）。
+- **宿主工具面贡献不算 connector 驱动**（E5b 归属裁决）：agent-comm 四 op 工具是 core_system_dsh_plugin 对 dsh 宿主 `ctx.tools.register` 的贡献——进程内通道、无独立通信栈，工具宿主=plugin 仓本体，不建新仓；声明集种子（ConnectorOps/WorkService 对象）是文档库数据，非代码。
 
 ---
 
