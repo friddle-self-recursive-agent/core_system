@@ -93,7 +93,7 @@ spec:
 - **调用链三层同源**：`docs（workflow spec） → connectDef（scheme 声明面 / ConnectorOps 对象） → connectOps 代码`——声明驱动实现，实现不反向污染声明。
 - **流转在 ConnectorOps 内**：引擎相位机只负责相位推进/刹车/记账；绑定的 ConnectorOps 实现按声明序列流转各节点——**Service 调用节点**（ops）、**Agent 节点**（唤醒/派子任务）、**另外的 ConnectorOps**（嵌套调用）。引擎不感知通道与服务内部细节。
 
-**落地形态二分（2026-11-26，R-7）**：「骨架+节点接线」是**确定性机械面**——workflow 对象 apply（创建/变更）时由 cored 绑定物化器直接写入/更新同名（或 `spec.connector` 覆写）的 ConnectorOps 对象（`spec.flow.nodes` 骨架：节点名/标题/unit/op/connector 投影；`metadata.labels[core/origin]=workflow-bind` 标注物化器所有面，非该标注的对象不盲写）；「实现代码」是 **apply-workflow agent 面**（连 developer-system 写 connectOps 实现）——两步同走 apply 闸门（三步准入+rv 乐观锁+DocApplied），均落 apply_log 可 diff。绑定未落地（同名 ConnectorOps 对象缺席）→ 决策面 `execution=unbound` 可见（缺口不静默，connector.md 规则 6）。
+**落地形态二分（2026-11-26，R-7）**：「骨架+节点接线」是**确定性机械面**——workflow 对象 apply（创建/变更）时由 cored 绑定物化器直接写入/更新同名（或 `spec.connector` 覆写）的 ConnectorOps 对象（`spec.flow.nodes` 骨架：节点名/标题/unit/op/connector 投影；`metadata.labels[core/origin]=workflow-bind` 标注物化器所有面，非该标注的对象不盲写）；「实现代码」是 **apply-workflow agent 面**（连 developer-system 写 connectOps 实现）——两步同走 apply 闸门（三步准入+rv 乐观锁+DocApplied），均落 apply_log 可 diff。绑定未落地（同名 ConnectorOps 对象缺席）→ 决策面 `execution=unbound` 可见（缺口不静默，connector.md 规则 6）。**两步交棒=派单受理投影（2026-11-26，R-8 注记）**：骨架物化动作（created/updated）即一条对 `apply-workflow` 锚（builtin 专用 agent，§1.2，AUTOLEVEL=ask 默认）的派单受理——`GET /v1/agents/dispatches` 可查（rv=骨架 diff 基线）；受理≠会话已拉起（真实拉起=dsh 会话挂载，declared-deferred，运行时细节=instance 仓 workflow-runtime.md §11.2）。
 
 ## 2. 边界
 
