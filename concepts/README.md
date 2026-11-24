@@ -44,5 +44,3 @@
 | Event | 现实边沿 | — | 触发"看一眼" |
 | MetricsInfo | 现实序列 | — | 支撑判断与验证 |
 | Core/Scheme | 机制 | 内 | 让以上一切成立 |
-
-<!-- loop-53 probe -->
