@@ -58,6 +58,8 @@ spec:
 - 下游：Agent.connectorOps、TaskScheme.steps.connector 都引用 Ops。
 - Skill（concepts/skill.md）：Ops 的使用处缓存为 skill。
 
+- **Workflow 默认绑定**：每条 workflow 缺省绑定同名 ConnectorOps（`spec.connector` 可覆写）；ConnectorOps 是 workflow 节点的**流转实现面**——内部可调用 Service 操作、唤醒 Agent、嵌套其他 ConnectorOps；apply 时由 apply-workflow agent 开始写实现（代码化，非运行时即兴）；引擎只管相位/刹车/记账。
+
 ## 6. 设计规则
 
 1. workservice 必填且必须已在册（六面体至少 connector 或 tools 非空）。
@@ -65,6 +67,8 @@ spec:
 3. 使用要权限（role 并集+权限系统，P7/）。
 4. `undo: none` 的工具（WorkService.tools 里声明）每次调用人审。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+
+6. **ConnectorOps=节点流转实现面（不是触发器）**：触发/相位/刹车/记账归 Workflow 引擎；节点内容与节点间流转归绑定的 ConnectorOps（Service 调用/Agent 唤醒/嵌套其他 ConnectorOps）。命名约定：缺省=`<workflow 名>` 同名；空绑定或未实现 → 决策面 `execution=unbound` 可见（缺口不静默）。
 
 ## 7. 可行性分析
 

@@ -83,6 +83,16 @@ spec:
 
 把一份 Workflow 声明落到真实系统，本身也是 workflow 干的活——专用 agent 承担：解析 spec 接线触发源（注册 Connector watch）→ 缺的连接层调 **developer-system**（pull/写**自定义 connector** 代码/build，每层调用代码化）→ 落地后注册一条 `watch-only` 监控新 workflow 的成功率/死信/成本（自监控闭环，异常回 Event 走修复循环）。即：**流程实现=代码；写代码=调研发系统；监控 workflow 的=内置 workflow（自举）**。运行时细节见 instance 仓 runtime/workflow-runtime.md。任务态机=default-task 相位词汇全量复用（§1 映射表——不另立词汇，解耦口径）。
 
+### 1.3 执行模型：节点=session/agent，默认绑定 ConnectorOps，apply 即实现
+
+- **每个节点（相位/步骤）= 一个执行单元**，形态二选一：
+  - **session**：global scope 的 workflow 节点一律 session；service 内部 workflow 的节点也是 session（在该 service 内运行）；
+  - **agent**：跨 service（service 外部）的交互=**agent 调用 agent**——由本 service 的 agent 调起目标 service 的 agent，不直连外部服务内部实现。
+- **默认绑定一个 ConnectorOps**：每条 workflow 缺省绑定**同名** ConnectorOps（`default-work` → `default-work` ConnectorOps；`spec.connector` 可覆写）。绑定是声明（docs），实现是代码（connector-ops 对象 + 实现仓）。
+- **apply 即开始实现**：workflow apply（创建/变更）时，apply-workflow agent 立即开始写该 workflow 的 ConnectorOps 实现（骨架+节点接线），**不是运行时即兴**；spec 再变 → apply 后实现随之更新（diff 可查）。
+- **调用链三层同源**：`docs（workflow spec） → connectDef（scheme 声明面 / ConnectorOps 对象） → connectOps 代码`——声明驱动实现，实现不反向污染声明。
+- **流转在 ConnectorOps 内**：引擎相位机只负责相位推进/刹车/记账；绑定的 ConnectorOps 实现按声明序列流转各节点——**Service 调用节点**（ops）、**Agent 节点**（唤醒/派子任务）、**另外的 ConnectorOps**（嵌套调用）。引擎不感知通道与服务内部细节。
+
 ## 2. 边界
 
 **是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车 + 文档回归——一个可编辑、可展示、可启停的平台对象。
