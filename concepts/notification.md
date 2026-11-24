@@ -63,6 +63,7 @@ status:
 3. 通知内容不携带敏感明文（凭证/密钥模式扫描同规则）。
 4. 送达记录进 ops DB（approval/escalate 关联审计）。
 5. **通知阶段门**（v0.35，KI-001 邮件风暴根因 3/4 的机读落点）：通知只由**相位终态事实**触发——事件轴=人注意终态族（ApprovalNeeded 审批提升、Escalate 升级、HeartbeatLost 心跳丢失）恒放行；run 轴=其余事件（DocApplied 等进度事实）须 involved owner 现势 run 相位已达终态（声明序列尾=Report 相位完成，或终点锚）背书，无 run 证据面=fail-closed 拦。**apply 写入不触发用户通知**（apply ≠ 阶段完成）；被门事件照常留痕、归档、推进 run（门只作用于用户通知面，拦阻计数 gated 可查询）。送达面同窗三闸有序：minLevel 等级过滤（on.levels 声明）→ 阶段门 → dedup.window 聚合（窗口内同 dedupKey 至多一封，其余 deduped 计数可查询不投影——判别器：同键窗口内 N 次注入实发 1）。
+6. **bind 用户默认通道（KI-003 上报面）**：通知的默认送达对象＝会话 bind 用户与 Role.on 持有者；bind 用户未显式配置通道时**默认 notify=email**（Provider kind: email / notify-email 实例）。会话停滞的「需要人工介入」上报、审批升级（ApprovalNeeded/Escalate）一律走此默认通道；同窗 dedup 与阶段门照常生效（规则 5）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
 
 ## 7. 可行性分析
