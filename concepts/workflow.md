@@ -93,6 +93,8 @@ spec:
 - **调用链三层同源**：`docs（workflow spec） → connectDef（scheme 声明面 / ConnectorOps 对象） → connectOps 代码`——声明驱动实现，实现不反向污染声明。
 - **流转在 ConnectorOps 内**：引擎相位机只负责相位推进/刹车/记账；绑定的 ConnectorOps 实现按声明序列流转各节点——**Service 调用节点**（ops）、**Agent 节点**（唤醒/派子任务）、**另外的 ConnectorOps**（嵌套调用）。引擎不感知通道与服务内部细节。
 
+**落地形态二分（2026-11-26，R-7）**：「骨架+节点接线」是**确定性机械面**——workflow 对象 apply（创建/变更）时由 cored 绑定物化器直接写入/更新同名（或 `spec.connector` 覆写）的 ConnectorOps 对象（`spec.flow.nodes` 骨架：节点名/标题/unit/op/connector 投影；`metadata.labels[core/origin]=workflow-bind` 标注物化器所有面，非该标注的对象不盲写）；「实现代码」是 **apply-workflow agent 面**（连 developer-system 写 connectOps 实现）——两步同走 apply 闸门（三步准入+rv 乐观锁+DocApplied），均落 apply_log 可 diff。绑定未落地（同名 ConnectorOps 对象缺席）→ 决策面 `execution=unbound` 可见（缺口不静默，connector.md 规则 6）。
+
 ## 2. 边界
 
 **是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车 + 文档回归——一个可编辑、可展示、可启停的平台对象。
