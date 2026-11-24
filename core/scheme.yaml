@@ -151,7 +151,7 @@ spec:
         channel: "{kind: im|email|webhook, provider: ref}"
         on: "{events: []string, levels: []string}"
         route: "{to: role-holders, dedup: {window}, minLevel}"   # v0.35 阶段门段：minLevel=等级下限（低于下限零受理 filtered 计数可见）；窗口内同 dedupKey 至多一封（deduped 计数可见）——通知只由相位终态事实触发（notification.md 规则 5，apply 写入不触发用户通知）
-        template: "?ref"
+        template: "?{ref}"                       # 文案模板=引用包装对象（{ref: <ref>}——notification.md §3 例与存量对象同形态；v0.48 净入 lint 对账修正：?ref 标量声明与概念例/存量对象劈叉，声明面单点修正收口)
       status: {delivered: "{last24h, failed}"}
 
     - kind: User                     # 用户系统 builtin

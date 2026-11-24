@@ -58,7 +58,7 @@ spec:
  usage: "REST+git 双通道…"
  llmPrompt: "你可用 onedev 工具…"
  observation: # 观测面
- metrics: [{name: pickup_p95, query: "...", thresholds: [{op: gte, limit: 5}]}, {name: runners, query: "..."}] # thresholds=告警面声明（gt|gte|lt|lte；装配层阈值桥绑定锚，声明面外谓词不绑定；apply 落库即生效——DocApplied 驱动绑定表热重绑免重启，event.md 规则 13 v0.47 注记）
+ metrics: [{name: pickup_p95, query: "...", thresholds: [{op: gte, limit: 5}]}, {name: runners, query: "..."}] # thresholds=告警面声明（gt|gte|lt|lte；装配层阈值桥绑定锚，声明面外谓词不绑定；apply 落库即生效——DocApplied 驱动绑定表热重绑免重启，event.md 规则 13 v0.47 注记；自参考阈值 events.<type> 的样本源持续性=部署侧职责——注入/真实流量，绑定摘除即断流、重绑首窗零样本=合法等待态，event.md 规则 13 v0.48 注记）
  logs: {ref: ref/onedev-logs}
  data: # 数据面
  entities: [{name: project, store: ref/onedev-db, access: via-connector}]
