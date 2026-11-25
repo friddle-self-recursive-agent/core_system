@@ -30,6 +30,7 @@
 | [doctype.md](doctype.md) | DocType | 文档类型注册（本系统的 CRD） | CRD 机制 |
 | [scope.md](scope.md) | — | 四层作用域（目录即 scope） | Namespace |
 | [revision.md](revision.md) | — | 版本管理（乐观锁/审计/语义 diff） | resourceVersion + audit |
+| [context.md](context.md) | — | 上下文装配（索引/检索/压缩/缓存/背景会话） | —（informer 缓存 + 调度 predicate） |
 
 ## 边界矩阵（一屏总览）
 

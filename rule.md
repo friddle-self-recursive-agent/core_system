@@ -97,6 +97,34 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 4. **scheme 可编辑**：Scheme 本体与各 kind 的 spec 片段是文档——经设计文档编辑面（能力 A/对象编辑）修改，走同一权限/事件/准入链；**禁止绕过 lint/准入的直接改动**。
 5. **判据**：抽查字段控件类型=scheme 映射；枚举字段无法手输非法值；必填/引用校验即时生效；改 scheme 后 UI 自动反映（无硬编码残留）。
 
+# Rule — 上下文与记忆（CTX）
+
+> 2026-11-25 用户裁决：文档先有 **index**，再分级别/分模块/打 tag/相关度；**动态调用工具取上下文，不读全量**；内置 RAG；类型对应缓存（类 Skill）+ 文档更新主动失效。（跨轮交接维持 `loop-next.md` 散文——用户明确认可。）
+
+## R-CTX-1 索引先行
+
+任何检索/装配之前必须有索引（DocIndex）。索引是派生物、可丢弃可重建，**不入 git 权威**；未建索引=降级「按 path 直读」并显式标注（`degraded:true`），不得静默返回空。
+
+## R-CTX-2 检索而非全量
+
+agent 默认**不得整篇读设计文档**（尤其 >20KB 的单篇）；顺序恒为 `index 命中 → chunk 摘要 → 按需 expand 原文`。上下文装配走**通用接口**（`context.find / pack / expand`），不得各会话自建读法。
+
+## R-CTX-3 分级 / 分模块 / 打标
+
+每份设计文档必须带 `level`（L0 宪法 / L1 概念 / L2 运行时设计 / L3 证据 / L4 笔记）、`module`（主模块单值）、`tags`、`importance`、`digest`；缺字段=索引构建告警（不阻断），由 `connectops-context` 补标。tag 亲和矩阵（tag↔tag 相关度）由该 ConnectOps 周期重算，**因子可配置、版本化后生效**。
+
+## R-CTX-4 缓存类 Skill + 主动失效
+
+chunk 摘要与 ContextPack 走缓存：键含内容指纹（doc/chunk sha）、extractor 版本、策略版本与矩阵版本；TTL/失效条件按 Skill 的 `cachePolicy` 纪律。**文档更新（DocApplied / commit）必须主动失效**相关缓存（可选预热）；审计面（event_log）不受缓存影响。
+
+## R-CTX-5 上下文预算与压缩
+
+每次装配有 token 预算（缺省=模型窗口 30%，可配）；超预算必压缩，且**每条摘要带引用**（`path#anchor` + commit）可展开回原文；压缩失败降级为原文节选；摘要与原文冲突以原文为准；截断必须标注 `truncated:true`。
+
+## R-CTX-6 背景会话与会话回写
+
+任务开始前先跑**背景会话**（`index → retrieve → pack → cache`，零副作用、不写代码），主会话以 pack 为背景起步并按需 JIT 检索；会话结束把日志压缩为 ContextNotes，回写「用到/未用到/需要但没有」的统计（检索因子的反馈闭环）。
+
 # Rule — 开发规范（公开暴露面）
 
 ## R-PUB-1 公开仓不暴露个人信息
@@ -154,3 +182,4 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |
 | R-PUB-3 | lint（目录级） | acceptance/ 在 .gitignore 即通过（checker 暂缓） |
 | R-TYPE-* | policy | — |
+| R-CTX-* | policy | —（索引/缓存/预算为运行期机制；pack 记录可审计，lint 暂缓） |

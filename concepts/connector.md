@@ -72,6 +72,8 @@ spec:
 
 7. **代码归属与生命周期（R-ENG-3）**：ConnectorOps 的代码一律归 **deploy-system** 管理的 git 仓库，按小概念命名 `connectops-<concept>`（如 connectops-chrome/connectops-dsh/connectops-opencode/connectops-gh）；生命周期=声明（docs）→ 仓库代码 → **build 生效** → 运行时；**每次变更必定提交**（override 亦同），不存在运行时改代码；未 build 生效=运行态不可引用（`execution=unbound` 可见）。
 
+8. **`connectops-context`（上下文索引/亲和/失效/预热）**：上下文检索的代码承载能力归 deploy-system 的 `connectops-context` 仓（R-ENG-3 同款生命周期：声明 → 代码 → build 生效 → 运行时；每次变更必提交）。op 集：`index`（增量/全量构建 DocIndex）、`affinity`（tag 亲和矩阵重算，定时）、`invalidate`（文档变更主动失效 chunk/pack 缓存）、`prewarm`（L0/L1 常驻摘要预热）、`evaluate`（命中率回归，只出因子建议不自动应用）。调度两入口同一代码路径：cored 内建调度（旗标缺省关断）或部署侧 timer 调 CLI；因子与预算来自 ContextPolicy 对象（apply 生效），不硬编码。
+
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
