@@ -289,6 +289,10 @@ spec:
     - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-workflow}
     - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}
     - {type: ReconcileTick,    source: core,      defaultLevel: info,  dedup: "reconcile:<at>",      route: workflows/core-workflow}   # 定时巡检到点（level-triggered 保险丝，event.md §7；引擎内部源二段=cored 定时器自产）
+    # 会话活性事件族（KI-003，event.md 规则 14；引擎内部源六段=装配层 watchdog 自产，source 恒 core）
+    - {type: SessionStalled,   source: core,      defaultLevel: error, dedup: "session:<id>",        route: root-agent+notification/*}   # 停滞判定态=SuspectedStall（判定词与事件词分立：事件名=SessionStalled 与 HeartbeatLost 同族）；自愈固定顺序第一步=注入「继续」
+    - {type: SessionHealed,    source: core,      defaultLevel: info,  dedup: "session-heal:<id>",   route: dead-letter}   # 注入「继续」后心跳恢复——恢复=活性事实非处置触发；停滞时长/最后心跳点随 detail 面
+    - {type: LongTaskRunning,  source: core,      defaultLevel: info,  dedup: "longtask:<id>",       route: dead-letter}   # 长任务显式化（任务名/已运行时长/当前阶段/决策点）；有进展心跳=不判停滞；结束回收=回收行 visible=false
 
   # ============================================================
   # 四、事件路由（穷举缺省 + 死信兜底）
@@ -307,6 +311,9 @@ spec:
     - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-workflow}
     - {on: SessionClosed,    for: "owner:instance", dispatch: instance-docs}
     - {on: ReconcileTick,    for: "any",            dispatch: workflows/core-workflow}   # 巡检到点→一次全量对账 run（对账锚=系统级循环本体）；v0.29 事件驱动推进源首段：该行落 run 的同拍即一次全量推进拍（source=core 三重闸——workflow.md 规则 15 v0.29 段，推进总闸同闸不旁路）
+    - {on: SessionStalled,   for: "any",            dispatch: root-agent, cc: notification/*}   # 会话停滞=人注意事实（KI-003，event.md 规则 14）：root-agent 主路=自愈链入口（第一动作=注入固定 prompt「继续」）；cc=bind 通知旁路
+    - {on: SessionHealed,    for: "any",            dispatch: dead-letter}   # 恢复=活性事实非处置触发（自愈动作在 watchdog 侧已执行）——dead-letter 观测兜底可见
+    - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: dead-letter}   # 死信必须可见（词汇=hub 合成死信/eventbus routed_to 同一词）
 
@@ -332,7 +339,12 @@ spec:
       debug: 只进内存队列不落盘
       fatal: 必接 Notification
       ingestDefaults: {dedupWindow: 5m, groupMax: 100}
-    sessions: {record: [PlanDoc, SessionLog]}       
+    sessions: {record: [PlanDoc, SessionLog]}
+    sessionLiveness:   # 会话活性（KI-003，event.md 规则 14；agent-session.md §7）
+      heartbeat: "会话推进点（相位推进/工具调用完成/产物落盘任一）上报——ops DB session_heartbeat 行+进程内计数；POST /v1/sessions/heartbeat 注册+GET /v1/sessions 查询"
+      watchdog: "--session-watch-interval <dur>（0=关断零事件缺省不改行为面）；--stall-threshold <dur>（缺省 10m，event.md 规则 14②声明缺省）"
+      selfHeal: "固定顺序（每步留事件）：注入固定 prompt「继续」→SessionHealed；仍无心跳→诊断（权限类 ApprovalNeeded 向上提交不自行绕过/人工类按 bind 通道上报/notification.md 规则 6 未配置=零通知零外发/长任务 LongTaskRunning 有进展=不判停滞）"
+      escalation: "同会话连续自愈无效达阈值（--heal-retry-limit，缺省 2）→ Escalate 停自动处置升级（不静默重试）"
     skills: {cachePolicy: {ttl: 30d, invalidateOnProviderVersionChange: true}, promote: "高频→Global 走人审"}
     storage:
       docs: "git 布局 | sqlite docs DB（二选一单权威，--docs-backend 装配；缺省 git=既有行为面零翻转。sqlite 后端：doc 表=文档内容权威（(kind,scope,name) 键+resourceVersion 乐观锁），git 布局降级为导入导出格式——空库一次性种子导入（保留 rv），非空库不导入=幂等迁移路径；Repository 接口同一套写语义（串行写+乐观锁+apply_log 双写），后端可换=接口既定）"
