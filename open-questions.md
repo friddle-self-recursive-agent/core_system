@@ -47,6 +47,12 @@
 
 1. 模板 import 的外部格式清单（既有 CI 描述如何映射到确定性步骤图）——import 机制已定，映射规则待样例驱动。
 
+## business-system
+
+1. 财务流水外部源接入方式（银行/支付流水导入声明与对账口径）——约束层只管"流水必须可溯源"（R-BIZ-2/R-BIZ-4），导入实现属实例层，首实例（sybran）冷启动时定。
+2. R-BIZ-1/4 的 lint checker 落点（core_design `lint/` 还是实例侧投产检查）——投产前定。
+3. Template（appliesTo: servicedesc）出业务系统模具（五域骨架模板）的时机——v1 不做，首个实例跑通后评估。
+
 ## 横切
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。

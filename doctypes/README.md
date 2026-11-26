@@ -18,6 +18,8 @@
 | `Auth` | default（Builtin: required） | subjects[] / grants[] | 人（人审） | 授权设计：谁可干什么（设计层；钥匙见 Provider.auth.secret） |
 | `DeployDesign` | optional | envs[] / rollout | 人 | 部署设计 |
 | `CodeDesign` | optional | modules[] | 人 | 代码结构设计 |
+| `StateModel` | default | objects[] / transitions[] | 人/owner | 业务对象状态词表+迁移表（闭合集+主体纪律；R-BIZ-1，common-business-system 约束层） |
+| `Finance` | default | budget[] / gates[] | 人/owner | 预算科目+闸门规则；现状数字禁手填，只许从流水推导（R-BIZ-2） |
 
 ## 2. 实现侧（ServiceInstance 下）
 

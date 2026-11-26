@@ -1,0 +1,21 @@
+---
+name: common-business-system
+docType: ServiceDesc
+scope: common-business-system
+labels: {tier: constraint, domain: business}
+---
+# common-business-system —— 通用企业业务系统层（约束层，零业务逻辑）
+
+spec:
+  goalRef: goal.md
+  descRef: desc.md
+  provides: [biz-state-discipline, biz-finance-discipline, biz-flow-discipline, biz-monitor-discipline, biz-transaction-discipline]
+  rule: 本层只产约束（DocType 注册 + R-BIZ 规则 + 基词表），零新机制；业务逻辑属于实例层。
+  docs:
+    - rule/biz-rules.md
+    - docs/state-model.md
+    - docs/finance.md
+  instances:
+    - name: sybran            # 第一实例：实例侧设计落公司 OneDev 私有仓 sybran-business-system（运行面=sybran agent，不进 core_agent）
+      agentRefs: []
+status: {}

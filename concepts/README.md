@@ -22,6 +22,7 @@
 | [proposal.md](proposal.md) | Proposal | 需求提案（console 提需求→审批→派工的一等对象） | Issue/Enhancement 提案 |
 | [task-scheme.md](task-scheme.md) | TaskScheme | 确定性步骤图（四层执行第三层） | Job spec |
 | [template.md](template.md) | Template | 统一模具×四层 appliesTo（要求语义/Resolver/逐层询问） | Helm Chart |
+| [business-system.md](business-system.md) | — | 企业业务系统层（common-business-system 约束库：状态/财务/业务/监控/事务五域纪律，零新机制） | K8s 之上应用语义层 |
 | [provider.md](provider.md) | Provider | 外部能力账号包（auth.secret 内化） | Secret+ConfigMap+Endpoint 聚合 |
 | [notification.md](notification.md) | Notification | 通知渠道（一 Scheme 一 Instance） | Alertmanager route |
 | [user-system.md](user-system.md) | User | 用户目录（builtin 本地表） | — |
@@ -45,3 +46,4 @@
 | Event | 现实边沿 | — | 触发"看一眼" |
 | MetricsInfo | 现实序列 | — | 支撑判断与验证 |
 | Core/Scheme | 机制 | 内 | 让以上一切成立 |
+| common-business-system | 意图（约束） | 内 | 企业语义怎么落既有机制（状态/财务/业务/监控/事务五域纪律，零新机制） |
