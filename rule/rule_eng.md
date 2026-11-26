@@ -79,4 +79,13 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 2. **checker**：[lint/max-file-lines.sh](../lint/max-file-lines.sh)（type=lint，机械可判）：`git ls-files` 遍历 tracked 代码文件，awk 数行，>800 即红并输出文件名与行数；豁免词形=`dist/`、`*.lock`、`pnpm-lock.yaml`、`package-lock.json`、`go.sum`。
 3. **判据（机读）**：① lint 脚本 exit 0；② 超限文件清单为空；③ 新增文件默认受检（受检集合=git ls-files，无需登记）；④ 豁免仅限构建产物与 lockfile。
 
+## R-ENG-8 临时/验证文件规约（2026-11-26 用户裁决）
+
+> 用户原话：「记得临时文件，验证文件。gitignore记得不提交。默认在仓库内也放到tmp下」。
+
+1. **位置**：一切临时文件与验证产物（截图、探针脚本、一次性 fixture、构建旁产物）默认放**仓库内 `tmp/` 目录**——不放仓库根、不放系统 /tmp（会被清理且跨会话互撞，理由同 R-ENG-6 worktree 规约）。
+2. **永不入库**：`tmp/` 与常见临时产物词形（根级 `*.jpeg`/`*.png` 等）必须进 `.gitignore`；验证截图等验收证据若需长期留存，改放 `acceptance/<主题>/` 走正式文档入库（instance 仓分层例外），不冒充临时文件。
+3. **checker**：mode=agent——agent 侧自查：产生临时文件即落 `tmp/`；`git status` 出现根级临时词形即移入；提交前 `git status --short` 零意外 untracked。
+4. **判据（机读）**：① 各仓 `.gitignore` 含 `tmp/`；② `git status --short` 无根级截图/临时产物；③ 临时文件唯一合法仓库内位置=`tmp/`。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。

@@ -50,6 +50,7 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 | R-DOC-10 | policy | —（Bug 文档为中间临时产物；任务完成且 Verify 验证 OK 后直接删除对应条目或整个 `bug.md` 临时文档） |
 | R-ENG-1..4 | policy | —（R-ENG-4 Scheme 值修改免改代码 vs 契约改动必触发代码构建） |
 | R-ENG-7 | **lint** | lint/max-file-lines.sh（单文件≤800 行——代码/标记语言全适用；dist 与 lockfile 豁免） |
+| R-ENG-8 | **agent** | 临时/验证文件一律仓内 `tmp/` + `.gitignore` 永不提交（agent 侧自查；验收证据长期留存走 acceptance/<主题>/ 分层例外） |
 | R-PUB-1 | **lint** | lint/personal-info.sh |
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |
 | R-PUB-3 | lint（目录级） | acceptance/ 根在 .gitignore、acceptance/<主题>/ 入库；checker 暂缓 |

@@ -390,6 +390,7 @@ spec:
       - {ruleId: R-DOC-6, mode: code, checker: "lint/metadatainfo.sh", targets: [docs], severity: error}
       - {ruleId: R-DOC-8, mode: code, checker: "lint/single-scheme.sh", targets: [scheme], severity: error}
       - {ruleId: R-ENG-7, mode: code, checker: "lint/max-file-lines.sh", targets: [all], severity: error}
+      - {ruleId: R-ENG-8, mode: agent, agent: service-agent, severity: error}   # 临时/验证文件一律仓内 tmp/ + gitignore 永不提交（rule/rule_eng.md；agent 侧自查）
       - {ruleId: R-UX-3, mode: agent, agent: service-agent, severity: error}   # 示例：界面黑话/用户视角由 agent 语义验证
     taskScheduler:                  # 多任务并发调度（concepts/task-scheduler.md；无关任务并发、相关任务串行；可调）
       enabled: true
