@@ -138,6 +138,7 @@ spec:
         onFailed: "{backoff, maxAttempts, rollbackPolicy: ?never|auto|ask|by-step, escalate: {to: root, notify: role-holders}}"
         trustGate: "?{enabled: bool, mode: code|agent|both, verifierRef?: string, onReject: block|ask|sanitize}"   # 针对 trustLevel=external 的 ConnectorOps/Provider 外部返回内容，Workflow 级可配由代码或 Agent 先判断一遍内容是否 OK
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭；v0.32 刹车首段：cooldown 强制默认 2m ∧ 变更上限强制默认 10——宽松方向声明一律钳回默认=不可关闭机读落点；冷却门键=锚+involved 防震荡语义粒度=同一对象；变更上限=推进拍锚级只计实际迁移；cooldown 锚首段=run 受理时刻；avoidRepeatFix 随 DriftReport 回归声明面顺延）
+        approval: "{mode: human|auto}"               # 审批策略（2026-11-26 用户裁决「Workflow 可设置 Agent 节点是否自动级别」；缺省 human=闸锚挂起等人——现状；auto=闸锚自动通过：落 AwaitingApproval 不挂起直续行、ApprovalNeeded 提升不挂起；驳回边表行保留（手动驳回仍可达））
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
       builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；六项相位词汇映射见 concepts/workflow.md §1（运行时注册表同源）；预算/成本归 metrics 域（暂不做）
 
@@ -319,6 +320,7 @@ spec:
     # MetricThreshold（event.md 规则 13 v0.31 阈值桥首段）：装配层阈值桥数据面样本通道服务侧判定自产——source 服务侧判定恒 metrics，dedupKey=<metric>:<window>（同指标同窗口越限聚合防风暴）；阈值判定是服务侧动作（数据面只产样本不带判定）；落 run 同拍即拍（workflow.md 规则 15）。
     - {type: MetricThreshold,  source: metrics,   defaultLevel: warn,  tier: attention, visibility: default-visible, dedup: "<metric>:<window>",   route: owner-workflow}
     - {type: DocApplied,       source: core,      defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "apply 落库必发；engine 自写豁免",     route: owner-workflow}
+    - {type: DocDeleted,       source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "doc-deleted:<obj>",   route: dead-letter}   # 对象删除（DELETE /v1/objects 面——2026-11-26 假数据清理批；involved=被删对象锚；删除已成事实事件 best-effort，账面=doc_history 终态行+apply_log deleted）；bug 生命周期 §9a「修复后删临时 BugDoc」即走此词
     - {type: DriftFixed,       source: engine,    defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "<workflow>:<tick>",       route: observation-bus}
     - {type: ApprovalNeeded,   source: "permission|core",defaultLevel: warn, tier: attention, visibility: default-visible, dedup: "<rule>:<obj>",    route: notification/*}   # 双产源：permission=人审档拒绝路径（v0.21）；core=Proposal 提交高危分流自产（v0.51，dedup=proposal:<obj>——concepts/proposal.md 规则 5）
     - {type: ApprovalGranted,  source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "approval:<obj>",      route: dead-letter}   # 审批信号族（workflow.md 规则 13/event.md 规则 11）：run 域迁移事件——involved=Workflow 引用即锚；dispatch 派发面无目标
@@ -346,6 +348,7 @@ spec:
     - {on: ExternalChanged,  for: "owner:*",        dispatch: owner-workflow}
     - {on: MetricThreshold,  for: "owner:*",        dispatch: owner-workflow}
     - {on: DocApplied,       for: "owner:*",        dispatch: owner-workflow}
+    - {on: DocDeleted,       for: "any",            dispatch: dead-letter}   # 删除已落账（doc_history/apply_log）——事件仅可见性；dispatch 无目标 dead-letter 兜底
     - {on: DriftFixed,       for: "any",            dispatch: observation-bus}
     - {on: ApprovalNeeded,   for: "any",            dispatch: notification/*}
     - {on: ApprovalGranted,  for: "any",            dispatch: dead-letter}   # 审批信号族：run 域迁移事件（workflow.md 规则 13）——dispatch 派发面无目标，不另起新 run
