@@ -62,4 +62,13 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 判据：两个无依赖且写集不相交的任务并发 running；同 repo 默认串行；调整上限后生效且留痕；失败任务不拖垮无关任务；任务中心可见阻塞原因。
 
+## R-ENG-6 并发工作分支与 worktree 规约（2026-11-26 用户裁决）
+
+> 用户原话：「看看其他session 都移动到agent/xxx agent开头。不要放到根目录」。
+
+1. **分支命名**：一切并发/agent 工作分支一律 `agent/<name>` 前缀（`agent/scheduler`、`agent/console`…）；不得裸用 `docs/*`、`feat/*` 等散名；`main` 只收合并结果（根目录=main 不留未合并工作）。
+2. **worktree 位置**：worktree 一律放项目根下的 `worktrees/<repo>/<branch-slug>`（如 `self-recursive-agent/worktrees/core_system_workservice/agent-scheduler`），**不放系统临时目录根（/tmp 等）与仓库工作树内**——临时目录会被清理、散放会与其他会话互撞。
+3. **生命周期**：合并进 main 后立即 `git worktree remove`；分支保留至确认无回滚需要再删；未合并的 worktree 不得强删。
+4. **判据（机读）**：`git worktree list` 每仓只剩主线；`git branch` 无 `docs/*|feat/*` 类散名；`worktrees/` 下每个子目录对应在册 agent 分支。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。
