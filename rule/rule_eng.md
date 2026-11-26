@@ -71,4 +71,12 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 3. **生命周期**：合并进 main 后立即 `git worktree remove`；分支保留至确认无回滚需要再删；未合并的 worktree 不得强删。
 4. **判据（机读）**：`git worktree list` 每仓只剩主线；`git branch` 无 `docs/*|feat/*` 类散名；`worktrees/` 下每个子目录对应在册 agent 分支。
 
+## R-ENG-7 单文件行数硬上限（2026-11-26 用户裁决）
+
+一切代码文件（`.go`/`.ts`/`.js`/`.jsx`/`.tsx`/`.css`/`.html`/`.sh`/`.py`/`.mjs`/`.cjs` 等一切代码与标记语言）**不允许超过 800 行**（含注释与空行；生成产物 `dist/` 构建输出与 lockfile 豁免）。
+
+1. **超限必须拆分**：Go 按职责拆文件/子包；TS/JS 按模块/屏拆；CSS 按组件域拆。拆分原则=**单一职责、命名可寻址、不改行为**（重构零语义变化）。
+2. **checker**：[lint/max-file-lines.sh](../lint/max-file-lines.sh)（type=lint，机械可判）：`git ls-files` 遍历 tracked 代码文件，awk 数行，>800 即红并输出文件名与行数；豁免词形=`dist/`、`*.lock`、`pnpm-lock.yaml`、`package-lock.json`、`go.sum`。
+3. **判据（机读）**：① lint 脚本 exit 0；② 超限文件清单为空；③ 新增文件默认受检（受检集合=git ls-files，无需登记）；④ 豁免仅限构建产物与 lockfile。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。
