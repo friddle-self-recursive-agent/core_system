@@ -95,4 +95,17 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 判据：任取 doc / workflow / event 三类对象，工作台各片齐全或显式「无」；有 scheme 的对象默认字段卡且 YAML 折叠；会话回复 markdown 渲染且对象引用可点；workflow 首屏=报告而非配置表。
 
+## R-UX-8 命令行与桌面同源（2026-11-26 用户裁决）
+
+> 用户原话：「看看写一个命令行[对应桌面功能]然后命令行来提交。来触发系统的event而不是再外面点火了」「接下来任务请用cli提交。一旦有bug修复bug保证event自动能成功走循环」。
+
+1. **一个控制面，两个入口**：桌面（console）与命令行（`corectl`）同源——每个桌面功能有对应命令；CLI 不新造 API/DB，不复制状态。
+2. **写面唯一**：CLI 写命令只走 `POST /v1/apply` 与 `POST /v1/events`（及既有 secrets 门控面）；与桌面同一权限/准入/事件链，不得直连 DB/文件/进程。
+3. **事件点火**：自循环唯一触发=`LoopRequested` 事件（`corectl loop`）→ dispatch root-agent → wake 桥 → 宿主固定 loop 命令拉起 core-headless 会话；**外部 ignite 脚本只作过渡传输，桥验收后退役**。
+4. **单飞与固定命令**：已有 loop 会话不重复拉起（宿主 pgrep 单飞 + `already-running`）；宿主只执行部署侧配置命令，事件载荷只进日志、不进命令（零注入面）。
+5. **地址发现**：宿主就绪写 `~/.dsh/cored.addr`（0600）；CLI 优先级 `--server` > `CORED_ADDR` > 文件；地址属部署侧，不入公开仓。
+6. **显式降级**：cored 不可达、桥缺席、命令未配、单飞命中——都必须有明确输出/状态码，不静默、不伪造成功。
+
+判据：`corectl loop` 后 `/v1/events` 有 `LoopRequested`、`/v1/agents/wakes` 有 root 唤醒、宿主日志出现 `spawned` 或 `already-running`；停掉外部 ignite 后，仅靠该事件仍能拉起/续跑循环。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。

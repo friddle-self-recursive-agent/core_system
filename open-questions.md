@@ -59,6 +59,12 @@
 2. 报告缓存粒度（viewer 指纹 vs 角色集指纹）与 TTL 默认值（暂定 5m）。
 3. clear 区窗口（只列本窗口 or 最近 N 次检查）——先按本窗口，实测后定。
 
+## cli
+
+1. 多 profile 同机的 cored 地址文件命名（当前仅 core-system 写 `~/.dsh/cored.addr`；kube-inner/core-headless 是否需要独立文件待定）。
+2. CLI 审批动作（approve/reject）与会话发送命令的落点/权限口径——v1 只读账面，动作命令下一段。
+3. CLI `watch`（事件订阅流）是否复用 dsh 会话流/SSE，还是轮询 `/v1/events?since=`。
+
 ## 横切
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。

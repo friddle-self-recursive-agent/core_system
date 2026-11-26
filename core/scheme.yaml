@@ -296,6 +296,7 @@ spec:
     - {type: TemplateFound,    source: connector, defaultLevel: info,  dedup: "<org>:<template>",    route: workflows/deploy-system-workflow}
     - {type: SessionClosed,    source: agent,     defaultLevel: info,  dedup: "<session>",           route: instance-docs}
     - {type: ReconcileTick,    source: core,      defaultLevel: info,  dedup: "reconcile:<at>",      route: workflows/core-workflow}   # 定时巡检到点（level-triggered 保险丝，event.md §7；引擎内部源二段=cored 定时器自产）
+    - {type: LoopRequested,    source: human,     defaultLevel: info,  dedup: "<loop>:<round>",       route: root-agent}   # CLI/API 请求跑一轮自循环（corectl loop；R-UX-8）：事件→wake 桥→宿主拉起 core-headless 会话；source 服务侧恒 human
     # 会话活性事件族（KI-003，event.md 规则 14；引擎内部源六段=装配层 watchdog 自产，source 恒 core）
     - {type: SessionStalled,   source: core,      defaultLevel: error, dedup: "session:<id>",        route: root-agent+notification/*}   # 停滞判定态=SuspectedStall（判定词与事件词分立：事件名=SessionStalled 与 HeartbeatLost 同族）；自愈固定顺序第一步=注入「继续」
     - {type: SessionHealed,    source: core,      defaultLevel: info,  dedup: "session-heal:<id>",   route: dead-letter}   # 注入「继续」后心跳恢复——恢复=活性事实非处置触发；停滞时长/最后心跳点随 detail 面
@@ -318,6 +319,7 @@ spec:
     - {on: TemplateFound,    for: "any",            dispatch: workflows/deploy-system-workflow}
     - {on: SessionClosed,    for: "owner:instance", dispatch: instance-docs}
     - {on: ReconcileTick,    for: "any",            dispatch: workflows/core-workflow}   # 巡检到点→一次全量对账 run（对账锚=系统级循环本体）；v0.29 事件驱动推进源首段：该行落 run 的同拍即一次全量推进拍（source=core 三重闸——workflow.md 规则 15 v0.29 段，推进总闸同闸不旁路）
+    - {on: LoopRequested,    for: "any",            dispatch: root-agent}   # CLI 触发自循环（R-UX-8）：wake 桥按白名单转发宿主 /wake/spawn，由部署侧 loop 命令拉起 core-headless 会话
     - {on: SessionStalled,   for: "any",            dispatch: root-agent, cc: notification/*}   # 会话停滞=人注意事实（KI-003，event.md 规则 14）：root-agent 主路=自愈链入口（第一动作=注入固定 prompt「继续」）；cc=bind 通知旁路
     - {on: SessionHealed,    for: "any",            dispatch: dead-letter}   # 恢复=活性事实非处置触发（自愈动作在 watchdog 侧已执行）——dead-letter 观测兜底可见
     - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
