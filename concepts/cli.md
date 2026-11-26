@@ -70,6 +70,8 @@ corectl loop
 
 `corectl tick` 发布 `ReconcileTick`，触发 core-workflow 对账 run，**不**拉起 loop 会话；两者语义分立。
 
+**会话结束也是 CLI 提交**：loop 会话不得自行 `setsid` 点火下一轮；结束前用 `corectl loop` 提交下一轮（`ignite-loop.sh` 护栏 6）。若提交时本轮仍在收尾，宿主返回 `already-running` 并落 pending，退出后自动拉起——循环的每一轮都由事件链驱动。
+
 ## 5. 生命周期
 
 提交（CLI/任何主体）→ event_log 归档 → dispatch 判定 → 唤醒投影 → 宿主桥拉起/单飞 → loop 会话执行 → SessionClosed / 下一轮事件 → 循环。事件可丢可重；循环正确性不依赖单条事件（P3 level-triggered），下一次 `LoopRequested` 或巡检事件会再次拉起。

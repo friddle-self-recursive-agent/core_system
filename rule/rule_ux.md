@@ -101,7 +101,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 1. **一个控制面，两个入口**：桌面（console）与命令行（`corectl`）同源——每个桌面功能有对应命令；CLI 不新造 API/DB，不复制状态。
 2. **写面唯一**：CLI 写命令只走 `POST /v1/apply` 与 `POST /v1/events`（及既有 secrets 门控面）；与桌面同一权限/准入/事件链，不得直连 DB/文件/进程。
-3. **事件点火**：自循环唯一触发=`LoopRequested` 事件（`corectl loop`）→ dispatch root-agent → wake 桥 → 宿主固定 loop 命令拉起 core-headless 会话；**外部 ignite 脚本只作过渡传输，桥验收后退役**。
+3. **事件点火**：自循环唯一触发=`LoopRequested` 事件（`corectl loop`）→ dispatch root-agent → wake 桥 → 宿主固定 loop 命令拉起 core-headless 会话；**外部 ignite 脚本只作过渡传输，桥验收后退役**。loop 会话结束前用 `corectl loop` 提交下一轮，**不得自行 `setsid` 点火**。
 4. **单飞与固定命令**：已有 loop 会话不重复拉起（宿主 pgrep 单飞 + `already-running`）；宿主只执行部署侧配置命令，事件载荷只进日志、不进命令（零注入面）。
 5. **地址发现**：宿主就绪写 `~/.dsh/cored.addr`（0600）；CLI 优先级 `--server` > `CORED_ADDR` > 文件；地址属部署侧，不入公开仓。
 6. **显式降级**：cored 不可达、桥缺席、命令未配、单飞命中——都必须有明确输出/状态码，不静默、不伪造成功。
