@@ -65,6 +65,12 @@
 2. CLI 审批动作（approve/reject）与会话发送命令的落点/权限口径——v1 只读账面，动作命令下一段。
 3. CLI `watch`（事件订阅流）是否复用 dsh 会话流/SSE，还是轮询 `/v1/events?since=`。
 
+## storage（文档库 sqlite / git 导出）
+
+1. 定时导出 git + push 的实现落点（`corectl export` / 独立 exporter / 部署 cron/systemd timer）与规则（频率/分支/远端/失败告警）——下一段。
+2. sqlite 逐次正文历史 `doc_history` 表与 `GET /v1/rev-content` 读面——下一段；当前 sqlite 后端 503 诚实降级，不得用周期 git 快照冒充。
+3. 多 cored 共库写竞争（core-system/kube-inner 若同 sqlite）——迁移期 kube-inner 暂显式 git，后续定单写者/写面归属。
+
 ## 横切
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。

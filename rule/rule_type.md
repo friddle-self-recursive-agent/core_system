@@ -31,6 +31,7 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 |---|---|---|
 | R-DOC-1..5 | policy | —（终态制靠人审+R-DOC 尾注存在性可 lint，暂缓） |
 | R-DOC-6 | **lint** | lint/metadatainfo.sh（全仓 tracked `.md` 侧车） |
+| R-DOC-7 | policy | —（sqlite 默认/git 导出；启动参数与导出任务由部署验收探针判定） |
 | R-ENG-* | policy | — |
 | R-PUB-1 | **lint** | lint/personal-info.sh |
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |

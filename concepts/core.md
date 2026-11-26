@@ -15,7 +15,7 @@ Core 是控制面运行时：它读文档面、跑 Workflow 引擎、分发 Even
 
 职责五件套：
 
-1. **存储**：封装文档库（v1 = git 仓库目录），提供带乐观锁的读写接口（见 Revision）。
+1. **存储**：封装文档库（默认 = sqlite docs DB + 本地 storage；git 布局 = 周期导出/公开格式），提供带乐观锁的读写接口（见 Revision、R-DOC-7）。
 2. **校验**：所有写入按 Scheme 注册的类型 + 权限系统准入校验。
 3. **分发**：Event 的产生、去重、路由（按 Scheme.dispatch：类型+involved/owner/scope 派发给 Workflow/Agent）。
 4. **调度**：Workflow 引擎——把"该收敛了"变成对具体 Agent 的任务派发（含 backoff）。

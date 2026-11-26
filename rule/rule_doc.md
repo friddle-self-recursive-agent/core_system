@@ -58,4 +58,16 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 - **初始 tag_type 词表**：`domain` / `mech` / `surface` / `lifecycle` / `doc`（开放；只增不改名，沿 R-CTX-3）。
 - 判据：全仓 tracked `.md` 均有合法侧车；`tags` 非空且每项有 `tag`+`tag_type`；`importance` 为 0–100 整数。
 
+## R-DOC-7 文档库默认 sqlite；git=导出/公开（2026-11-26 用户裁决）
+
+> 用户原话：「Git 文档库 后期就是内置系统的导出和存储而已。默认调整为sqlite吧。然后后面就是定时按规则导出然后push远程」「Root不能选git了。就sqlite+本地storage。git就是相当于output导出然后public」。
+
+1. **默认权威=sqlite**：文档内容权威=docs DB（`--docs-backend sqlite` 缺省；`doc` 表 `(kind,scope,name)` + `resourceVersion` 乐观锁），本地 storage 承载文件/产物；新建部署不再以 git 为权威。
+2. **git=导出/公开格式**：git 布局只作**导出/公开**（output/public）：按规则定时从 sqlite 导出工作树 → commit → push 远程；git 历史=导出快照，**不是逐次写账本**。
+3. **root 不得选 git**：core_system（root）部署固定 sqlite + 本地 storage，启动参数不得出现 `--docs-backend git`；兼容期非 root 部署可显式 `--docs-backend git`，迁移后同上。
+4. **逐次内容历史=sqlite 侧待补**：当前 `apply_log` 有操作流水（谁/何时/哪个 rv/结果），但无逐次正文快照；`GET /v1/rev-content` 在 sqlite 后端诚实降级（503），不得冒充。补 `doc_history` 表或等价读面为下一段。
+5. **导出不阻塞写路径**：导出/推送失败只告警并留痕，不回滚 sqlite 写；导出频率/目标/分支=部署侧配置，规则写在本仓、实际值不入公开仓。
+6. **迁移**：`--docs <旧git布局根>` 对空库一次性种子导入，保留各对象 `resourceVersion`；非空库不导入（幂等）。
+7. 判据：cored stderr 有 sqlite 后端锚（`文档库已挂载 db=…（sqlite 后端…）`）；首启种子导入行；同一 apply 全周期（create→noop→409）在 sqlite 全绿；root 启动参数无 `--docs-backend git`；导出任务产出 git commit 且 push 成功（失败可见）。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。
