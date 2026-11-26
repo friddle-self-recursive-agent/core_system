@@ -137,7 +137,7 @@ spec:
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
       builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；六项相位词汇映射见 concepts/workflow.md §1（运行时注册表同源）；预算/成本归 metrics 域（暂不做）
 
-    - kind: Proposal                 # 需求提案（concepts/proposal.md——console 提需求→审批→派工的一等对象；能力 B，2026-11-24 用户裁决）
+    - kind: Proposal                 # 需求提案（concepts/proposal.md——多主体提需求→审批双路→派工的一等对象；能力 B 2026-11-24；2026-11-26 多主体入口/agent 全自动链/提案×上下文对照/派工含文档更新）
       builtin: true
       storage: "global/proposals/<name>.yaml | systems/<s>/proposals/<name>.yaml"
       spec:
@@ -146,9 +146,10 @@ spec:
         acceptance: "[]string"               # 验收标准（可验证条目——Goal.acceptance 同词汇）
         impact: "?string"                    # 影响面（涉及系统/对象/风险说明）
         priority: "low|normal|high|critical" # 优先级（低危/高危审批分流判定输入——分流配置=部署侧 --proposal-auto-approve）
-        proposer: "!string"                  # 提出人（主体标识——审计回链 apply_log.subject）
+        proposer: "!string"                  # 提出人（主体标识：人/agent/自动化节点——审计回链 apply_log.subject）
+        origin: "?console|agent|api|cli"     # 提交入口（console 只是入口之一；缺省由提交面回填，纯审计不参与判定）
         status: "!draft|submitted|approved|rejected|landed"  # 状态闭合集（迁移纪律=写面主体：draft=本地草稿未入册→submitted=提交待审→approved|rejected=判定→landed=产物落盘回写；checker=枚举闭合集，迁移序=主体纪律）
-        landing: "?{target: doc|task, ref: ?string}"  # 产物指针（批准后执行体落点声明：doc=docsRoot 对象草稿 / task=部署侧任务文件；产物真实落盘=apply-workflow agent 真实拉起段，declared-deferred）
+        landing: "?{target: doc|task, ref: ?string, docsUpdate: ?bool}"  # 产物指针（批准后执行体落点声明：doc=docsRoot 对象草稿 / task=部署侧任务文件；产物真实落盘=apply-workflow agent 真实拉起段，declared-deferred；docsUpdate=派工须随行更新受影响现有文档，缺省 true——不回写文档不得 landed）
 
     - kind: Provider                 # 账号包
       builtin: true

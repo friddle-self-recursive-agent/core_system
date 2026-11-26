@@ -145,6 +145,7 @@ spec:
 - **Event**：事件是上下文的第二来源（type→tags、urgency 参与打分）；详见 event.md 规则 16。
 - **Skill**：缓存策略与 Skill 同构（`cachePolicy` 的 TTL/失效条件），复用同一套缓存纪律。
 - **Agent / Session**：`Agent.spec.docsPolicy` 的"按需读"由此实现；两段开会话接入 `agent-session.md`。
+- **Proposal**：提案是一等消费方——提交节点跑 `context.pack` 产 conflicts/supplements 对照（proposal.md §4.6），对话与审批面明确展示；提案本体带 `conventions.tags` 入同一 tag 池。
 - **ConnectorOps**：索引构建/亲和重算/失效/预热=代码承载能力，归 `connectops-context`（R-ENG-3）。
 - **Notification / Console**：stale 缓存的"提示更新"经事件+session 界面徽标呈现；ctx 可视与缓存实效控制在 console session 视图（见 runtime/console-ui.md）。
 
