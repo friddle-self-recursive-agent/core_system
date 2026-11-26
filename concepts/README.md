@@ -35,6 +35,7 @@
 | [attention.md](attention.md) | — | 关注报告（读侧派生：值得关注/不值得关注+证据链，默认主界面） | —（告警摘要的人话归并） |
 | [cli.md](cli.md) | — | 命令行（桌面同源控制面；`corectl loop` 事件点火） | kubectl |
 | [rule-verification.md](rule-verification.md) | — | 规则验证（code→scheme→ConnectorOps；agent→丢规则给 agent） | admission/policy audit |
+| [task-scheduler.md](task-scheduler.md) | Task | 多任务并发调度（无关并行 agent，相关串行；并发度可调） | Job/queue controller |
 
 ## 边界矩阵（一屏总览）
 
@@ -53,3 +54,4 @@
 | AttentionReport | 现实（只读派生） | 内 | 回答"现在该看什么"（不是事实源、不是文档对象） |
 | CLI（corectl） | 控制面投影 | 内 | 让同一控制面在终端可用（不是第二套 API） |
 | RuleVerification | 意图验证 | 内 | 规则怎么验（code→scheme→ConnectorOps / agent→agent） |
+| TaskScheduler | 执行调度 | 内 | 多任务怎么并行/排队（无关并发、相关串行、可调） |

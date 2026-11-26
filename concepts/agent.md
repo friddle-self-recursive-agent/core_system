@@ -13,18 +13,21 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **默认实现**：Agent = 现有 agent + 程序中调用 LLM 来处理，模拟实现需求功能。默认运行时是 **DSH**——系统把自己做到 DSH 里：每个 Agent 就是一个 dsh 进程会话。**派发子 agent 时，子 agent 是机器 instance 级的独立进程（不是运行时内部的 subagent）**——不共享进程状态、不省内存（明确接受资源开销，换取隔离与直控）。**子 agent 的运行时不限于 dsh**：自写 agent、opencode 等任何 agent 运行时都可以——用什么运行时、什么工具、什么通道账号，一律在其引用的 **ConnectorOps 中描述或调用**（connector.md：Agent 引用 ops，ops 声明环境与工具；spawn 子 agent 本身也是一次 ConnectorOps 调用，与调外部工具同一语义）。简单任务派发走 simple-shot Workflow。
 
-**文档按需加载**：Agent 自己按需加载相应文档——由 dsh 本次会话自己实现（会话内决定读什么），不是外部装配强灌。Workflow 只派任务。
+**三段式 Session 与上下文按需装配（R-CTX-4）**：一个逻辑意图/任务由**三段式 Session** 完成（统一原按需加载、Catalog 预插与 Tag-RAG）：
+1. **第一段·获取上下文 Session（侦察段）**：预插**基础命令使用规范（默认查询 Skill）+ 顶层目录 Index（Service Catalog 货架摘要）**；先按任务 Tag 细粒度触发 `TagCtxShard` 缓存分片（可动态调整拿到的 `takeBudget`），仅对未命中/stale 的差量 Tag 自主调用检索命令拉取完整 Tag/TagRule、四族对象（Rule/Doc、Scheme、Provider、ServiceDesc）、近期关联 Event、**近期相关 Session** 及各对象 `importance (0-100)` 与 `Relevance(A,B) (0-100)`，产出 `ContextPack`；
+2. **第二段·任务执行 Session（执行段）**：以 `ContextPack` 起步执行；**多轮对话与连续推进始终复用当前 Session 本身（保 Prefix KV Cache）**，按需触发任务缓存并支持中途动态增量更新（JIT 调用上下文工具补拉），记录每个引用块的真实归因轨迹（`used_effective / queried_irrelevant / missed_in_phase1`）；
+3. **第三段·总结与演化 Session（异步后台段 + 独立审核 Agent 裁决）**：第二段结束即异步拉起（零主链路延迟），固定执行三件事：①对真实阻塞/规则冲突/实测不一致提 **Proposal**（先跑 `Relevance ≥ 85` 查重合并）；②**正向归因裁剪**生成/补充记忆缓存（`TagCtxShard` 与会话缓存）；③**防同质任务刷分的 Importance / TagRelevance Rerank**（叠加跨任务多样性折扣 $w_{\text{div}}$ 与界面人类审核评论因子 `humanScore`），产出必须经**另一独立审核 Agent（Judge Agent）**裁决通过后方可 Apply。
 
 **一个 Service 一个 Agent**：每个 Service（系统）一个负责 Agent（ServiceAgent）；**Agent↔Service 沟通协议的完整设计见 instance 仓 runtime/agent-service-protocol.md**。要点：
-- **上下文预插入**：Agent 处理意图时，Service 内资源按上下文先插入"大概描述"（资源清单+关系摘要），Agent 据此**自行导入**相关内容（文档按需加载不变）；
+- **第一段最小底座预插入**：Agent 处理意图时，第一段先注入基础命令规范与 Service 资源目录 Index（catalog 货架标签），优先触发 `TagCtxShard` 缓存分片，并对差量 Tag 自行拉取全文；
 - **Service 内 Agent 信息不隔离**：不做 SubAgent 级信息隔离——ServiceAgent 自己判断读什么、给谁看；
-- **一个意图 = 一次 session**（session 粒度=意图，不是消息）；
-- Service 可在运行中**提议更新文档**（提议理论上都应落在 Docs 中），也可**在运行时提交 Ref 类型**记录（解析到的资源随手入册）；
-- **默认记忆系统就在 Service 的文档管理中**：Agent 的记忆（经验/偏好/上下文延续）以文档形式存 Service 文档域（Memory DocType），随 docs_operator 管理——不建独立记忆库。
+- **一个意图 = 一个三段式逻辑 Session**（侦察段→执行段自复用→异步总结演化段）；
+- Service 可在运行或第三段异步总结中**提议更新文档**（Proposal，先查重后提单），也可**在运行时提交 Ref 类型**记录（解析到的资源随手入册）；
+- **默认记忆系统就在 Service 的文档管理与 CtxCache 中**：持久经验以文档形式存 Service 文档域（Memory DocType，SQLite `docs DB` 权威 + 定时导出 Git），会话热记忆落按 Tag 分片的 `CtxCache`（容量与提取大小均可调）。
 
-**默认 Skill（系统文档查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统"作为 skill 喂给它——一组命令式工具（按 scope/name/DocType 取文档与文档信息、读 Status/最近事件），agent 靠调用命令获取文档与文档信息，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
+**默认 Skill（系统文档与上下文查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统与上下文"作为 skill 喂给它（第一段预插底座）——一组命令式工具（`context.find / pack / expand`、按 scope/name/DocType 取文档、读 Status/最近事件/近期相关 Session），agent 靠调用命令获取上下文，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
-**检索（简单 RAG，分页）**：Session/Doc/TaskScheme 更新时由 LLM **自动打 tag + 评判重要程度**（tags[]/importance 0-100/一句话标题描述——conventions.tags，scheme.yaml；文档导出侧车见 R-DOC-6）。Agent 查历史靠检索工具（tag 过滤+重要度×时间衰减排序），**一律分页**：默认每页 10 条（可调），列表只给 `[标题+简单描述+重要度+时间]`，Agent 按需拉全文。**结果不对就继续找**：换 tag/翻页迭代（工具与提示词见 instance 仓 runtime/agent-session.md §5）——不导入全量。
+**检索（Tag 核心 + 0–100 全局相关性公式）**：Session/Doc/TaskScheme 更新时自动维护 `tags[]`、`tagRelevance (0-100)`、`importance (0-100)`、可选 `humanScore (0-100)` 与 `digest`（导出侧车见 R-DOC-6）。检索与排序统一走全局相关性公式 `Relevance(A, B) ∈ [0, 100]`（非对称 Tag 覆盖率 + 亲和传播 + BM25 + 作用域先验），分页按需拉取，不导入全量。
 
 两类：
 
@@ -64,6 +67,9 @@ spec:
  docs权限系统:
  read: [{scope: systems/developer-system/*}]
  onDemand: true # 按需加载：dsh 会话自实现
+ eventScopes: # 明确该 Agent 可消费/处理的 Event scope 范围（event.md 规则 19）
+ - systems/developer-system
+ - systems/developer-system/*
  subAgents:
  - {name: ci-verifier, spawn: machine-instance} # 机器级子进程；运行时不限 dsh（opencode/自写 agent 均可），派发/调用经 ConnectorOps 描述
  retry: {maxAttempts: 3, backoff: 30s*2^n, escalateTo: root} # ：默认 root，bind 可选插入
@@ -120,6 +126,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 5. SubAgent 权限=Parent 一次性全量下发（⊆父，只减不增；不做按步骤细粒度裁剪），运行时缺权限直接 ask 上级整包重发；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
+8. **Agent 处理 Event 的 `scope` 范围强制约束（event.md 规则 19）**：每个 Agent 必须通过 `spec.eventScopes` 明确其允许处理的事件 `scope` 范围（ServiceAgent 缺省锁定为其所属 `systems/<s>` 及 `systems/<s>/instances/*`，子 Agent `eventScopes` 必须 $\subseteq$ ParentAgent 的 `eventScopes`；仅 `builtinRoot` 可持 `["*"]`）；派发路由与拉取消费双侧强制校验 `event.metadata.scope ∈ agent.spec.eventScopes`，严禁跨 scope 越界消费事件，且第一段侦察拉取「近期关联事件」时默认只检索本 Agent `eventScopes` 内的非隐藏事件（自动过滤 `Heartbeat` 等 `visibility: default-hidden` 的底层事件）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析

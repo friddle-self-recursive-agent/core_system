@@ -43,9 +43,11 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 | ruleId | type | checker |
 |---|---|---|
 | R-DOC-1..5 | policy | —（终态制靠人审+R-DOC 尾注存在性可 lint，暂缓） |
-| R-DOC-6 | **lint** | lint/metadatainfo.sh（全仓 tracked `.md` 侧车） |
+| R-DOC-6 | **lint** | lint/metadatainfo.sh（全仓 tracked `.md` 侧车与 0–100 分值） |
 | R-DOC-7 | policy | —（sqlite 默认/git 导出；启动参数与导出任务由部署验收探针判定） |
-| R-ENG-* | policy | — |
+| R-DOC-8 | **lint** | lint/single-scheme.sh（禁止单文件多 Scheme；导入落库必拆单文件单 Scheme；细粒度 `aspect`） |
+| R-DOC-9 | policy | —（`ServiceDesc` ↔ `ServiceInstance` 设计/实现文档 1:N `[metadata 关联]` `trace` 双向追踪与过期检测） |
+| R-ENG-1..4 | policy | —（R-ENG-4 Scheme 值修改免改代码 vs 契约改动必触发代码构建） |
 | R-PUB-1 | **lint** | lint/personal-info.sh |
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |
 | R-PUB-3 | lint（目录级） | acceptance/ 根在 .gitignore、acceptance/<主题>/ 入库；checker 暂缓 |

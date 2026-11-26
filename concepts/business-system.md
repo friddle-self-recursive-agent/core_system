@@ -2,36 +2,40 @@
 
 | 项 | 值 |
 |---|---|
-| K8s 对照 | K8s 机制之上的应用语义层（Policy/上层 CRD 生态）：机制全部复用，约束=已注册机制的声明性使用 |
-| 形态 | 一个 ServiceDesc（`systems/common-business-system/`）+ DocType 族（StateModel/Finance）+ 规则集（R-BIZ-*）；零新 kind、零新执行机制 |
-| 作用域 | Global（约束库被一切业务实例继承） |
-| 状态 | 定稿（终态制，rule/rule.md；**2026-11-26 用户裁决：core-system 之上启动企业业务系统层，先骨架**；第一实例=sybran-business-system，落公司 OneDev 私有仓，运行面在 sybran agent，不进 core_agent） |
+| K8s 对照 | K8s 机制之上的独立应用控制面实例：复用同一套控制面架构，但独立部署、独立 `cored`、独立文档库 |
+| 形态 | **不在最外层 `core_system` 根项目中，单独设计、独立实例运行**；每个业务系统实例（如 `sybran`）运行**自己独立的 `cored` 进程与独立的 SQLite `docs DB`**（每个 `cored` 只挂载单个 `docs DB / docsRoot`） |
+| 作用域 | 独立业务系统级（约束骨架被具体业务实例继承） |
+| 状态 | 定稿（终态制，rule/rule.md；**2026-11-26 用户裁决：① business-system 不在最外层根项目中，单独设计，业务实例（如 sybran）运行独立的第二个 `cored`；② 明确区分业务内部流水/账本事件与外部控制面事件：业务流与逐笔对账由业务代码承接、自己走自己的事件与账本；外层控制面系统只承接系统级别事件、报警事件、以及对账失败事件**） |
 
 ## 1. 定义
 
-common-business-system 是 core-system 之上的**通用企业服务模型**：针对企业**实际运行状态**的数据流/信息流设计与循环管控。它只提供**约束**——企业语义怎么映射到 core-system 已注册的机制上——不提供任何业务逻辑；业务逻辑永远属于具体实例。
+common-business-system 是复用 core-system 机制的**独立企业业务服务模型**（不在最外层 `core_system` 根项目中混合部署，而是单独设计、独立运行自己的 `cored` 实例）。它提供**业务约束模型**——企业语义怎么与控制面机制分层配合——不把高频业务交易塞进控制面。
 
-三层定位：
+三层定位与物理隔离：
 
 ```
-core-system                机制层：文档控制面 / 收敛循环 / 权限 / 事件（现有六 builtin）
-  ↑ 继承约束（改实例不改本层）
-common-business-system     约束层：状态 / 财务 / 业务 / 监控 / 事务 五域纪律（本层）
-  ↑ 实例化（填入真实业务对象/预算/流程/指标）
-sybran-business-system     实例层：第一具体企业实例（公司 OneDev 私有仓 sybran/sybran-business-system）
+core-system（最外层根项目）   机制层：根控制面 / 六个 builtin（运行第一个独立 cored：core_agent）
+  ↑ 复用同一套二进制机制，但物理与项目解耦（不混入根 docsRoot）
+common-business-system       单独设计的业务约束骨架：状态 / 财务 / 业务 / 监控 / 事务 五域纪律
+  ↑ 实例化（独立仓 + 独立 cored + 独立业务代码库）
+sybran-business-system       第一具体企业实例（公司 OneDev 私有仓；运行第二个独立 cored：sybran agent）
 ```
 
-**"更多是一个约束，不实际逻辑"** 的机制含义：本层产出的每一条内容，要么是 DocType 注册（声明侧文档类型），要么是 Rule 条目（policy/lint），要么是基词表（枚举与迁移纪律）——**没有任何一条引入新的执行机制**；执行体仍是 Agent/Workflow/Connector，写路径仍是 Apply，闸门仍是权限系统+审批。
+**为什么必须两个独立的 `cored`**：每个 `cored` 的 Repository（`--docs-backend sqlite`）严格只挂载**单个权威 `docs DB`（单 `docsRoot`）**；最外层 `core_system` 的 `cored` 只管系统级 builtin，而 `sybran` 业务系统拥有自己独立的 `cored` 与独立的 `docs DB`。
 
-## 2. 边界
+## 2. 边界（特别是「业务内部流/账本」与「外部控制面事件」的严格分界）
 
-**是**：企业运行状态的约束模型（对象怎么建模、流怎么声明、钱怎么管、健康怎么看、动作怎么可回退、循环怎么对账）。
+**是**：企业运行状态的约束与控制面治理模型（业务规则声明、预算闸门审批、健康指标监控、对账失败后的升级处置）。
 
 **不是**：
-- 不是 ERP/财务软件（不实现记账引擎、不做报表 UI——财务数字的现实投影走 MetricsInfo/事件归档查询）；
-- 不是业务逻辑（"订单怎么履约"属于实例层 sybran-business-system）;
-- 不是新 kind 或新执行面（六域全部落既有机制——这是 P10 单一职责的反向应用：能在既有机制表达的约束绝不新增概念）；
-- 不是组织人事系统（"人是谁"在 user-system；本层只约束"角色在流程里能干什么"）。
+- **绝不把控制面 Event Bus 当成财务账本（Ledger）或高频业务事件流**：
+  - **业务流与账本由业务代码自己承接**：高频订单流、支付流水、会计分录（Ledger Entry：不可丢弃、不可去重、借贷必相等）以及逐笔业务对账，**全部由业务系统自己的业务代码、自有数据库账本与业务内部事件流承接**（自己走自己的事件，对账也是业务代码自己跑）；
+  - **外层控制面（`cored` Event Bus）只承接三类粗粒度事件**：
+    1. **系统级别事件（System-Level Events）**：业务服务/实例生命周期、配置与规则变更（`DocApplied`）、组件健康态迁移；
+    2. **报警/越限事件（Alert Events）**：指标越过声明面阈值（`MetricThreshold`）、预算额度触线请求审批（`ApprovalNeeded`）、任务停滞或熔断报警；
+    3. **对账失败事件（Reconciliation Failure / Drift Events）**：业务代码内部跑对账循环时，一旦发现账实不符/平账失败，向控制面抛出**对账失败事件**（携 `DriftReport` 指针），触发 Agent 调查、告警或人审介入（对账成功仅刷新 `InSync` 状态与指标，不向控制面刷逐笔流水事件）。
+- 不是最外层 `core_system` 的内嵌子目录（单独设计、独立 `cored`）；
+- 不是新 kind 或新控制面执行机制（控制面仍只认既有的 Apply / Workflow / Permission / Event）。
 
 ## 3. 企业分析模式（元模式）
 
@@ -62,16 +66,17 @@ sybran-business-system     实例层：第一具体企业实例（公司 OneDev 
 
 **既有示范**：Proposal 是本域第一个 dogfood 对象——`draft→submitted→approved|rejected→landed` 闭合集+主体纪律+审计回链，全部按本域约束运转。
 
-### 4.2 财务（Finance）
+### 4.2 财务（Finance）与账本/事件严格分离
 
-**企业分析**：账实分离（预算/计划 vs 实际发生）；流水不可变；闸门（谁批钱）；周期结算。
+**企业分析**：账实分离（预算/计划 vs 实际发生）；会计分录（Ledger Entry）不可丢弃、不可去重、借贷必相等；闸门（谁批钱）；周期对账。
 
-**core-system 落点**：
-- 预算/科目/闸门规则 = **意图**（Finance 文档，Spec 侧）；
-- 发生额/流水 = **现实**（Event 归档 + MetricsInfo 查询——不是文档，Q1 判例："这笔钱实际花了多少"进观测面）；
-- 超预算 = MetricThreshold 事件 → ApprovalNeeded → Proposal 调预算（**P6 现成**：agent 发现超支不许改预算，只能提案）；
-- 流水不可变 = 事件归档/opsLog 的 append-only 语义；
-- 月结/年结 = 循环对账 Workflow（ReconcileTick 同机制的业务实例）。
+**业务代码账本 vs 控制面落点（2026-11-26 裁决）**：
+- 预算/科目/闸门规则 = **意图**（业务系统独立 `cored` 中的 Finance 文档，Spec 侧）；
+- **发生额/逐笔财务流水（Ledger）= 业务系统自有代码与自有账本数据库承接**（**绝不走控制面 Event Bus `event_log`**，因为控制面 Event Bus 具有 dedup 窗口去重与可丢弃 level-triggered 语义，严禁当账本用）；业务流水走业务代码自己的内部事件与 ACID 账本表，现状数字由业务账本查询投影至 `MetricsInfo`；
+- **外部控制面只收三类信号**：
+  1. **系统级事件**：Finance/StateModel 规则更新（`DocApplied`）、服务生命周期变化；
+  2. **报警/越限事件**：科目消耗越过声明面阈值 → `MetricThreshold` / `ApprovalNeeded` → Proposal 调预算（agent 发现超支不许改预算，只能提案）；
+  3. **对账失败事件**：业务代码内部对账任务（月结/日结/渠道核对）发现账实不符时，向控制面发送**对账失败事件**（附 `DriftReport`），触发告警与处置 Workflow。
 
 ### 4.3 业务（流程）
 
@@ -158,14 +163,14 @@ draft（草稿）→ submitted（已提交）→ approved（已批准）→ exec
 
 ## 8. 设计规则
 
-1. **零新机制**：本层约束必须能用已注册 kind/DocType/Event/Workflow 表达；表达不了=先改 core-system 机制设计，不得在本层即兴造概念。
+1. **独立项目与独立 `cored`**：business-system 不混在最外层 `core_system` 根项目中，而是单独设计；每个业务部署实例（如 `sybran`）运行自己独立的 `cored` 与独立的 SQLite `docs DB`（单 `cored` 单 `docsRoot/docs DB`）。
 2. **R-BIZ-1 状态闭合集**：业务对象状态必须是闭合集+显式迁移表（StateModel）；未注册状态词不得入 Status；现实态只由系统回写（P2 移植，不可放宽）。
-3. **R-BIZ-2 账实分离**：预算/计划=意图（Spec），发生额=现实（流水/指标）；现状数字禁止手填，只许从流水推导；流水 append-only。
+3. **R-BIZ-2 账实分离与账本/事件总线隔离**：预算/计划=意图（Spec），发生额/逐笔分录（Ledger Entry）=**业务系统自有代码与自有账本库承接（自己走自己的业务内部事件与逐笔对账，严禁用控制面带去重的 Event Bus 充当财务账本）**；现状数字禁止手填，只许从业务账本推导并投影至 `MetricsInfo`；外层控制面 Event Bus **只承接系统级事件、报警/越限事件、以及对账失败事件**。
 4. **R-BIZ-3 钱动必审**：财务闸门动作（超预算、预算变更、对外付款类）默认走高危审批档；agent 无权改预算，只能提案（P6）。
-5. **R-BIZ-4 流必须声明**：数据流/信息流每条在 DataDesign 声明 source→sink+幂等性+留痕口径；未声明的流不得投产（盲流=缺陷）。
+5. **R-BIZ-4 流必须声明**：数据流/信息流每条在 DataDesign 声明 source→sink+幂等性+留痕口径（含业务内部流与上报控制面的三类事件边界）；未声明的流不得投产（盲流=缺陷）。
 6. **R-BIZ-5 无指标不上线**：业务域必须带 Metrics（指标+阈值）才可投产；阈值只在声明面（声明面外谓词不绑定）；观测面只读。
 7. **R-BIZ-6 事务可回退**：对外动作必须声明幂等性+undo 等级（tools 契约）；undo:none 的动作默认人审；补偿=成对 cleanup op。
-8. **R-BIZ-7 循环对账**：账实对照/状态投影/结算必须以 Workflow 循环运行（level-triggered、幂等、收敛语义）；禁止"跑完即忘"的一次性结算脚本语义。
+8. **R-BIZ-7 循环对账与异常上报**：逐笔业务对账由业务代码循环执行（自己走自己的内部对账流）；控制面以 Workflow 周期监督对账状态（level-triggered、幂等、收敛语义），**一旦对账失败必须向控制面抛出对账失败事件与 DriftReport**，禁止"跑完即忘"或静默吞没差异。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 9. 可行性分析

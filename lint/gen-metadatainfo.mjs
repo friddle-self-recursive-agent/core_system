@@ -14,6 +14,7 @@ const SPECIAL = {
   'desc.md': { tags: [['desc', 'domain']], importance: 90 },
   'architecture.md': { tags: [['architecture', 'domain']], importance: 90 },
   'open-questions.md': { tags: [['open-questions', 'doc']], importance: 70 },
+  'bug.md': { tags: [['bug', 'doc'], ['acceptance', 'doc'], ['architecture', 'domain']], importance: 92 },
   'README.md': { tags: [['index', 'doc']], importance: 60 },
 
   'rule/rule.md': { tags: [['rule', 'doc'], ['index', 'doc']], importance: 98 },
@@ -27,6 +28,7 @@ const SPECIAL = {
   'concepts/README.md': { tags: [['index', 'doc'], ['concept', 'doc']], importance: 80 },
   'concepts/attention.md': { tags: [['attention', 'domain'], ['console', 'surface'], ['report', 'surface']], importance: 95 },
   'acceptance/README.md': { tags: [['acceptance', 'doc'], ['index', 'doc']], importance: 60 },
+  'acceptance/bugs/bug.md': { tags: [['bug', 'doc'], ['acceptance', 'doc'], ['verify', 'lifecycle']], importance: 92 },
   'acceptance/console/console-ui.md': { tags: [['console', 'surface'], ['ux', 'domain'], ['acceptance', 'doc']], importance: 95 },
   'runtime/console-adoption.md': { tags: [['console', 'surface'], ['adoption', 'lifecycle'], ['runtime', 'doc']], importance: 85 },
   'runtime/context-rag.md': { tags: [['context', 'domain'], ['runtime', 'doc']], importance: 85 },

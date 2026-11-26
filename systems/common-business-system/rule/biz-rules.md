@@ -13,9 +13,9 @@ ownerRefs: [{kind: ServiceDesc, name: common-business-system}]
 
 业务对象状态必须是**闭合集+显式迁移表**（StateModel 文档）；未注册状态词不得入 Status；现实态只由系统回写，人不得手改（P2 移植，任何实例不可放宽）。
 
-## R-BIZ-2 账实分离（type: policy）
+## R-BIZ-2 账实分离与账本/事件总线隔离（type: policy）
 
-预算/计划=意图（Spec 侧 Finance 文档）；发生额=现实（事件归档流水+MetricsInfo 查询）；**现状数字禁止手填**——一切"现在余额/累计"只许从流水推导；流水 append-only，不可改写历史。
+预算/计划=意图（Spec 侧 Finance 文档）；**发生额/逐笔财务分录（Ledger Entry）=业务系统自有代码与自有账本数据库承接（自己走自己的业务内部事件与逐笔对账，严禁用控制面带 dedup 去重的 Event Bus 充当会计分录账本）**；**现状数字禁止手填**——一切"现在余额/累计"只许从业务账本推导并投影至 `MetricsInfo`；外层控制面 Event Bus **只承接系统级事件、报警/越限事件、以及对账失败事件**。
 
 ## R-BIZ-3 钱动必审（type: policy）
 
@@ -23,7 +23,7 @@ ownerRefs: [{kind: ServiceDesc, name: common-business-system}]
 
 ## R-BIZ-4 流必须声明（type: lint）
 
-数据流/信息流每条必须在 DataDesign 声明 source→sink、幂等性、留痕口径；未声明的流不得投产（盲流=缺陷）。
+数据流/信息流每条必须在 DataDesign 声明 source→sink、幂等性、留痕口径（明确区分业务代码内部流与上报控制面的系统/报警/对账失败事件）；未声明的流不得投产（盲流=缺陷）。
 
 ## R-BIZ-5 无指标不上线（type: policy）
 
@@ -33,6 +33,6 @@ ownerRefs: [{kind: ServiceDesc, name: common-business-system}]
 
 对外动作必须声明幂等性+undo 等级（WorkService.tools 契约：full|partial|none）；`undo: none` 的动作默认人审档；补偿=成对 cleanup op；做不到幂等的外部系统在 Connector 内包成幂等（P4）。
 
-## R-BIZ-7 循环对账（type: policy）
+## R-BIZ-7 循环对账与对账失败上报（type: policy）
 
-账实对照/状态投影刷新/结算必须以 Workflow 循环运行（level-triggered、幂等、收敛语义——只有 InSync 没有"结完"）；禁止一次性"跑完即忘"的结算脚本语义。
+业务逐笔对账由业务代码循环执行；控制面账实对照/状态投影刷新/结算监督以 Workflow 循环运行（level-triggered、幂等、收敛语义——只有 InSync 没有"结完"）；**一旦业务对账失败必须向控制面抛出对账失败事件与 DriftReport**，禁止一次性"跑完即忘"或静默抹平差异。

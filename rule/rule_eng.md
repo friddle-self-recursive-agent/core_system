@@ -40,4 +40,26 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 - 存量仓（common_connector / sybran_usage_connector）按新命名逐步迁移（迁移期双轨；新代码一律 `connectops-*`）。
 - **宿主工具面贡献不算 connector 驱动**（E5b 归属裁决）：agent-comm 四 op 工具是 core_system_dsh_plugin 对 dsh 宿主 `ctx.tools.register` 的贡献——进程内通道、无独立通信栈，工具宿主=plugin 仓本体，不建新仓；声明集种子（ConnectorOps/WorkService 对象）是文档库数据，非代码。
 
+## R-ENG-4 Scheme 值修改 vs 触发代码改动的判定边界（2026-11-26 用户裁决）
+
+> 用户原话：「这里面我理解的。假如代码不需要改动的。只需要改动scheme的值和行为描述的。假如scheme值不支持或者shceme改动。那就必须触发相应代码改动了。所以我觉得逻辑很合理。scheme可以设计拆的更细更多方面。aspect: xxxx」。
+
+1. **只改已支持的 Scheme 值与行为描述 → 免改代码、声明即生效**：
+   - 当用户或 Agent 编排新流程/调整系统行为时，若现有代码驱动与 `aspect` 契约已支持该能力，**只需修改 Scheme / TaskScheme 的值、参数组合或行为描述**；
+   - 经 Apply 写入 SQLite `docs DB` 后即时生效，**不新建/修改代码仓库，不触发重编译**（彻底保留 TaskScheme 声明式编排的敏捷性）。
+2. **Scheme 值不被现有代码支持或 Scheme 契约本身改动 → 必触发代码改动**：
+   - 当改动引入了现有代码不支持的枚举值/驱动 `op`/新参数，或修改/新增了某 `aspect` 的 Scheme 结构契约（`scheme 改动`）时，系统将其判定为 `execution=unbound / scheme-contract-changed`；
+   - **必须自动触发对应的代码改动任务**（按 `aspect` 路由至 `core_system_workservice` 或 `connectops-<concept>` 仓库修改代码、build 生效并提交 git）。
+
+## R-ENG-5 多任务并发调度（2026-11-26 用户裁决）
+
+1. **无关才并发**：无依赖 + `touches` 写集不相交 + `exclusive` 不冲突，才允许同时开 agent；任一不满足=串行/blocked。
+2. **默认保守、可调**：`scheme.runtime.taskScheduler` 的 `maxConcurrent/perService/perRepo/leaseTtl` 可经 Apply 调整；单任务 `limits` 只收紧不放宽。
+3. **隔离工作区**：代码任务用 worktree/branch；落地走合并队列；不得并发写 main。
+4. **每任务一 session**：宿主 spawn 桥固定命令/参数，载荷不进 shell；单飞 + 租约 + 幂等。
+5. **失败隔离**：失败只阻塞依赖者，无关任务继续；重试上限后 failed+Escalate，不静默重试。
+6. **可观测**：Task.status + `TaskStateChanged` + 任务中心；会话/工作流/节点可互跳。
+
+判据：两个无依赖且写集不相交的任务并发 running；同 repo 默认串行；调整上限后生效且留痕；失败任务不拖垮无关任务；任务中心可见阻塞原因。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。

@@ -8,7 +8,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 > 所属：core_design 概念与规则对账基线；配套运行时验收落点见 core_system_instance `acceptance/bugs/bug.md` 与 `runtime/acceptance.md`（R-DOC-5 双仓同步）。
 
-## 1. 架构矛盾与后期隐患清算总表（BUG-001 ~ BUG-009）
+## 1. 架构矛盾与后期隐患清算总表（BUG-001 ~ BUG-011）
 
 | 编号 | 领域 | 发现的矛盾 / 不足 / 后期隐患 | 裁决方案与落点规则 |
 |---|---|---|---|
@@ -21,5 +21,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 | **BUG-007** | 业务系统与财务账本 | 业务系统混入最外层根项目（单 `cored` 只挂单 `docsRoot`）；且把控制面带 `dedupWindow` 去重的 Event Bus 当成财务分录账本（Ledger） | **concepts/business-system.md / event.md 规则 17**：① `business-system` 不在最外层根项目中，单独设计，`sybran` 运行**第二个独立的 `cored` 与独立 `docs DB`**；② **高频业务流、财务分录与逐笔对账由业务代码承接，自己走自己的内部事件与账本**；外层控制面只收**系统级事件、报警事件、对账失败事件** |
 | **BUG-008** | Scheme 粒度与代码触发 | 多 Scheme 塞进单文件耦合严重；改 Scheme 值何时免改代码、何时触发代码编译边界不清 | **R-DOC-8 / R-ENG-4**：① Scheme 按 `aspect: <xxx>` 细粒度拆分，**禁止多 Scheme 在一个文件**（仅 `import` 导入包例外，落库必拆单文件，checker=`lint/single-scheme.sh`）；② 只改已支持 Scheme 的值与行为描述免改代码，值不支持或改 Scheme 契约必触发代码改动 |
 | **BUG-009** | 存储后端 | Git 工作树作运行时主存储存在并发锁与高频提交瓶颈 | **R-DOC-7**：默认权威切换为 **SQLite `docs DB`**（`--docs-backend sqlite` 缺省，root 禁选 git）；Git 作为定时按规则导出（含 `.md.metadatainfo`）并 push 远程的公开/备份格式 |
+| **BUG-010** | Event 分层与 Scope 隔离 | 底层 `Heartbeat` 事件缺一等注册或混入默认界面淹没注意力；Event 缺一等 `metadata.scope` 且 Agent 处理 Event 未约束 `eventScopes` 导致跨系统串台风险 | **event.md 规则 18–19 / agent.md 规则 8**：① 注册一等 `Heartbeat` 事件，与 `ReconcileTick` 等同划入 `tier: infra` + **`visibility: default-hidden`（默认不展示）**，异常失活 `HeartbeatLost`/`SessionStalled` 为 `tier: attention` 默认上屏；② Event 强制带四层 `metadata.scope`，Agent 声明 `spec.eventScopes`，派发与消费双侧强制校验 `event.metadata.scope ∈ agent.spec.eventScopes` |
+| **BUG-011** | 设计↔实现 1:N 追踪 | `ServiceDesc` 设计文档与 `ServiceInstance` 实现/验证文档存在 **1:N** 映射，缺乏 `[metadata 关联]` 导致设计变更时无法自动定位哪 N 篇 `ImplDoc` 过期（腐化说谎） | **R-DOC-9 / servicedesc.md 规则 5 / serviceinstance.md 规则 5**：在 frontmatter `metadata.trace` 与 `<doc>.md.metadatainfo` 侧车建立双向 `1:N` 关联（`ImplDoc/VerifyDoc` 声明 `trace.implements` / `verifies` + `designRev`，`DocIndex` 自动反向聚合至设计文档 `trace.implemented_by` / `verified_by`）；设计更新自动标下游 N 篇实现文档 `stale` 并赋相关性结构耦合满分 `100` |
 
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule/rule.md](rule/rule.md)）。

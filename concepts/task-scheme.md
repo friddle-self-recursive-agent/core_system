@@ -32,12 +32,14 @@ Scheme 层（TaskScheme） ：确定性步骤图：触发→步骤→失败策�
 ## 3. 对象结构
 
 ```yaml
+# systems/<s>/schemes/<name>.yaml（严格一文件一 TaskScheme，R-DOC-8）
 apiVersion: core/v1
 kind: TaskScheme
 metadata:
  name: build-and-verify
  scope: builtin-developer-system/local-ci
 spec:
+ aspect: ci-build-verify # 细粒度方面标识（build | verify | reconcile | notify | deploy | ...）
  trigger: {events: [ExternalChanged], match: {source: onedev, type: push}}
  steps:
  - {id: checkout, connector: onedev-driver, op: checkout, args: {ref: "{{.branch}}"}}
@@ -67,6 +69,10 @@ spec:
 3. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
 4. 模板元数据带 `origin`（builtin/adjusted/imported）与生成相位提示词（prompt 段）——提示词是模板的一部分，随模板版本管理。
 5. 模板四操作（用/调/import/delete）都过权限系统；builtin 起源模板只读，调整必产生副本。
+6. **单文件单 Scheme 与细粒度 `aspect`（R-DOC-8，2026-11-26 用户裁决）**：每個 TaskScheme 必须携带细粒度 `spec.aspect` 标识（如 `build / verify / reconcile / notify / deploy`），且系统自身保存的 `.yaml` 文件**严禁多 Scheme 在同一文件**；唯有 `import` 外部编排时允许输入多 Scheme 聚合包，导入落库时必须自动拆成单文件单 Scheme 保存。
+7. **改 Scheme 值免改代码 vs 契约不支持必触发代码改动（R-ENG-4，2026-11-26 用户裁决）**：
+   - 若编排只需改动 **TaskScheme 的参数值、步骤组合或行为描述**（所引用的 `ConnectorOps` 及 `op` 已由现有代码实现），Apply 即生效，**无需改任何 Go/TS 代码或重新编译**；
+   - 若 TaskScheme 引用了**现有代码不支持的 `op`/参数值，或修改了 Scheme 契约本身**，则自动判定 `execution=unbound` 并**触发对应 `connectops-<concept>` / `workservice` 的代码改动、编译与提交**。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 6. 可行性分析

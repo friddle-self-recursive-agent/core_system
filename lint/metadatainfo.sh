@@ -22,7 +22,7 @@ while IFS= read -r f; do
     echo "NO_TAGS  $meta"
     fail=1
   fi
-  if ! grep -Eq '^[[:space:]]*-[[:space:]]*\{[[:space:]]*tag:[[:space:]]*[^,}]+,[[:space:]]*tag_type:[[:space:]]*[a-z_-]+[[:space:]]*\}' "$meta"; then
+  if ! grep -Eq '^[[:space:]]*-[[:space:]]*\{[[:space:]]*tag:[[:space:]]*[^,}]+,[[:space:]]*tag_type:[[:space:]]*[a-z_-]+([[:space:]]*,[[:space:]]*relevance:[[:space:]]*(100|[1-9]?[0-9]))?[[:space:]]*\}' "$meta"; then
     echo "BAD_TAG  $meta"
     fail=1
   fi
@@ -30,6 +30,13 @@ while IFS= read -r f; do
   if ! [[ "${imp:-}" =~ ^[0-9]+$ ]] || [ "$imp" -lt 0 ] || [ "$imp" -gt 100 ]; then
     echo "BAD_IMPORTANCE  $meta (${imp:-missing})"
     fail=1
+  fi
+  hs="$(awk -F': *' '/^human_score:/{print $2; exit}' "$meta")"
+  if [ -n "${hs:-}" ] && [ "${hs}" != "null" ]; then
+    if ! [[ "${hs}" =~ ^[0-9]+$ ]] || [ "$hs" -lt 0 ] || [ "$hs" -gt 100 ]; then
+      echo "BAD_HUMAN_SCORE  $meta ($hs)"
+      fail=1
+    fi
   fi
 done < <(git ls-files '*.md')
 

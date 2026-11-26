@@ -55,6 +55,7 @@ spec:
 2. 必填段控制在 ≤3 个：文档类型的职责是"防缺关键段"，不是"格式化写作"。
 3. 同一语义不允许两个类型（ 教训：Prometheus 型被并入 Metrics 型就是本规则的应用）。
 4. `acceptance` 类可验证段是 Workflow 的 Verifying 依据——**没有验收条款的 Goal 不予入库**（servicedesc.md 可行性的核心缓解）。
+5. **跨层 DocType 的 1:N `[metadata 关联]` 追踪（R-DOC-9）**：`appliesTo: ServiceDesc` 的设计类 DocType（`Goal` / `Desc` / `Rule` / `CodeDesign` / `DataDesign` / `WorkflowDesign`）与 `appliesTo: ServiceInstance` 的实现/验证类 DocType（`ImplDoc` / `VerifyDoc`）是 **1:N 映射关系**。所有 `ImplDoc` / `VerifyDoc` 必须通过 `metadata.trace.implements` / `verifies` 绑定上游设计文档（及可选章节锚点与 `designRev`），由 `DocIndex` 与 `.md.metadatainfo` 侧车反向聚合为设计文档的 `trace.implemented_by` / `verified_by`（1 对 N 追踪列表），支持设计变更时的下游过期（`stale`）自动标记与孤儿设计（`orphan`）对账。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析

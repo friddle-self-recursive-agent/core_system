@@ -48,8 +48,11 @@ status:
  - {type: MetricsFlow, status: "True"}
 agentRefs: [agent/ci-repair-agent, agent/ci-verifier]
 docs:
- impl: docs/how-ci-works.md # ImplDoc：如何实现
- verify: docs/how-ci-is-guaranteed.md # VerifyDoc：如何保障/验证
+ impl:                               # 支持 1:N（单篇或多篇 ImplDoc 对应 ServiceDesc 的设计文档，通过 metadata.trace 关联，R-DOC-9）
+   - docs/how-ci-works.md
+   - docs/how-ci-runners-scale.md
+ verify:
+   - docs/how-ci-is-guaranteed.md
 metricsInfo: # ：查询入口声明，非数据本体
  store: tsdb/prometheus-main
  queries:
@@ -76,6 +79,7 @@ metricsInfo: # ：查询入口声明，非数据本体
 2. Status 只由 Workflow/Agent 经 Core 回写，人写 权限系统 拒绝（P2）。
 3. MetricsInfo 只存查询声明与最近摘要，原始序列在观测面。**摘要的生产是默认 workflow**：收集由各自的 ConnectorOps 完成 → agent 生成报告（默认勾选，可取消勾选）；保存几天/怎么存/哪些重要=该 workflow 的 LLM 提示词+代码实现，**可编辑**；默认 **7 天记录、1 天一次报告**。
 4. 一个 Instance 的 Agent 集合变更 = 实例配置变更，走 Apply。
+5. **实现文档与设计文档的 N→1 / N→M `[metadata 关联]` 反向锁定（R-DOC-9）**：`ServiceInstance` 下的每篇 `ImplDoc` / `VerifyDoc` 必须在 frontmatter `metadata.trace`（同步投影至 `<doc>.md.metadatainfo` 侧车与 SQLite `DocIndex`）中显式声明 `trace.implements: [{doc: "<ServiceDesc 设计文档路径或 URI>", sections: ["<章节锚点>"], designRev: "<对齐时的设计 rv/sha>"}]`（`VerifyDoc` 同时声明 `trace.verifies: [...]`）。借此支持 **1 篇 `ServiceDesc` 设计文档被 N 篇 `ServiceInstance` 实现/验证文档共同落实**（1:N 追踪）；当上游设计文档版本推进导致 `designRev != currentDesignRev` 时，本 `ImplDoc` 自动标记为 `trace.status = stale`，触发对账追平，从机制上根治「代码/实现改了或设计改了但对应文档脱节说谎」的腐化风险。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
