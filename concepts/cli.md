@@ -64,7 +64,7 @@ corectl loop
 |---|---|
 | 未配 `CORE_SYSTEM_WAKE_ADDR` | cored 只落唤醒投影，零出站（纯投影部署不翻转） |
 | 未配 loop 命令 | 宿主 503；事件仍受理在账；日志明确 |
-| 已有 loop 在跑 | 宿主 200 `already-running`，不重复拉起 |
+| 已有 loop 在跑 | 宿主 200 `already-running` + **pending 持久化**（同因合并，0600）；循环退出后定时重试自动拉起，事件不丢 |
 | 宿主不可达/拉起失败 | cored stderr 注记；事件仍受理；下一事件重试 |
 | cored 不可达 | CLI 非 0 退出 + HTTP 错误，不伪造回执 |
 
@@ -90,7 +90,7 @@ corectl loop
 2. **写面唯一**：写命令只走 `POST /v1/apply` 与 `POST /v1/events`（secrets 走既有门控面）；禁止直连 DB/文件/进程。
 3. **主体一致**：请求级主体与桌面同口径；缺省 admin 仅部署侧便利，可覆写为受限 role。
 4. **事件点火**：自循环唯一触发=`LoopRequested` 事件；外部 ignite 脚本在桥验收后退役，不得与事件点火并行。
-5. **单飞与去重**：同一 host/profile 已有 loop 会话=不重复拉起；事件 dedupKey 由调用方提供（缺省 CLI 时间戳）。
+5. **单飞与去重**：同一 host/profile 已有 loop 会话=不重复拉起，但事件**挂起 pending**（持久化、同因合并），循环退出后自动拉起；事件 dedupKey 由调用方提供（缺省 CLI 时间戳）。
 6. **命令固定**：宿主执行的 loop 命令是部署侧配置项；事件载荷只进日志，不参与命令构造（零注入面）。
 7. **地址发现**：宿主就绪写 `~/.dsh/cored.addr`（0600）；CLI 读取优先级 `--server` > `CORED_ADDR` > 文件；地址属部署侧，不入公开仓。
 8. **显式降级**：cored 不可达、桥缺席、命令未配、单飞命中——都必须有明确输出/状态码，不静默、不伪造成功。
