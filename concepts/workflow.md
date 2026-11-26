@@ -254,6 +254,32 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 见 open-questions.md#workflow
 
+## 9a. 内置默认 workflow：bug 生命周期闭环（2026-11-26 用户裁决：要跑起来）
+
+> 用户原话：「运行时候的 bug 应该开始进入 event 了。默认的 workflow 中有 bug 触发 agent 评审 → 触发临时性 bug 文档 → 修复代码 → 发版本 → bug 文档删除 → 整理更新部分文档/记忆。这也是一个 workflow，要跑起来。」
+
+**声明链（事件→workflow→各步落点）**：
+
+| 步 | 触发/动作 | 落点 |
+|---|---|---|
+| 1 | 运行期异常进事件（BugReport 事件，dedup=`bug:<sess>:<sig>`，route=root-agent） | eventbus 归档 |
+| 2 | agent 评审（root-agent 会话：判定复现/影响面/归属模块） | 结论写**临时性 bug 文档**（kind=BugDoc，scope=systems/<s>，ttl 语义=修完即删） |
+| 3 | 修复代码（agent 工作分支→worktree→合并队列） | Task/DocApplied 留痕 |
+| 4 | 发版本（build 生效+部署） | deploy 通路（ConnectorOps/发布事件） |
+| 5 | bug 文档删除（修复验证后） | Apply delete → 事件归档留痕 |
+| 6 | 整理更新部分文档/记忆（loop-next.md 记忆面+相关概念文档增量更新） | R-DOC 面收敛 |
+
+- 与 R-TYPE-3 验证链同族：BugDoc 的 apply/删除均走权限+预检；步骤 3-4 属代码任务（R-ENG-5 调度；串行=同 repo）。
+- scheme 增量：eventType `BugReport`（source=core，tier=domain，default-visible）；kind `BugDoc`（docType 临时文档类，声明 ttl/关联 run）——注册即跑（默认 workflow 声明进 dispatch 表）。
+
+## 9b. Workflow 模板（2026-11-26 用户裁决）
+
+> 用户原话：「workflow 感觉也要有 workflow 模版了。」
+
+- Workflow 模板=**Template 概念在 workflow 层的应用**（template.md 四层 appliesTo 已在册——非新概念）：预置相位序列/转移表/闸门/回滚声明的可实例化模具。
+- 实例化=复制模具→改参数（phases/闸/绑定 agent）→apply 落为具体 Workflow 对象；模板本身入 `global/templates/`（要求集语义不变）。
+- 首批内置模板：①**bug 生命周期**（9a 全链）②**dev-delivery**（现有 core-workflow 骨架提炼）③**文档收敛**（对账→修订→评审→同步）。
+
 ## 10. 审阅标注区
 
 | 标记 | 位置 | 说明 |

@@ -10,6 +10,8 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 用 K8s 的逻辑管理 AI Agent 与系统：意图、约束、数据流全部落文档（声明），由永续 Workflow 把现实拉齐到声明（R0.1–R0.6）。文档是运行时控制面，不是设计稿归档；机制不假设模型能力，模型越强收敛越快、自治空间越大。
 
+**这是一个企业级内置 agent 系统**（2026-11-26 用户裁决）：agent 系统内生于企业运行面——不是外挂工具，而是组织的基础设施层；人只做简单、无副作用的使用（对话提需求、看结果），概念（workflow/scheme/权限）是为保运行、保可查、不失控而存在的机制层，默认不对使用者前置。
+
 本仓自身按同一套概念自我管理：本仓=ServiceDesc，instance 仓=ServiceInstance，workservice 仓=代码与内置 Connector（R1.1）。
 
 ## acceptance（可验收条款）
