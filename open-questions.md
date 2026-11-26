@@ -53,6 +53,11 @@
 2. R-BIZ-1/4 的 lint checker 落点（core_design `lint/` 还是实例侧投产检查）——投产前定。
 3. Template（appliesTo: servicedesc）出业务系统模具（五域骨架模板）的时机——v1 不做，首个实例跑通后评估。
 
+## console（会话/循环可见性）
+
+1. **loop session 与 workflow/run/node 关联缺失**：loop 是 core-headless dsh session，不是 Workflow run；Workflows 页的 core-workflow run 是另一条事件 run，不代表 loop。当前只能从会话侧栏 / `#/chat/core-headless` 的「宿主全部会话」看全文，`#/session/<id>` 只出 Trajectory。下一段方案：Session 元数据带 `workflowRef/runRef/phase/loopSeq/taskRef`，或 `LoopRequested` 路由到 `loop-workflow` run；console 增「当前循环」卡（状态/最后一步/关联 run/会话深链）。
+2. **会话深链不自动更新**：点击会话时 URL 不变成 `#/session/<id>`（当前只能手填 ID）；`#/session` 的「切回 Chat 视图」按钮当前禁用。下一段：选择即更新 hash、Chat/Trajectory 双视图可用、行菜单提供「复制会话链接」。
+
 ## attention（关注报告）
 
 1. attention 条数上限（默认 7）与严重度权重、「忽略/这也要看」反馈的调参口径——上线后按误报率与使用率定。
