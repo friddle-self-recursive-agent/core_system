@@ -107,7 +107,7 @@ spec:
         runtime:                                    # 运行状态观测面
           probes: "[]{httpGet|tcp|version, period}"
         tools:                                      # 工具与调用描述面（Ops 的描述来源）
-          "[]{op, params, idempotent, undo: full|partial|none, cleanup: ?op}"  # cleanup 成对
+          "[]{op, params, idempotent, undo: full|partial|none, rollback: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description: string, docRef?: ref, inverseOp?: op}, cleanup: ?op}"  # rollback 区分要不要回滚+四类回滚方式+回滚文档描述；cleanup 成对
       status: {conditions: "[]Condition"}           # runtime 面探针回写
 
     - kind: ConnectorOps             # 工具调用面（v0.13 收窄：描述全在 WorkService）
@@ -116,6 +116,7 @@ spec:
       spec:
         workservice: "!ref"                          
         workflow: "?string (=default-task)"
+        trustLevel: "?trusted|external (=trusted)"   # 默认内部系统均为 trusted；外部系统显式设 external（或继承 auth.provider.trustLevel）
         config: "?map"                               # 逻辑声明（endpointRef 等，A46）
         auth: "?{provider: ref}"
         ops: "[]string"                              # ⊆ WorkService.tools（Lint）
@@ -134,7 +135,8 @@ spec:
         phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）；节点执行单元=session|agent（workflow.md §1.3）；引擎词汇基座=Agent.status.phase 八相位 + workflow 域交付锚 Deploying（concepts/workflow.md §1 映射表）
         transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（workflow.md 规则 14；v0.25 首段=builtin 表=序列物化相邻行+审批边表行先例；v0.27 对象自声明表解析首段=object 源投影（规则 16）——v0.28 相位投影与迁移判定接线收口）
         onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
-        onFailed: "{backoff, maxAttempts, escalate: {to: root, notify: role-holders}}"
+        onFailed: "{backoff, maxAttempts, rollbackPolicy: ?never|auto|ask|by-step, escalate: {to: root, notify: role-holders}}"
+        trustGate: "?{enabled: bool, mode: code|agent|both, verifierRef?: string, onReject: block|ask|sanitize}"   # 针对 trustLevel=external 的 ConnectorOps/Provider 外部返回内容，Workflow 级可配由代码或 Agent 先判断一遍内容是否 OK
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭；v0.32 刹车首段：cooldown 强制默认 2m ∧ 变更上限强制默认 10——宽松方向声明一律钳回默认=不可关闭机读落点；冷却门键=锚+involved 防震荡语义粒度=同一对象；变更上限=推进拍锚级只计实际迁移；cooldown 锚首段=run 受理时刻；avoidRepeatFix 随 DriftReport 回归声明面顺延）
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
       builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；六项相位词汇映射见 concepts/workflow.md §1（运行时注册表同源）；预算/成本归 metrics 域（暂不做）
@@ -181,6 +183,7 @@ spec:
       storage: global/providers/<name>.yaml
       spec:
         kind: "llm|im|email|cloud|network|generic"   # network=网络出口（代理/DNS/域名转发，声明/运行时分离见 concepts/provider.md 规则 6）
+        trustLevel: "?trusted|external (=trusted)"   # 默认内部系统均为 trusted；外部系统显式设 external（Workflow 级可配 code/agent 检验内容是否 OK）
         auth: "{scheme, secret: {source: 'secret:|vault:|env:|keychain:', rotation}}"   # 明文禁（引用式取值四前缀——provider.md 规则 2；secret:=部署侧秘密库 runtime.storage.secrets，v0.34 起与 vault:/env:/keychain: 并列）
         config: "?map"
         connector: "?ref"                            # 可为空
@@ -235,10 +238,10 @@ spec:
       spec:
         aspect: "?string"            # 细粒度方面（build|verify|reconcile|notify|deploy|...）
         trigger: "{events: []string, match: map}"
-        steps: "[]{id, connector: opsRef, op, args}"
+        steps: "[]{id, connector: opsRef, op, args, rollback?: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description: string, docRef?: ref, inverseOp?: op}}"
         params: "[]string"
-        onFailure: "{retry, backoff, then: escalate}"
-      rules: [禁止多Scheme在一个文件(导入除外,落库必拆单文件,R-DOC-8), 改值与行为描述免改代码/值不支持或契约改动必触发代码改动(R-ENG-4)]
+        onFailure: "{retry, backoff, rollbackPolicy?: never|auto|ask|by-step, then: escalate}"
+      rules: [禁止多Scheme在一个文件(导入除外,落库必拆单文件,R-DOC-8), 改值与行为描述免改代码/值不支持或契约改动必触发代码改动(R-ENG-4), 回滚区分要不要回滚与四类回滚方式(irreversible|code|agent|human)并强制回滚文档描述]
 
     - kind: Template                  # 统一模具×四层 appliesTo（2026-11-26 用户裁决：模板=要求集，Ref 语义非实际系统；resolver 自动选型，解析不了逐层询问；原 WorkServiceTemplate=workservice 层）
       builtin: true
@@ -381,6 +384,7 @@ spec:
       perRepo: 1                    # 同仓默认串行（worktree/合并安全；可调）
       strategy: independent-first
       conflictPolicy: serialize-overlap   # dependsOn 交叠 / touches 交叠 / exclusive 同值 → 串行/阻塞
+      applyConflictGate: "ask(pause-first|abort-current)"   # 两个并发任务在 Apply 关口冲突拦截：第一个任务 Apply 后，第二个任务判断有无实质冲突；有冲突直接询问暂停第一个任务(pause-first)还是放弃当前任务(abort-current)
       leaseTtl: 30m
       maxAttempts: 2
       spawn: "host:/task/spawn"     # 宿主 agent spawn 桥（每任务一个 dsh session）

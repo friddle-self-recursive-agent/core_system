@@ -66,9 +66,19 @@ spec:
  - {name: build-flow, stages: [checkout, build, gate, report]}
  runtime: # 运行状态观测面
  probes: [{httpGet: /api/server-info, period: 1m}, {version: "16..18"}]
- tools: # 工具与调用描述面
- - {op: checkout, params: {ref: string}, idempotent: true}
- - {op: build-status, params: {commit, result}, idempotent: true}
+ tools: # 工具与调用描述面（每个 op 必须显式声明 rollback 类型、策略与文档描述）
+ - op: checkout
+   params: {ref: string}
+   idempotent: true
+   rollback: {policy: never, type: code, description: "只读检出工作区，失败无需回滚，直接清理或重检出即可"}
+ - op: build-status
+   params: {commit, result}
+   idempotent: true
+   rollback: {policy: optional, type: code, inverseOp: build-status, description: "回写构建状态；若误报可由代码再次调用 build-status 覆盖回写"}
+ - op: prod-release
+   params: {version: string}
+   idempotent: false
+   rollback: {policy: ask, type: agent, docRef: "docs/impl-release-rollback.md#prod", description: "生产发布失败时先询问是否回滚；需由 Agent 按回滚文档检查流量切分与数据库迁移状态后执行回退"}
 status:
  conditions: [Reachable, VersionSupported] # runtime 面探针回写
 ```
@@ -93,6 +103,14 @@ status:
 5. **capabilities 词表归 Scheme 管**：global 一套内置词表（scheme.yaml 维护）；非 global 的系统域自加自管（服务前缀命名，如 `<system>:<capability>`）——防"按能力引用"退化成"按名字引用"。
 6. **外部系统所有权冲突不裁决**：同一外部系统被两个系统纳管/同时操作闹崩，不在本系统职责内（各自 connector 自行幂等防护）。
 5. 删除清理职责显式写在 tools/flows 里（代替 Finalizer）：有外部创建动作的 tools 必须成对声明清理 op（Lint）。
+8. **工具回滚分类、策略与文档描述必填（2026-11-26 用户裁决）**：`tools` 面每个写/副作用 `op` 必须显式声明 `rollback: {policy, type, description, docRef?, inverseOp?}`——既明确**要不要回滚（`policy`）**，又明确**回滚类型（`type`）与文档描述（`description`）**：
+   - **要不要回滚（`policy`）**：`never`（无需/不作回滚，如只读、幂等覆盖或直修 `fix-forward`）| `auto`（失败自动触发回滚）| `ask`（失败时**先询问上级 Agent 或人要不要回滚**）| `optional`（由 Agent 按现场与描述判断）；
+   - **回滚类型（`type`）**：
+     - `irreversible`（**根本没办法回滚**，如外发邮件/第三方不可撤回通知/物理销毁——调用前受权限系统高危门控，失败后转事后补救/通知，不尝试逆操作）；
+     - `code`（**代码回滚**：存在确定性逆向命令、`inverseOp`、Git/SQLite 快照回退，由代码直接执行）；
+     - `agent`（**需要 Agent 回滚**：现场含半成品或条件分支，需唤醒 Agent 读 `description` / `docRef` 诊断残余状态后执行补偿步骤）；
+     - `human`（**需要人回滚**：涉及高危生产状态或人工线下冲正，系统挂起并携带 `description` / `docRef` Runbook 通知人操作，人完成后确认恢复）；
+   - **回滚文档描述（`description` / `docRef`）**：凡 `policy != never` 且 `type != irreversible` 的操作，必须写出清晰的回滚说明或指向 `ImplDoc` 回滚章节（写清何时回滚、何时不回滚、如何回滚），严禁无文档盲目回滚。
 7. **驱动代码分仓**（rule/rule_eng.md R-ENG-3）：workservice 仓 connectors/ 只放 builtin 驱动（gitfs/dsh）；用法型驱动（onedev/nas/oss 等，换部署即换）在部署侧独立仓（如 sybran_usage_connector），impl/download 指向实际所在仓，依赖方向恒为用法仓→workservice。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 

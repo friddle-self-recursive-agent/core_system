@@ -136,7 +136,16 @@ spec:
                                                 #   finish-tick=跑完本轮再停（防半成品，Execute 中途不打断）
                                                 #   continue=只通知不暂停（低危域可配）
                                                 # 恢复=人处理后在 console 批准 Resume（=Apply）；不自动恢复
- onFailed: {backoff: 30s*2^n, maxAttempts: 3, escalate: {to: root, notify: bind-role}}
+ onFailed:
+   backoff: 30s*2^n
+   maxAttempts: 3
+   rollbackPolicy: by-step # never | auto | ask | by-step（遵循步骤/工具声明的 rollback.policy 与 rollback.type: irreversible|code|agent|human + 回滚文档描述）
+   escalate: {to: root, notify: bind-role}
+ trustGate: # 外部不可信内容检验门（针对 trustLevel=external 的 ConnectorOps/Provider，Workflow 级可配置）
+   enabled: true
+   mode: code # code | agent | both（由代码规则或审查 Agent 判断一遍外部返回内容是否 OK）
+   verifierRef: "connectops-code-audit/verify-external"
+   onReject: ask # block | ask | sanitize
  brakes: # ③ 刹车（强制默认：可收紧不可关闭）
  cooldown: 2m # 成功后最小间隔（防震荡）
  maxMutationsPerTick: 10 # 单轮最大变更数
@@ -188,6 +197,9 @@ spec:
     - **推进拍变更上限（推进路径）**：每拍对每锚的 run 相位变更数受生效刹车值约束（变更单元首段=run 相位变更留痕）；上限只计实际发生的迁移（序列尾零动作不占额）；超限 run 本拍零动作、下拍续推（level-triggered 不丢拍）。
     **关断语义组合（声明面先定）**：刹车闸单一挂接点=部署旗标显式开启（缺省关断=零刹车行为面不变）；刹车闸与推进总闸、巡检闸正交（刹车只作用于已挂接的执行路径，不产事件不旁路任何闸；受理冷却门在订阅路径上与写面开关分立——只读装配亦可挂接）。**表驱动口径**：刹车值是声明数据（spec.brakes → 强制默认钳定 → 每锚生效值），判定面零即兴——每 run 载荷投影生效刹车值（`brakes` 键：cooldown、maxMutationsTick、source（default=强制默认、spec=声明收紧值）——**新载荷键出现=代际判别器**）。查询面新增**刹车可见键**：run 投影状态新增 `braked`（累计冷却门拦阻触发数）与 `capped`（累计推进拍上限拦阻 run·步数）——新载荷键出现=代际判别器。机械判别器：刹车闸挂接实例同锚同 involved cooldown 窗口内第二触发不落 run（braked>0）∧ 窗口外照落 ∧ 跨 involved 照落 ∧ 推进拍锚内变更数超上限时超额 run 相位本拍不变（下拍续推）∧ 未挂接实例同型触发全落 run 且 braked=0（双实例对照）。余量：avoidRepeatFix 与 DriftReport 回归面、cooldown 完成锚切换、minLevel 与真实执行面接线、事件拍余量源。
 18. **Verify 节点=规则验证硬 gate（code→ConnectorOps；agent→丢给 agent）**：代码开发流程的 `Verifying` 必须执行两类验证——① `mode: code` 规则经 scheme `runtime.ruleChecks` 由 `connectops-code-audit` 审核（只读、findings 结构化）；② `mode: agent` 规则把规则原文（ref+hash）+ diff/上下文交给指定 agent/服务 agent 验证（verdict + 证据）。`error` finding / `fail` verdict 阻断 Deploy；`warn` 进 Report；checker 未注册/未实现/超时、agent 不可用/`unverified` = 显式失败或降级，**不得默认通过**。Verify 节点缺失=流程缺陷（相位序列 Execute→Verify→Deploy 强制）。
+19. **回滚区分「要不要回滚 + 四类回滚方式 + 回滚文档描述」（2026-11-26 用户裁决）**：Execute 相位失败时的回滚绝非一刀切，严格按步骤/工具声明的 `rollback: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description, docRef?}` 执行：有些根本没办法回滚（`irreversible`，事前人审、事后补救不逆操作）、有些不需要回滚（`never` 或 `ask` 决定不回滚而直修）、有些由代码确定性回滚（`code`）、有些由 Agent 读回滚文档描述诊断后回滚（`agent`）、有些挂起交给人按 Runbook 回滚（`human`）。
+20. **并发任务冲突在 Apply 关口拦截并直接询问「暂停第一个还是放弃当前任务」（2026-11-26 用户裁决）**：两个同时冲突的任务在 `Apply` 这一关就会被乐观锁拦截（保障最终一致）。第一个任务 Apply 后，第二个任务到达 Apply 关口判断有没有实质冲突；若有冲突，直接挂起并询问上级 Agent 或人：**暂停第一个任务（`pause-first`）还是放弃当前任务（`abort-current`）**。
+21. **外部系统 `trustLevel` 与 Workflow 级可配置内容检验门（`trustGate`，2026-11-26 用户裁决）**：默认内部系统都是可信的（`trustLevel: trusted`）；对接外部系统的 `Provider` 与 `ConnectorOps` 声明 `trustLevel: external`。当 Workflow 节点消费 `trustLevel: external` 的外部内容时，由 Workflow 级可配置的 `spec.trustGate`（`mode: code | agent | both`）先让代码或 Agent 判断一遍外部内容是否 OK（无注入/越权/污染），通过后方可进入 Context 与下游相位。
 
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 

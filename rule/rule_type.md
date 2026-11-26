@@ -47,6 +47,7 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 | R-DOC-7 | policy | —（sqlite 默认/git 导出；启动参数与导出任务由部署验收探针判定） |
 | R-DOC-8 | **lint** | lint/single-scheme.sh（禁止单文件多 Scheme；导入落库必拆单文件单 Scheme；细粒度 `aspect`） |
 | R-DOC-9 | policy | —（`ServiceDesc` ↔ `ServiceInstance` 设计/实现文档 1:N `[metadata 关联]` `trace` 双向追踪与过期检测） |
+| R-DOC-10 | policy | —（Bug 文档为中间临时产物；任务完成且 Verify 验证 OK 后直接删除对应条目或整个 `bug.md` 临时文档） |
 | R-ENG-1..4 | policy | —（R-ENG-4 Scheme 值修改免改代码 vs 契约改动必触发代码构建） |
 | R-PUB-1 | **lint** | lint/personal-info.sh |
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |

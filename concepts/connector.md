@@ -30,6 +30,7 @@ metadata:
 spec:
  workservice: onedev # ：指向 WorkService（原 provider 字段）
  workflow: default-task # 相位约束（缺省）
+ trustLevel: trusted # 内部默认 trusted；外部系统显式设 external（或继承 auth.provider 的 trustLevel）
  config: {endpointRef: ref/onedev-endpoint} # 逻辑声明
  auth: {provider: provider/onedev-robot} # 账号走 Provider
  ops: [checkout, build-status, gate-status, verify] # 提供的功能子集
@@ -65,7 +66,7 @@ spec:
 1. workservice 必填且必须已在册（六面体至少 connector 或 tools 非空）。
 2. ops 子集 ⊆ WorkService.tools 声明的 op 集（Lint）。
 3. 使用要权限（role 并集+权限系统，P7/）。
-4. `undo: none` 的工具（WorkService.tools 里声明）每次调用人审。
+4. **回滚类型、策略与文档描述（2026-11-26 用户裁决）**：`rollback.type: irreversible`（或 `undo: none`，根本没办法回滚）的工具（在 `WorkService.tools` 里声明）每次调用人审；需要回滚的工具必须按 `rollback: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description, docRef?}` 区分**要不要回滚**、**代码回滚 / Agent 回滚 / 人回滚**，并附带清晰的回滚文档描述（见 `workservice.md` 规则 8、`task-scheme.md` 规则 8）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 6. **ConnectorOps=节点流转实现面（不是触发器）**：触发/相位/刹车/记账归 Workflow 引擎；节点内容与节点间流转归绑定的 ConnectorOps（Service 调用/Agent 唤醒/嵌套其他 ConnectorOps）。命名约定：缺省=`<workflow 名>` 同名；空绑定或未实现 → 决策面 `execution=unbound` 可见（缺口不静默）。
@@ -75,6 +76,8 @@ spec:
 8. **`connectops-context`（上下文索引/亲和/失效/预热）**：上下文检索的代码承载能力归 deploy-system 的 `connectops-context` 仓（R-ENG-3 同款生命周期：声明 → 代码 → build 生效 → 运行时；每次变更必提交）。op 集：`index`（增量/全量构建 DocIndex）、`affinity`（tag 亲和矩阵重算，定时）、`invalidate`（文档变更主动失效 chunk/pack 缓存）、`prewarm`（L0/L1 常驻摘要预热）、`evaluate`（命中率回归，只出因子建议不自动应用）。调度两入口同一代码路径：cored 内建调度（旗标缺省关断）或部署侧 timer 调 CLI；因子与预算来自 ContextPolicy 对象（apply 生效），不硬编码。
 
 9. **`connectops-code-audit`（代码级规则审核）**：`mode: code` 的规则统一由该 ConnectorOps 实现审核（R-TYPE-3）：Rule 条目 → scheme `runtime.ruleChecks`（ruleId→checker/参数/severity）→ `connectops-code-audit` 仓（deploy-system，R-ENG-3 生命周期）执行。op 集：`check`（按 ruleId/targets 审核仓库/工作树，返回 findings：ruleId/file/line/severity/message/evidence{ref,hash}）、`verify`（check+汇总，产 VerifyDoc 片段）。只读、幂等、不提交、不 Apply；未注册/未实现的 code 规则=unbound error，不得静默跳过。findings 进 VerifyDoc/DriftReport/Report，`error` 阻断 Deploy；`warn` 记录。`mode: agent` 的规则不走本实现——由 Verify 节点把规则原文（ref+hash）+ diff 丢给 agent 验证（见 rule-verification.md）。
+
+10. **内部默认可信与外部系统 `trustLevel` 字段（2026-11-26 用户裁决）**：默认内部系统都是可信的（`spec.trustLevel: trusted` 缺省，未显式声明时继承 `auth.provider` 的 `trustLevel`）；对接外部不可控系统的 ConnectorOps 添加 `spec.trustLevel: external`。当 Workflow 调用 `trustLevel: external` 的 ConnectorOps 获取外部内容时，按 **Workflow 级别可配置的 `trustGate`（`mode: code | agent`）** 由代码或 Agent 判断一遍内容是否 OK 后再放行。
 
 ## 7. 可行性分析
 

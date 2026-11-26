@@ -98,4 +98,13 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
    - 声明了 `trace.requires` 但 `implemented_by` 为空的设计文档/章节，对账自动报警为「孤儿设计（Orphaned Design）」。
 4. **工作台可视**：通用对象工作台（R-UX-7）打开任一设计或实现文档时，直接展示 `1:N` / `N:1` 的 `trace` 关联树与 `synced | stale` 状态徽章，点击即可跨 `ServiceDesc ↔ ServiceInstance` 跳转。
 
+## R-DOC-10 Bug 文档为中间临时产物（任务完成验证 OK 后直接删除，2026-11-26 用户裁决）
+
+> 用户原话：「这些bug修复了。文档直接删除好了。这是中间临时产物。正式设计中不一致的地方就是这些bug。任务完成后验证ok后这些bug就消失[临时文档]」。
+
+1. **Bug 的本质定位**：正式设计采取终态制（R-DOC-1），任何正式设计中不一致、矛盾或实现未对齐的地方就是 Bug。`bug.md`（及 `acceptance/bugs/bug.md`）属于**中间临时产物（临时文档，`Temporary / Ephemeral Doc`）**，仅用于驱动「发现不一致 → 对齐设计 → 代码修复 → 验证验收」这一过渡闭环。
+2. **验证 OK 即删除（不留永久 Bug 历史台账）**：
+   - 当某项 Bug 对应的任务完成且经 Verify 验证 OK 后，**该 Bug 条目从临时文档中直接删除**；
+   - 当 `bug.md` 中的待修条目全部验证 OK 后，**直接删除整个 `bug.md`（及其 `.md.metadatainfo` 侧车）**，不作为永久历史档案保留在正式设计仓中（历史修复过程查 git log 即可，正式设计仓库始终只保留收敛一致的终态设计）。
+
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](rule.md)）。

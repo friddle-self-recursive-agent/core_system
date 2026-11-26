@@ -35,8 +35,13 @@ apply(obj, opts)
 流程：取草稿与当前的差异 → 权限系统准入 → 文档级比对（整文档）
  → 无差异：无操作（提示无需 apply，不发事件）
  → 有差异：乐观锁提交（Revision）→ generation+1（若 spec 变）→ DocApplied Event（必发）
-冲突：resourceVersion 不符 = Conflict → 后写者重读；
- 需要合并时由 LLM 做**语义 diff**（哪里不同、是否冲突、合并提案），人裁兜底
+冲突（两个并发任务冲突在 Apply 关口拦截，2026-11-26 用户裁决）：
+ → 第一个任务 Apply 后（resourceVersion 已推进，或关联的第一个任务仍在 running/verifying），第二个任务在 Apply 这一关就过不了（409 Conflict）
+ → 第二个任务先判断与第一个任务的改动/写集有没有实质冲突：
+   ├─ 无冲突（修改位置不相交且语义兼容）→ 重读新基线合并后 Apply
+   └─ 有冲突 → 严禁静默覆盖或后台互踩重试！直接挂起并向上级 Agent 或人类发出询问（ApprovalNeeded / TaskConflict）：
+        【选择 1：pause-first（暂停第一个任务，由第二个任务接管推进）】
+        【选择 2：abort-current（放弃当前第二个任务，保留第一个任务）】
 ```
 
 ## 4. 生命周期
@@ -58,6 +63,7 @@ apply(obj, opts)
 4. 跨系统提案默认进对方**待审区**；超时/催办不是本系统机制——Notification 告知即可。
 5. Status 与 Spec 的写权限分离不变（P2/P6）。
 6. **草稿缓存是编辑的家**：Agent 代改代审的 Spec/意图类改动一律先进草稿，不就地改生效文档（P6 的运行形态）；草稿可查/可弃，apply 后清空；草稿不是文档面（无 Revision/事件，落库那一刻才算数）。
+7. **并发冲突任务在 Apply 关口拦截并直接询问「暂停第一个还是放弃当前任务」（2026-11-26 用户裁决）**：两个同时冲突的任务在 `Apply` 这一关就会因乐观锁 `resourceVersion` / 写集归属被拦下（保障最终一致）。当第一个任务 Apply 后，第二个任务在 Apply 关口判断是否存在实质冲突：若有冲突，**禁止盲目覆盖或循环互踩**，必须直接发起询问（`pause-first` 暂停第一个任务 vs `abort-current` 放弃当前第二个任务），由上级 Agent 或人类裁决。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析

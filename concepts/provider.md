@@ -112,6 +112,7 @@ metadata:
  scope: global
 spec:
  kind: generic # 外部 SaaS API 账号包
+ trustLevel: external # 默认内部系统为 trusted；外部系统显式声明 external（Workflow 级可配 code/agent 检验内容是否 OK）
  auth: {scheme: bearer, secret: {source: "secret:gh-token", rotation: 90d}}
  config:
   api: github # GitHub API（gh CLI/REST 同源；仓/PR/issue/runner 管理面的统一出口）
@@ -140,6 +141,7 @@ spec:
 6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账，凭据值走部署侧秘密存储 `secret:<name>`——规则 2），**绝不提交公开仓**（rule/rule_pub.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
 7. **通知类 Provider 的 secret 引用面即实现契约**：kind=email/im 类 Provider 的通道实现挂靠 ConnectorOps（connector 字段）→ 运行时经 connectors 包 **OpsConnector 五方法**（工具调用域：Type/Version/Ops/Invoke/Probe，R-ENG-3 契约层）出站——声明面只写引用式 secret 与占位符 config，授权码真实值永不入任何仓（R-PUB-1 凭据红线）。
 8. **能力→Provider→Skill 缓存**：可复用的工具能力（验收截图/浏览器渲染/检索等）以 Provider 登记（本地工具 kind: generic，connector 可空）；首次成功调用后沉淀为 **Skill**（运行时 agent-session §4：注入提示+成功调用示例），workflow 验收节点由 agent 直接调用该 skill（不即兴写命令）；Provider 契约变更/版本升级 → 对应 Skill 默认作废（Skill 是缓存不是真相）。
+9. **内部默认可信与外部系统 `trustLevel` 字段（2026-11-26 用户裁决）**：默认内部系统都是可信的（`spec.trustLevel: trusted` 缺省）；外部系统 `Provider` 与 `ConnectorOps` 添加 `spec.trustLevel: trusted | external` 字段（外部第三方 API、外部 SCM/Webhook、公网抓取等标为 `external`）。当接入 `trustLevel: external` 的外部内容时，在 **Workflow 级别可配置 `trustGate`** 由**外部检验 Agent 或代码**先判断一遍内容是否 OK（无注入/越权/污染）后再放行进入 Context 与后续步骤。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析

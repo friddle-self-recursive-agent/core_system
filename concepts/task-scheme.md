@@ -42,13 +42,17 @@ spec:
  aspect: ci-build-verify # 细粒度方面标识（build | verify | reconcile | notify | deploy | ...）
  trigger: {events: [ExternalChanged], match: {source: onedev, type: push}}
  steps:
- - {id: checkout, connector: onedev-driver, op: checkout, args: {ref: "{{.branch}}"}}
- - {id: build, connector: dsh, op: exec, args: {host: local, cmd: "./gradlew build"}}
- - {id: gate, connector: dsh, op: exec, args: {cmd: "./gradlew lint test"}}
- - {id: artifact, connector: oss-driver, op: put, args: {from: build/libs, digest: true}}
- - {id: report, connector: onedev-driver, op: build-status}
+ - {id: checkout, connector: onedev-driver, op: checkout, args: {ref: "{{.branch}}"}, rollback: {policy: never, type: code, description: "只读检出，失败无需回滚"}}
+ - {id: build, connector: dsh, op: exec, args: {host: local, cmd: "./gradlew build"}, rollback: {policy: never, type: code, description: "本地构建产物在临时目录，失败无需回滚，支持直修重跑"}}
+ - {id: gate, connector: dsh, op: exec, args: {cmd: "./gradlew lint test"}, rollback: {policy: never, type: code, description: "只读校验，无外部副作用"}}
+ - {id: artifact, connector: oss-driver, op: put, args: {from: build/libs, digest: true}, rollback: {policy: auto, type: code, inverseOp: delete, description: "若后续步骤失败，由代码按 digest 清理已上传的未发布构件"}}
+ - {id: report, connector: onedev-driver, op: build-status, rollback: {policy: optional, type: agent, description: "状态回写异常时由 Agent 检查远端 PR 状态决定是否补写 failed"}}
  params: [branch] # 可配置（基础调度=模板+参数）
- onFailure: {retry: 2, backoff: 30s, then: escalate}
+ onFailure:
+   retry: 2
+   backoff: 30s
+   rollbackPolicy: ask # never | auto | ask | by-step（决定整图失败时要不要触发已执行步骤的回滚）
+   then: escalate
 ```
 
 ## 4. 与其他概念的关系
@@ -73,6 +77,15 @@ spec:
 7. **改 Scheme 值免改代码 vs 契约不支持必触发代码改动（R-ENG-4，2026-11-26 用户裁决）**：
    - 若编排只需改动 **TaskScheme 的参数值、步骤组合或行为描述**（所引用的 `ConnectorOps` 及 `op` 已由现有代码实现），Apply 即生效，**无需改任何 Go/TS 代码或重新编译**；
    - 若 TaskScheme 引用了**现有代码不支持的 `op`/参数值，或修改了 Scheme 契约本身**，则自动判定 `execution=unbound` 并**触发对应 `connectops-<concept>` / `workservice` 的代码改动、编译与提交**。
+8. **回滚必须区分「要不要回滚 + 回滚类型 + 回滚文档描述」（2026-11-26 用户裁决）**：
+   - 步骤或整图失败时，**严禁无脑一刀切机械回滚**；每个步骤可继承 `WorkService.tools` 或在 `steps[].rollback` 中覆写 `{policy, type, description, docRef?, inverseOp?}`，整图 `onFailure.rollbackPolicy` 控制 `never | auto | ask | by-step`；
+   - **要不要回滚（`policy`）**：区分 `never`（不回滚，保留现场直修 `fix-forward` 或无副作用）、`auto`（自动触发回滚）、`ask`（**先询问上级 Agent 或人类要不要回滚**）、`optional`（由 Agent 按现场判断）；
+   - **回滚类型（`type`）**：
+     1. **`irreversible`（根本没办法回滚）**：已外发通知/物理不可逆动作，禁止回滚尝试，执行前走权限高危门控，失败后按 `description` 走事后通知/补救；
+     2. **`code`（代码回滚）**：确定性代码/命令/快照回退（如 `git revert`、`inverseOp`、SQLite 版本回退），由代码层直接执行；
+     3. **`agent`（需要 Agent 回滚）**：复杂半成品现场，唤醒 Agent 读 `description` / `docRef` 回滚文档，检查现状后执行针对性补偿；
+     4. **`human`（需要人回滚）**：高危生产/人工冲正，系统挂起并把 `description` / `docRef` Runbook 呈交人类执行，人确认后恢复；
+   - **回滚文档描述强制要求**：凡需回滚（`policy != never` 且 `type != irreversible`）的步骤必须写清 `description`（或 `docRef` 指向 `ImplDoc` 回滚章节），无文档描述不得盲目执行回滚。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 6. 可行性分析

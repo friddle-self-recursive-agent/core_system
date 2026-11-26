@@ -121,12 +121,13 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 
 1. Agent 的每一次 PLAN、以及每完成一次 Session（粒度看实现），必须记录文档，记在 ServiceInstance 里（PlanDoc / SessionLog）。记录写入走 Apply（存储机制）——事后留痕，不是逐写审批。
 2. 文档按需加载由 dsh 会话自己实现（docs权限系统.onDemand）；Workflow 只保证 L0 最低必载（Goal.acceptance + Rule 摘要）。
-3. 使用 ConnectorOps 要权限（ops 并集 + 权限系统裁剪，P7 落点）；`undo:none` 的 ops 每次调用人审。
+3. 使用 ConnectorOps 要权限（ops 并集 + 权限系统裁剪，P7 落点）；`rollback.type: irreversible`（或 `undo:none`，根本无法回滚）的 ops 每次调用人审。
 4. 子 agent 一律机器级进程派发（spawn: machine-instance），禁用任何运行时内部的 subagent 共享进程——隔离与直控优先于内存开销。**子 agent 运行时不限于 dsh**（自写 agent、opencode 等皆可）；其派发与调用经 ConnectorOps 描述/调用，与调用外部工具同一语义。
 5. SubAgent 权限=Parent 一次性全量下发（⊆父，只减不增；不做按步骤细粒度裁剪），运行时缺权限直接 ask 上级整包重发；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
 8. **Agent 处理 Event 的 `scope` 范围强制约束（event.md 规则 19）**：每个 Agent 必须通过 `spec.eventScopes` 明确其允许处理的事件 `scope` 范围（ServiceAgent 缺省锁定为其所属 `systems/<s>` 及 `systems/<s>/instances/*`，子 Agent `eventScopes` 必须 $\subseteq$ ParentAgent 的 `eventScopes`；仅 `builtinRoot` 可持 `["*"]`）；派发路由与拉取消费双侧强制校验 `event.metadata.scope ∈ agent.spec.eventScopes`，严禁跨 scope 越界消费事件，且第一段侦察拉取「近期关联事件」时默认只检索本 Agent `eventScopes` 内的非隐藏事件（自动过滤 `Heartbeat` 等 `visibility: default-hidden` 的底层事件）。
+9. **进程与会话活性靠 `Heartbeat`（`pingheart`）盯着恢复，本层级不考虑高可用（2026-11-26 用户裁决）**：本层级明确不设计多副本高可用（Non-HA）或复杂级联进程租约；Agent 与机器级子 Agent 活性统一由 `Heartbeat`（`pingheart`）看门狗盯着恢复——失活触发 `SessionStalled` / `HeartbeatLost` 自愈链（先注入「继续」唤醒 → 诊断重启/重派 → 上报）。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析

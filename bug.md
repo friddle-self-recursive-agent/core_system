@@ -4,11 +4,12 @@ docType: VerifyDoc
 scope: core_system
 ownerRefs: [{kind: ServiceDesc, name: core_system}]
 ---
-# Bug 与架构矛盾清算基线（bug.md）
+# Bug 与架构矛盾清算基线（bug.md · 临时文档）
 
+> **[临时文档 / R-DOC-10 生命周期约定]**：正式设计中不一致的地方就是这些 Bug，本文件属于驱动修复与验收的**中间临时产物**。当某项任务完成并经 Verify 验证 OK 后，对应 Bug 条目即刻删除；**当全部条目验证 OK 后，本文件（含 `bug.md.metadatainfo` 侧车）直接 `git rm` 删除**，正式设计仓只保留收敛一致的终态文档。
 > 所属：core_design 概念与规则对账基线；配套运行时验收落点见 core_system_instance `acceptance/bugs/bug.md` 与 `runtime/acceptance.md`（R-DOC-5 双仓同步）。
 
-## 1. 架构矛盾与后期隐患清算总表（BUG-001 ~ BUG-011）
+## 1. 架构矛盾与后期隐患清算总表（BUG-001 ~ BUG-014，验证 OK 后即删）
 
 | 编号 | 领域 | 发现的矛盾 / 不足 / 后期隐患 | 裁决方案与落点规则 |
 |---|---|---|---|
@@ -23,5 +24,8 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 | **BUG-009** | 存储后端 | Git 工作树作运行时主存储存在并发锁与高频提交瓶颈 | **R-DOC-7**：默认权威切换为 **SQLite `docs DB`**（`--docs-backend sqlite` 缺省，root 禁选 git）；Git 作为定时按规则导出（含 `.md.metadatainfo`）并 push 远程的公开/备份格式 |
 | **BUG-010** | Event 分层与 Scope 隔离 | 底层 `Heartbeat` 事件缺一等注册或混入默认界面淹没注意力；Event 缺一等 `metadata.scope` 且 Agent 处理 Event 未约束 `eventScopes` 导致跨系统串台风险 | **event.md 规则 18–19 / agent.md 规则 8**：① 注册一等 `Heartbeat` 事件，与 `ReconcileTick` 等同划入 `tier: infra` + **`visibility: default-hidden`（默认不展示）**，异常失活 `HeartbeatLost`/`SessionStalled` 为 `tier: attention` 默认上屏；② Event 强制带四层 `metadata.scope`，Agent 声明 `spec.eventScopes`，派发与消费双侧强制校验 `event.metadata.scope ∈ agent.spec.eventScopes` |
 | **BUG-011** | 设计↔实现 1:N 追踪 | `ServiceDesc` 设计文档与 `ServiceInstance` 实现/验证文档存在 **1:N** 映射，缺乏 `[metadata 关联]` 导致设计变更时无法自动定位哪 N 篇 `ImplDoc` 过期（腐化说谎） | **R-DOC-9 / servicedesc.md 规则 5 / serviceinstance.md 规则 5**：在 frontmatter `metadata.trace` 与 `<doc>.md.metadatainfo` 侧车建立双向 `1:N` 关联（`ImplDoc/VerifyDoc` 声明 `trace.implements` / `verifies` + `designRev`，`DocIndex` 自动反向聚合至设计文档 `trace.implemented_by` / `verified_by`）；设计更新自动标下游 N 篇实现文档 `stale` 并赋相关性结构耦合满分 `100` |
+| **BUG-012** | 回滚分类与文档描述 | 原 `undo: full\|partial\|none` 过于笼统，未区分**要不要回滚**、**四类回滚主体**以及**回滚文档描述**，易导致不可逆操作被盲目回滚或复杂半成品无文档硬退 | **workservice.md 规则 8 / task-scheme.md 规则 8 / workflow.md 规则 19**：显式声明 `rollback: {policy: never\|auto\|ask\|optional, type: irreversible\|code\|agent\|human, description, docRef?}`——先定要不要回滚（可 ask），再按**根本无法回滚 (`irreversible`) / 代码回滚 (`code`) / Agent 读文档回滚 (`agent`) / 人按文档回滚 (`human`)** 分派，且强制附带回滚文档描述 |
+| **BUG-013** | 并发冲突任务裁决 | 两个同时冲突的任务在落地时若静默重试或后写覆盖，会破坏一致性或后台互踩 | **apply.md 规则 7 / task-scheduler.md 规则 11 / workflow.md 规则 20**：两个冲突任务在 **`Apply` 这一关就会因乐观锁被拦下**（保障最终一致）；第一个任务 Apply 后，第二个任务判断有无实质冲突，**一旦有冲突直接询问上级 Agent 或人类：「暂停第一个任务 (`pause-first`) 还是放弃当前任务 (`abort-current`)？」** |
+| **BUG-014** | 外部内容可信度检验 | 内部系统与外部第三方数据源未在 `Provider`/`ConnectorOps` 层区分 `trustLevel`，外部返回内容未经检验直入 Context 存在注入/污染风险 | **provider.md 规则 9 / connector.md 规则 10 / workflow.md 规则 21**：**默认内部系统都是可信的（`trustLevel: trusted`）**；外部系统 `Provider` 和 `ConnectorOps` 添加 `trustLevel: external` 字段；在 **Workflow 级别可配置 `trustGate`（`mode: code \| agent`）**，由外部检验 Agent 或代码先判断一遍内容是否 OK 后再放行 |
 
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule/rule.md](rule/rule.md)）。
