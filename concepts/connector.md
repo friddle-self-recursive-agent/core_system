@@ -5,7 +5,7 @@
 | K8s 对照 | 已装好的命令行入口（工具的使用点） |
 | 形态 | `global|systems/<s>/…/connector-ops/<name>.yaml` |
 | 作用域 | Global / System / Instance |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -66,7 +66,7 @@ spec:
 2. ops 子集 ⊆ WorkService.tools 声明的 op 集（Lint）。
 3. 使用要权限（role 并集+权限系统，P7/）。
 4. `undo: none` 的工具（WorkService.tools 里声明）每次调用人审。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 6. **ConnectorOps=节点流转实现面（不是触发器）**：触发/相位/刹车/记账归 Workflow 引擎；节点内容与节点间流转归绑定的 ConnectorOps（Service 调用/Agent 唤醒/嵌套其他 ConnectorOps）。命名约定：缺省=`<workflow 名>` 同名；空绑定或未实现 → 决策面 `execution=unbound` 可见（缺口不静默）。
 

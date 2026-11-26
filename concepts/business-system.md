@@ -5,7 +5,7 @@
 | K8s 对照 | K8s 机制之上的应用语义层（Policy/上层 CRD 生态）：机制全部复用，约束=已注册机制的声明性使用 |
 | 形态 | 一个 ServiceDesc（`systems/common-business-system/`）+ DocType 族（StateModel/Finance）+ 规则集（R-BIZ-*）；零新 kind、零新执行机制 |
 | 作用域 | Global（约束库被一切业务实例继承） |
-| 状态 | 定稿（终态制，rule.md；**2026-11-26 用户裁决：core-system 之上启动企业业务系统层，先骨架**；第一实例=sybran-business-system，落公司 OneDev 私有仓，运行面在 sybran agent，不进 core_agent） |
+| 状态 | 定稿（终态制，rule/rule.md；**2026-11-26 用户裁决：core-system 之上启动企业业务系统层，先骨架**；第一实例=sybran-business-system，落公司 OneDev 私有仓，运行面在 sybran agent，不进 core_agent） |
 
 ## 1. 定义
 
@@ -166,7 +166,7 @@ draft（草稿）→ submitted（已提交）→ approved（已批准）→ exec
 6. **R-BIZ-5 无指标不上线**：业务域必须带 Metrics（指标+阈值）才可投产；阈值只在声明面（声明面外谓词不绑定）；观测面只读。
 7. **R-BIZ-6 事务可回退**：对外动作必须声明幂等性+undo 等级（tools 契约）；undo:none 的动作默认人审；补偿=成对 cleanup op。
 8. **R-BIZ-7 循环对账**：账实对照/状态投影/结算必须以 Workflow 循环运行（level-triggered、幂等、收敛语义）；禁止"跑完即忘"的一次性结算脚本语义。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 9. 可行性分析
 

@@ -21,6 +21,7 @@ spec:
     - requirements/runtime.md        # R1 运行时要求存档
     - principles.md
     - architecture.md
+    - rule/rule.md
     - doctypes/README.md
   builtinServices:                   # 自举最小集（R1.3 + SelfRecursiveCore）
     - systems/builtin/self-recursive-core

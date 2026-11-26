@@ -5,7 +5,7 @@
 | K8s 对照 | Job/CronJob spec（确定性步骤）——"长运行不依赖即兴"的 K8s 答案 |
 | 形态 | 对象（systems/<s>/schemes/<name>.yaml），builtin Scheme 之一 |
 | 作用域 | System 或 Instance |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -67,7 +67,7 @@ spec:
 3. 新 Scheme 入库过权限系统（高危 op 如 exec 人审）。
 4. 模板元数据带 `origin`（builtin/adjusted/imported）与生成相位提示词（prompt 段）——提示词是模板的一部分，随模板版本管理。
 5. 模板四操作（用/调/import/delete）都过权限系统；builtin 起源模板只读，调整必产生副本。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 6. 可行性分析
 

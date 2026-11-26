@@ -79,17 +79,21 @@ core_system/
 ├── requirements/                        # 原始要求存档（背景 / 运行时 / workflow 平台 / agent pool）
 ├── principles.md                        # 10 条设计原则（冲突裁决依据）
 ├── architecture.md                      # 四层一面 / 边界决策树 / K8s 对照
-├── concepts/                            # 概念定义（终态制，rule.md）
+├── rule/                                # 规则目录：rule.md 总文档 + rule_xxx.md 各方面（R-DOC-6 侧车随行）
+├── concepts/                            # 概念定义（终态制，rule/rule.md）
 ├── doctypes/README.md                   # 文档类型注册表
 ├── core/scheme.yaml                     # 首版 Scheme：类型注册 + 事件路由 + 运行时基座
 ├── systems/builtin/                     # 自举最小集六个 builtin service 声明
+├── *.md.metadatainfo                    # 每篇文档同目录侧车：tags[{tag,tag_type}] + importance 0-100（R-DOC-6）
 └── open-questions.md                    # 活问题清单（现存概念的真问题）
 ```
+
+**元数据侧车**：每篇文档 `<name>.md` 同目录有 `<name>.md.metadatainfo`（`tags[{tag,tag_type}]` + `importance 0–100`），导出/GitHub 镜像保留；规则见 [rule/rule_doc.md](rule/rule_doc.md) R-DOC-6，校验 `lint/metadatainfo.sh`。
 
 ## 阅读/审阅顺序
 
 1. [requirements/runtime.md](requirements/runtime.md)（原始运行时要求：三仓结构、运行时规则、builtin 系统、install 流程）
-2. [goal.md](goal.md)（验收条款）→ [principles.md](principles.md) → [architecture.md](architecture.md)
+2. [goal.md](goal.md)（验收条款）→ [principles.md](principles.md) → [architecture.md](architecture.md) → [rule/](rule/rule.md)（按方面查规则）
 3. [concepts/](concepts/)（新读者从 README 索引入）
 4. 实现与可行性 → instance 仓
 

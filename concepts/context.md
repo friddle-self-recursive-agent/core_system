@@ -22,7 +22,7 @@
 - **四族对象都打 tag**（同一套词表）：
   | 族 | 载体 | 打标字段 |
   |---|---|---|
-  | Document | docsRoot 与各仓 md | `tags`（按 tagtype 归组）+ **`tagRelevance`**（map<tag, 0-1>，本文档对该 tag 的相关度）+ `importance`（1-5）+ level/module/digest |
+  | Document | docsRoot 与各仓 md | `tags`（按 tagtype 归组）+ **`tagRelevance`**（map<tag, 0-1>，本文档对该 tag 的相关度）+ `importance`（0–100，满分 100；导出侧车见 R-DOC-6）+ level/module/digest |
   | Scheme | `core/scheme.yaml`（kind/eventType 注册） | `tags`（该 kind/eventType 关联的问题域） |
   | Provider | provider 对象 | `tags`（能力域：llm/git/notify/…） |
   | ServiceDesc | `systems/<s>/system.yaml` | `tags`（系统级问题域） |
@@ -62,7 +62,7 @@ spec:
         domain: [event, notification]
         mech: [dedup, urgency]
       tagRelevance: {dedup: 0.9, urgency: 0.8, notification: 0.6}   # 文档×tag 相关度
-      importance: 4           # 1-5
+      importance: 85          # 0-100（文档重要度，满分 100）
       digest: "事件分诊与去重；类型→标签；相关度因子"
       sha: "<blob sha>"
       chunks:
@@ -87,7 +87,7 @@ spec:
     vector: "<tag 词表空间的归一化向量（cosine 相似度用）>"
   chunks:
     - {ref: "core_design/concepts/workflow.md#1.3", hash: "<blob sha>@<commit>", why: "执行模型=session/agent", score: 0.82, tokens: 900}
-    - {ref: "core_system_instance/runtime/console-ui.md#11", hash: "<blob sha>@<commit>", why: "整改清单 A/B/C", score: 0.71, tokens: 2400}
+    - {ref: "core_system_instance/acceptance/console/console-ui.md#11", hash: "<blob sha>@<commit>", why: "整改清单 A/B/C", score: 0.71, tokens: 2400}
     - {ref: "loop-next.md#全文", hash: "<blob sha>@<commit>", why: "跨轮交接压缩摘要", score: 1.0, tokens: 800}
   citations: ["<repo>@<commit>:<path>#<anchor>"]   # ref+hash 可展开回原文
   tokens: 31200                                    # ≤ budgetTokens
@@ -147,7 +147,7 @@ spec:
 - **Agent / Session**：`Agent.spec.docsPolicy` 的"按需读"由此实现；两段开会话接入 `agent-session.md`。
 - **Proposal**：提案是一等消费方——提交节点跑 `context.pack` 产 conflicts/supplements 对照（proposal.md §4.6），对话与审批面明确展示；提案本体带 `conventions.tags` 入同一 tag 池。
 - **ConnectorOps**：索引构建/亲和重算/失效/预热=代码承载能力，归 `connectops-context`（R-ENG-3）。
-- **Notification / Console**：stale 缓存的"提示更新"经事件+session 界面徽标呈现；ctx 可视与缓存实效控制在 console session 视图（见 runtime/console-ui.md）。
+- **Notification / Console**：stale 缓存的"提示更新"经事件+session 界面徽标呈现；ctx 可视与缓存实效控制在 console session 视图（见 acceptance/console/console-ui.md）。
 
 ## 6. 设计规则
 
@@ -163,7 +163,7 @@ spec:
 10. **ctx 可视可控**：session 界面展示本会话 ctx 全文（tagSig/chunks/tokens/来源/命中统计），并可**设置缓存实效**（手动失效、改 TTL）；失效为写面动作，走门控。
 11. **会话结束回写**：会话上下文缓存 + ContextNotes + "实际用到的 chunk"命中统计（检索质量的反馈闭环）。
 12. **loop-next 同纪律**：跨轮交接散文仍是唯一权威通道；pack 内只放其压缩摘要（ref+hash 指向原文）。
-13. **底座规则**：会话按 tag 装载四族上下文（**rule / provider / service 描述 / document**）是**系统底层规则**（rule.md R-CTX），任何会话开工前必须完成或显式降级（`degraded:true`），不静默、不是可选优化。
+13. **底座规则**：会话按 tag 装载四族上下文（**rule / provider / service 描述 / document**）是**系统底层规则**（rule/rule_ctx.md R-CTX），任何会话开工前必须完成或显式降级（`degraded:true`），不静默、不是可选优化。
 14. **不漏事件**：事件参与索引与打分（type→tags、urgency），缓存只加速读取，不改变事实。
 
 ## 7. 可行性分析

@@ -5,7 +5,7 @@
 | K8s 对照 | Pod/Job（执行体）+ 其 controller 的收敛意识 |
 | 形态 | 全局一等对象（不是 Instance 的内嵌字段） |
 | 作用域 | Global（builtinRoot 为 Builtin） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -24,7 +24,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **默认 Skill（系统文档查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统"作为 skill 喂给它——一组命令式工具（按 scope/name/DocType 取文档与文档信息、读 Status/最近事件），agent 靠调用命令获取文档与文档信息，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
-**检索（简单 RAG，分页）**：Session/Doc/TaskScheme 更新时由 LLM **自动打 tag + 评判重要程度**（tags[]/importance 1-5/一句话标题描述——conventions.tags，scheme.yaml）。Agent 查历史靠检索工具（tag 过滤+重要度×时间衰减排序），**一律分页**：默认每页 10 条（可调），列表只给 `[标题+简单描述+重要度+时间]`，Agent 按需拉全文。**结果不对就继续找**：换 tag/翻页迭代（工具与提示词见 instance 仓 runtime/agent-session.md §5）——不导入全量。
+**检索（简单 RAG，分页）**：Session/Doc/TaskScheme 更新时由 LLM **自动打 tag + 评判重要程度**（tags[]/importance 0-100/一句话标题描述——conventions.tags，scheme.yaml；文档导出侧车见 R-DOC-6）。Agent 查历史靠检索工具（tag 过滤+重要度×时间衰减排序），**一律分页**：默认每页 10 条（可调），列表只给 `[标题+简单描述+重要度+时间]`，Agent 按需拉全文。**结果不对就继续找**：换 tag/翻页迭代（工具与提示词见 instance 仓 runtime/agent-session.md §5）——不导入全量。
 
 两类：
 
@@ -120,7 +120,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 5. SubAgent 权限=Parent 一次性全量下发（⊆父，只减不增；不做按步骤细粒度裁剪），运行时缺权限直接 ask 上级整包重发；环状父子拒绝入库。
 6. AUTOLEVEL 变更走 Apply+权限系统（提权动作）；`all` 需显式授权。
 7. builtinRoot 不可删（硬规则不变）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

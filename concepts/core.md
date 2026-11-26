@@ -5,7 +5,7 @@
 | K8s 对照 | kube-apiserver + etcd + controller-manager（合并为一个小进程） |
 | 形态 | **默认由 dsh plugin 承载**：core plugin 于 dsh 宿主内提供控制面；P9 例外清单不变 |
 | 作用域 | Builtin |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -72,7 +72,7 @@ status: # 由 builtinRoot Agent 回写
 2. Core 所有接口必须可 dry-run（预演不改状态）。
 3. Core 无状态化优先：状态全在文档面，Core 重启不丢脑。
 4. 文档库写入必须串行化（单写者队列），读并发不限。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

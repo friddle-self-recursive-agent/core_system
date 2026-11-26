@@ -5,7 +5,7 @@
 | K8s 对照 | CustomResourceDefinition：文档类型 = 自定义资源类型 |
 | 形态 | doctypes/ 注册表（core/scheme.yaml 的 docTypes 段展开） |
 | 作用域 | Builtin（注册表本身），类型可被各层使用 |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -55,7 +55,7 @@ spec:
 2. 必填段控制在 ≤3 个：文档类型的职责是"防缺关键段"，不是"格式化写作"。
 3. 同一语义不允许两个类型（ 教训：Prometheus 型被并入 Metrics 型就是本规则的应用）。
 4. `acceptance` 类可验证段是 Workflow 的 Verifying 依据——**没有验收条款的 Goal 不予入库**（servicedesc.md 可行性的核心缓解）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

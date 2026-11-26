@@ -5,7 +5,7 @@
 | K8s 对照 | Event 资源 + watch 通知 |
 | 形态 | 短生命周期数据（内存队列 + 滚动归档），**不是文档对象**；队列由 dsh（core plugin）实现，类似 dsh 的 event 队列 |
 | 作用域 | 全局命名空间（带来源标注） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -70,7 +70,7 @@ status:
 14b. **判定/事件/回收三词分立与送达对齐（KI-003 收口注记）**：**判定态词=`SuspectedStall`**（watchdog 判定"疑似停滞"的状态词——go 常量/查询态 `state=suspected-stall`），**事件类型词=`SessionStalled`**（进总线的一等事件，与 HeartbeatLost 同族 error 级人注意事实，注册表 dedup=`session:<id>`——同会话同窗至多一条）——判定词≠事件词=同一因果的两面（判定是内部状态、事件是对外投影），文档与代码同源不得混用。**自愈第一动作=注入固定 prompt「继续」**（保留上下文，不重启会话——重启=终态处置不在第一拍）；恢复（重新心跳）→ `SessionHealed`（info 级活性事实，注册表 dedup=`session-heal:<id>`，dispatch=dead-letter：恢复非处置触发，动作在 watchdog 侧已闭合）。**诊断分诊四路**（注入后仍未恢复）：权限类→`ApprovalNeeded`（走审批链+通知，不自行绕过）；人工类→按 bind 用户已配置通道上报（notification.md 规则 6：未配置任何通道=不 notify 仅页面展示，**零外发**；注册表未含 HeartbeatLost 之外的人造邮件词——人工上报经既有 HeartbeatLost 通道词或 Escalate，不新增外发面）；长任务类→`LongTaskRunning`（dedup=`longtask:<id>`，dead-letter 观测面；有进展心跳=不判停滞；结束=watchdog 停止再发，观测面经回收行 `visible=false` 语义收编——事件账本不删行）。**dispatch 表 SessionStalled 行**：`root-agent` 主路（自愈链入口=agent 域唤醒投影，与本规则⑤升级链同语义）+ `notification/*` cc 旁路（bind 通知）—— 人注意终态族通知阶段门（notification.md 规则 5）对 SessionStalled 与 ApprovalNeeded|Escalate|HeartbeatLost 同轴恒放行。**引擎内部源第六段（装配层 watchdog 自产）**：source 服务侧判定恒 `core`（巡检/阈值桥同口径），类型注册闸门前置（`SessionStalled` 未注册即不启动 watchdog——注册表是引擎内部源唯一开关），level=注册表缺省投影，缺省关断（interval=0 零事件零扫描）。
 15. **引擎内部源机读落点（第五段=Proposal 审批分流 ApprovalNeeded 自产，v0.51）**：生产者=装配层提案分流判定（`internal/proposal` watcher——DocApplied×Proposal 订阅，零新 HTTP face）：Proposal 对象以 `spec.status=submitted` 落库 ∧ 审批分流判高危（priority 不在部署侧 `--proposal-auto-approve` 清单——缺省全人审，proposal.md 规则 3）→ 自产 `ApprovalNeeded` 进总线（route `notification/*` 主路送达+审批屏待审区归档行随行）。与注入面同一条主干零旁路，差异四处：**source 服务侧判定恒 `core`**（引擎自身的分流判定产源标注是审计事实——与巡检恒 core/注入恒 human/人审档拒绝恒 permission 四值分立，registry 行 source=`permission|core` 双产源在册）；**类型注册闸门前置**——`ApprovalNeeded` 未注册即不发布（注册表是引擎内部源的唯一开关）；**level 缺省=注册表 defaultLevel 投影**（ApprovalNeeded→warn）；**dedupKey=`proposal:<obj>`**（registry dedup 模板 `<rule>:<obj>` 的机读实例——同提案待审窗口聚合防风暴）。**批准/驳回判定的事件族随行**：`fromDraft ∧ fieldManager=console:approve|console:reject` 的 Proposal 判定成功（create|update|noop）→ `ApprovalGranted`/`ApprovalRejected`（source=human——判定是人经 console 做出的，与注入通道 source 判定同口径；involved=Proposal/<scope>/<name>，非 Workflow 引用=不命中 run 域迁移，规则 11 反证面）。**拒绝/静默不产事件**：驳回走 ApprovalRejected（事件是通知不是第二判定）；低危自动批准不产 ApprovalNeeded（分流判定=无待审发生，判定留痕=approval_log granted 行 fieldManager=proposal:auto）。
 16. **事件分诊：type→标签、重要度与相关度（v0.5x 上下文族首段）**：事件除 level/type/source 外必须可被检索面消费——①**type→tags**：`eventTypes` 注册行可选 `tags: []string`（缺省空）；②**importance**：注册行可选 `importance: 1-5`（缺省由 defaultLevel 投影：debug=1/info=2/warn=4/error=5）；③**urgency**=`level × importance × 时间衰减`，只影响通知排序与上下文检索加权，**不改变路由/dispatch 判定**（判定仍按 level 与 route 表，规则 6 口径不变）；④**代码级去重扩展**：既有 dedupKey 窗口聚合不变，新增「同因聚合带计数」（窗口内重复只留一条并携 `count`）与 **tag 相似抑制**（同 tag 且在抑制窗内、摘要相似度 ≥ 阈值的低等级事件只计数不派发——阈值与窗口属 ContextPolicy，不硬编码）；⑤**tag 亲和矩阵**由 ConnectOps `connectops-context` 周期重算（共现 + 时间衰减 + 人工钉住，因子可配），版本化后生效（connector.md 规则 8）；⑥**事件入索引**：event_log 聚合视图作为 DocIndex 的 L3 源，供「最近相关事件」检索，默认不常驻；⑦**审计不可缓存**：event_log 是事实，去重只作用于派发面与检索视图（context.md 规则 10）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

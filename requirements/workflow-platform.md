@@ -28,5 +28,5 @@
 ## R15.5 落点
 
 - 概念：concepts/workflow.md（平台化重写）、concepts/task-scheme.md（模板库操作集）、concepts/permission.md 等。
-- 运行时：instance 仓 runtime/workflow-runtime.md（引擎管线+编辑+展示+数据流+落地 agent）、runtime/console-ui.md（第一层树）、runtime/execution-model.md（Agent 层更正）、runtime/bootstrap.md（自 loop/ 迁入）。
+- 运行时：instance 仓 runtime/workflow-runtime.md（引擎管线+编辑+展示+数据流+落地 agent）、acceptance/console/console-ui.md（第一层树）、runtime/execution-model.md（Agent 层更正）、runtime/bootstrap.md（自 loop/ 迁入）。
 - 历史（annotations / concept-review / requirements 存档）不改写——它们是记录本身。

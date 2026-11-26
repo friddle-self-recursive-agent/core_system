@@ -5,7 +5,7 @@
 | K8s 对照 | Controller/Reconciler（触发+对账+刹车）与 Pod 相位机的合体 |
 | 形态 | 对象：`global/workflows/`（builtin）与 `systems/<s>/workflows/<name>.yaml`（系统自定义） |
 | 作用域 | Global（builtin）/ System |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -154,7 +154,7 @@ spec:
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
 - Escalate 出口：默认上溯 root agent；有 role 挂载时 role 持有者经 Notification 同达。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
-- **展示**（console）：workflow 详情=同一对象工作台——默认**关注报告**（发生了什么/值得关注/下一步）+常驻对话；流程图/事件/流转/数据流/运行/配置为次级 tab；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。（R-UX-7；runtime/console-ui.md §14.6）
+- **展示**（console）：workflow 详情=同一对象工作台——默认**关注报告**（发生了什么/值得关注/下一步）+常驻对话；流程图/事件/流转/数据流/运行/配置为次级 tab；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。（R-UX-7；acceptance/console/console-ui.md §14.6）
 - **第三方**：其他系统/他人编辑、导入、管理、触发设置，走同一 Apply+权限系统入口；导入=外部编排渲染成 spec（预览=dry-run，导入件首期 observe 模式）。
 - **落地 agent**：新 workflow 的接线/代码化由 `apply-workflow` agent 承担（§1.2）。
 
@@ -185,7 +185,7 @@ spec:
     - **冷却门（受理路径）**：同锚同 involved 窗口判——该锚该 involved 最新 run 受理时刻起 cooldown 窗口内的后续触发**不落 run**（触发留痕仍在，braked 计数可见）；窗口外照落；跨 involved 不互踩（防震荡语义粒度=同一对象——对象级修复互踩是震荡本体，锚级窗口会误伤并行对账）。cooldown 锚首段=run 受理时刻（完成语义缺位——「成功后最小间隔」的完成锚随真实执行面接线后切换，锚切换规则声明面先定）；冷却门只作用于受理落 run 路径且不区分 source（触发→run 转换的统一闸），审批信号面不经此门（审批信号是迁移事件不是对账触发，规则 13 口径不变）。
     - **推进拍变更上限（推进路径）**：每拍对每锚的 run 相位变更数受生效刹车值约束（变更单元首段=run 相位变更留痕）；上限只计实际发生的迁移（序列尾零动作不占额）；超限 run 本拍零动作、下拍续推（level-triggered 不丢拍）。
     **关断语义组合（声明面先定）**：刹车闸单一挂接点=部署旗标显式开启（缺省关断=零刹车行为面不变）；刹车闸与推进总闸、巡检闸正交（刹车只作用于已挂接的执行路径，不产事件不旁路任何闸；受理冷却门在订阅路径上与写面开关分立——只读装配亦可挂接）。**表驱动口径**：刹车值是声明数据（spec.brakes → 强制默认钳定 → 每锚生效值），判定面零即兴——每 run 载荷投影生效刹车值（`brakes` 键：cooldown、maxMutationsTick、source（default=强制默认、spec=声明收紧值）——**新载荷键出现=代际判别器**）。查询面新增**刹车可见键**：run 投影状态新增 `braked`（累计冷却门拦阻触发数）与 `capped`（累计推进拍上限拦阻 run·步数）——新载荷键出现=代际判别器。机械判别器：刹车闸挂接实例同锚同 involved cooldown 窗口内第二触发不落 run（braked>0）∧ 窗口外照落 ∧ 跨 involved 照落 ∧ 推进拍锚内变更数超上限时超额 run 相位本拍不变（下拍续推）∧ 未挂接实例同型触发全落 run 且 braked=0（双实例对照）。余量：avoidRepeatFix 与 DriftReport 回归面、cooldown 完成锚切换、minLevel 与真实执行面接线、事件拍余量源。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 跨权限完整分析
 

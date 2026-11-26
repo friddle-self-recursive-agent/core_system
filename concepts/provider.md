@@ -5,7 +5,7 @@
 | K8s 对照 | 无直接对应（组合了 Secret+ConfigMap+Endpoint 的"账号"概念；类比 cloud provider credential profile） |
 | 形态 | 对象：`global/providers/<name>.yaml` |
 | 作用域 | Global（可被 System/Instance 引用） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -137,10 +137,10 @@ spec:
 3. connector 为空时，Agent 直连须在 config 声明目标域（审计可查出口）。
 4. 一个 Provider 一个用途；多环境=多 Provider（llm-main / llm-backup）。
 5. 原 Credential 的轮换/吊销规则并入本概念：rotation 必填（无轮换告警，超期降权）；吊销=删 Provider（Finalizer 清 granted 使用方）。
-6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账，凭据值走部署侧秘密存储 `secret:<name>`——规则 2），**绝不提交公开仓**（rule.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
+6. **声明面与运行时面分离**：公开仓只存声明面（类别/接口/secret 引用/占位符）；Provider 运行时实例的真实地址、账号、密码只存部署侧（机器本地配置/ops DB/gitignored 台账，凭据值走部署侧秘密存储 `secret:<name>`——规则 2），**绝不提交公开仓**（rule/rule_pub.md R-PUB-1/2）。运行时实例≠声明对象：一台部署一份实例配置，多环境多实例，声明面唯一。
 7. **通知类 Provider 的 secret 引用面即实现契约**：kind=email/im 类 Provider 的通道实现挂靠 ConnectorOps（connector 字段）→ 运行时经 connectors 包 **OpsConnector 五方法**（工具调用域：Type/Version/Ops/Invoke/Probe，R-ENG-3 契约层）出站——声明面只写引用式 secret 与占位符 config，授权码真实值永不入任何仓（R-PUB-1 凭据红线）。
 8. **能力→Provider→Skill 缓存**：可复用的工具能力（验收截图/浏览器渲染/检索等）以 Provider 登记（本地工具 kind: generic，connector 可空）；首次成功调用后沉淀为 **Skill**（运行时 agent-session §4：注入提示+成功调用示例），workflow 验收节点由 agent 直接调用该 skill（不即兴写命令）；Provider 契约变更/版本升级 → 对应 Skill 默认作废（Skill 是缓存不是真相）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

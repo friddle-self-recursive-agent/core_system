@@ -5,7 +5,7 @@
 | K8s 对照 | 无直接对应（k8s 不管人）；类比 cloud IAM 的用户目录，但刻意从简 |
 | 形态 | builtin 服务（systems/builtin/user-system/）+ Kind `User`（global/users/<name>.yaml） |
 | 作用域 | Builtin（服务）/ Global（User 对象） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -58,7 +58,7 @@ builtin 起步（Igniter 装载首批用户——至少一个管理员）→ 增
 2. 用户增删改走人审；root 管理员至少一人（防止全锁死）。
 3. contact 只存引用/地址，不存 IM 凭证（凭证在 Provider.auth.secret）。
 4. IdP 接入前，本系统是权威；接入后 spec 标 `syncedFrom: workservice/authentik`，本地写只读。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

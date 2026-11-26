@@ -5,7 +5,7 @@
 | K8s 对照 | resourceVersion（乐观锁）+ audit log |
 | 形态 | metadata.resourceVersion + git 历史（天然审计）+ ops DB 流水 |
 | 作用域 | 跟随宿主 |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -51,7 +51,7 @@ resourceVersion：Core 每次成功写入自增；Apply 提交带回读到的版
 3. commit message 结构化：`<fieldManager> <action> <reason-ref>`（reason-ref 指向 DriftReport/PlanDoc/Event）。
 4. 历史不可改写（no force-push）。
 5. **LLM 语义 diff 的输出永远是提案**：事实基础是 git 文本 diff；合并落地必须人裁或 权限系统 明确放行——LLM 不直接改历史。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

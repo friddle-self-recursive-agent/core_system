@@ -5,7 +5,7 @@
 | K8s 对照 | Service 名/DNS（逻辑名→由权威方解析地址）；ExternalName 的声明化 |
 | 形态 | 对象：`global/refs/<name>.yaml` 或系统目录内 refs/ |
 | 作用域 | Global 或 System（"Ref 属于哪个 System 还是 Global"→ 由 Scope 规则裁决） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -86,7 +86,7 @@ resolve(ref)
 3. 解析结果必带 cacheTtl；解析失败必发 Event。
 4. 解析链深度 ≤2（A 的 ref 由 B 解析，B 不得再用 ref 递归解析），建仓时检环。
 5. owner 必挂；内部文档引用不用 Ref。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 8. 可行性分析
 

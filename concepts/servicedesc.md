@@ -5,7 +5,7 @@
 | K8s 对照 | Deployment / 自定义资源的 **Spec 部分** |
 | 形态 | 一个目录（systems/<name>/）= 一个 ServiceDesc；v1 无系统时，文件夹即存储 |
 | 作用域 | Global（每个系统平级） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -72,7 +72,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 2. Desc 内禁止出现具体厂商/实例名（"用 gitlab"是 WorkService 层的事；Desc 说"需要代码托管能力"）——**能力声明，不绑实现**。验收：文档里出现 `gitlab.com/...` 之类即 权限系统 警告。
 3. 文档间引用用相对路径或 `system://<name>/<doc>` URI，不用裸文件路径（为将来换存储留缝）。
 4. 一个系统一个目录，目录名=对象名（instance 仓 layout.md）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

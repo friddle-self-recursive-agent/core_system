@@ -5,7 +5,7 @@
 | K8s 对照 | Issue/Enhancement 提案（任意主体发起的意图对象，走评审流）——"需求先成为对象再成为工作"的答案 |
 | 形态 | 对象（`global/proposals/<name>.yaml | systems/<s>/proposals/<name>.yaml`），builtin Scheme 之一 |
 | 作用域 | Global 或 System |
-| 状态 | 定稿（终态制，rule.md；2026-11-26 用户裁决：提案人=一切主体、审批双路缺省、agent 全自动链、提案×上下文对照、派工含文档更新） |
+| 状态 | 定稿（终态制，rule/rule.md；2026-11-26 用户裁决：提案人=一切主体、审批双路缺省、agent 全自动链、提案×上下文对照、派工含文档更新） |
 
 ## 1. 定义
 
@@ -83,7 +83,7 @@ spec:
   （approval_log rejected 行 + `ApprovalRejected` 事件）。判定落账与事件同拍（apply_log 承落库流水、
   approval_log 承判定、事件族承通知——三账同源可回指）。
 
-## 4.5 录入方式：对话优先（2026-11-24 用户裁决；通用规则见 rule.md R-UX-1）
+## 4.5 录入方式：对话优先（2026-11-24 用户裁决；通用规则见 rule/rule_ux.md R-UX-1）
 
 Proposal 的录入**默认是对话**（session 对话），不是表单（表单仅降级/精修）。固定顺序：
 

@@ -372,13 +372,14 @@ spec:
     tags:                            # 检索元数据（LLM 自动打标；Session/Doc/模板更新时）
       spec.metadata.tags: "?[]string"          # 关键 tag（tag∈唯一 tagType；词表无全局上限，conventions.context.tagModel）
       spec.metadata.tagRelevance: "?map<string,number>"  # 文档×tag 相关度（0-1；context.md 规则 2）
-      spec.metadata.importance: "?int(1-5)"    # 重要程度（LLM 评判）
+      spec.metadata.importance: "?int(0-100)"  # 文档重要度分（满分 100；事件分诊 importance 仍 1-5，event.md 规则 16）
       spec.metadata.digest: "?string"          # 一句话标题+描述（检索列表展示用）
       spec.metadata.level: "?L0|L1|L2|L3|L4"   # 文档分级（context.md 规则 2：L0 宪法/L1 概念/L2 运行时设计/L3 证据/L4 笔记）
       spec.metadata.module: "?string"          # 主模块（单值；跨模块关系走 tags）
     context:                         # 上下文装配（concepts/context.md；R-CTX 底座规则；索引/pack 为派生物可重建）
       index: "文档+声明面(Scheme/Provider/ServiceDesc)+事件的结构化投影（doc/chunk；内容指纹=blob sha；构建与失效归 connectops-context）"
       tagModel: "tag∈唯一 tagType；四族打标（Document/Scheme/Provider/ServiceDesc，同一词表）；词表无全局上限——数量限制只在会话装配面（pack：每 tagType≤5、总计≤20，可配）"
+      metadatainfo: "<doc>.md.metadatainfo 侧车：tags[]{tag,tag_type}+importance 0-100（满分 100）；导出/GitHub 镜像保留；R-DOC-6"
       factors: {tag: 0.30, affinity: 0.15, keyword: 0.25, recency: 0.10, pin: 0.10, prior: 0.10}
       recency: {halfLifeDays: 30}
       budget: {ratio: 0.3, maxTokens: 60000}

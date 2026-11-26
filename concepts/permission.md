@@ -5,7 +5,7 @@
 | K8s 对照 | RBAC（Role/RoleBinding/Group）+ 准入的权限部分 |
 | 形态 | Kind：`Role`（global/roles/）、`Group`（global/groups/）；User 由 user-system 提供（人↔role 持有面） |
 | 作用域 | Global |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -86,7 +86,7 @@ spec:
 3. 判定方灵活但**判定必须留痕**（谁判的、依据什么、何时）——灵活性换可审计。
 4. 跨系统裁判权永远在被请求方（B 侧）。
 5. 原则 P7（权限随文档走）不变：改 role/绑定=改权限=高敏变更（人审）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

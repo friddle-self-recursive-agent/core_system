@@ -5,7 +5,7 @@
 | K8s 对照 | 无对应（镜像 layer cache 的类比：用过就留，下次直接用） |
 | 形态 | 缓存对象：Instance/Agent 会话层（systems/<s>/instances/<i>/skills/<name>.yaml） |
 | 作用域 | Instance（高频可提升为 Global） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -60,7 +60,7 @@ spec:
 2. 沉淀自动、提升人工（提升到 Global 走 Apply+人审）。
 3. 示例必须脱敏（凭证模式扫描同规则）。
 4. invalidateOn.providerVersionChange 默认 true（工具变了经验作废）。
-- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+- 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

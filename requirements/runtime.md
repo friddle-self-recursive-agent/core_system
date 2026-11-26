@@ -47,7 +47,7 @@ install service → 到 https://github.com/friddle-self-recursive-agent 找 **te
 
 # 原始要求存档：服务控制台与跨 agent（2026-11-20 第三批）
 
-> 编号 R2-x。本批来自 MVP 开发会话，Desc 侧只存需求；实现设计进 instance 仓（runtime/console-ui.md、runtime/cross-agent.md、mvp/）。
+> 编号 R2-x。本批来自 MVP 开发会话，Desc 侧只存需求；实现设计进 instance 仓（acceptance/console/console-ui.md、runtime/cross-agent.md、mvp/）。
 
 ## R2.1 builtin 语义澄清
 
@@ -67,11 +67,11 @@ builtin 的含义就是**最基础的循环调用代码**。例如使用 agent d
 
 ## R2.4 数据库初始化
 
-实现时记住 ops 数据库的初始化（幂等脚本、随代码走；见 rule.md R-ENG-2）。
+实现时记住 ops 数据库的初始化（幂等脚本、随代码走；见 rule/rule_eng.md R-ENG-2）。
 
 ## R2.5 默认代码语言
 
-默认 **Go / TS** 写代码（控制面服务用 Go，dsh 插件/前端用 TS）。写入规则（rule.md R-ENG-1）。
+默认 **Go / TS** 写代码（控制面服务用 Go，dsh 插件/前端用 TS）。写入规则（rule/rule_eng.md R-ENG-1）。
 
 ---
 

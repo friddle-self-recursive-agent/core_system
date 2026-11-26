@@ -5,7 +5,7 @@
 | K8s 对照 | 无直接对应（≈ 告警摘要 + `kubectl get` 的人话归并） |
 | 形态 | **派生视图，不是文档对象**：不注册 DocType、不进 git、无 revision；缓存落 ops DB `attention_report`（可丢弃可重建） |
 | 作用域 | 按查看者权限裁剪；可全局（viewer 可读 scope 并集）或对象锚定（service / workflow / instance） |
-| 状态 | 定稿（终态制，rule.md） |
+| 状态 | 定稿（终态制，rule/rule.md） |
 
 ## 1. 定义
 
@@ -79,7 +79,7 @@ report:
 - **Context**：生成时按 tag 装配系统/规则/文档摘要（R-CTX-8 底座）；条目开聊时把涉及对象 tag 带进会话 ctx（两段会话的第二段起点）。
 - **Proposal / 审批**：报告三块之一；点开=既有审批入口；报告无批准权。
 - **Workflow**：报告可作用域到某 workflow（workflow 页默认视图）；生成器可被既有 Workflow 定时预热（同一生成器，不是新引擎）。
-- **Console**：主界面=报告×对话（rule.md R-UX-6）；条目落地=对象工作台（R-UX-7）。
+- **Console**：主界面=报告×对话（rule/rule_ux.md R-UX-6）；条目落地=对象工作台（R-UX-7）。
 - **Permission**：生成前裁剪；缓存按权限指纹隔离；报告不得成为越权读取通道。
 
 ## 6. 设计规则
@@ -96,7 +96,7 @@ report:
 10. **派生纪律**：不注册 DocType、不入 git、无 revision；删除缓存可重建；生成参数（模型/提示/映射表版本）随报告记录。
 11. **可复现**：同窗口 + 同候选指纹 + 同生成器版本，条目集合与排序稳定（LLM 文本可不同，但不得增删 critical / high）。
 
-终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule.md)）。
+终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
 

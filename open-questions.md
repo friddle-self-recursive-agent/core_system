@@ -1,6 +1,6 @@
 # Open Questions（活问题清单）
 
-> 只列**当前概念体系**下仍未决的问题；已删除/被替换概念的问题不再收录（终态制，rule.md）。已裁决的问题直接进概念文档终态。
+> 只列**当前概念体系**下仍未决的问题；已删除/被替换概念的问题不再收录（终态制，rule/rule.md）。已裁决的问题直接进概念文档终态。
 > 复审状态（2026-11-22 批复）：Core 部署模式、dispatch 谓词、类型演进、metrics 摘要 workflow、capabilities 词表、Ref 缓存与上限、死信熔断、Apply 文档级粒度、登录 builtin 最小实现（dsh token）、Agent↔Service 协议——均已裁决入文档（concepts 各文件 + instance 仓 runtime/agent-service-protocol.md、runtime/bootstrap.md）。
 
 ## core
@@ -63,4 +63,4 @@
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。
 2. LLM 网关单点依赖的兜底（多 provider 路由已有，故障演练未做）。
-3. **公开仓 git 历史泄露处置**（2026-11-22 发现，规范见 rule.md R-PUB）：core_system_instance 历史含内网 IP/内网域名（提交 18d738f、f8c3758 等），core_design 历史含个人模型选型名；工作树均已脱敏（R-PUB-1，lint/personal-info.sh 守护）。待裁决：① git filter-repo 重写两仓历史 + force push；② 不动历史（IP 为 RFC1918 内网段，换地址即失效；选型名非凭据）。若选①，此后建议给各仓加 CI lint（R-TYPE：R-PUB-1 已是 lint 型）。
+3. **公开仓 git 历史泄露处置**（2026-11-22 发现，规范见 rule/rule_pub.md R-PUB）：core_system_instance 历史含内网 IP/内网域名（提交 18d738f、f8c3758 等），core_design 历史含个人模型选型名；工作树均已脱敏（R-PUB-1，lint/personal-info.sh 守护）。待裁决：① git filter-repo 重写两仓历史 + force push；② 不动历史（IP 为 RFC1918 内网段，换地址即失效；选型名非凭据）。若选①，此后建议给各仓加 CI lint（R-TYPE：R-PUB-1 已是 lint 型）。
