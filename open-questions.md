@@ -70,6 +70,7 @@
 1. 定时导出 git + push 的实现落点（`corectl export` / 独立 exporter / 部署 cron/systemd timer）与规则（频率/分支/远端/失败告警）——下一段。
 2. sqlite 逐次正文历史 `doc_history` 表与 `GET /v1/rev-content` 读面——下一段；当前 sqlite 后端 503 诚实降级，不得用周期 git 快照冒充。
 3. 多 cored 共库写竞争（core-system/kube-inner 若同 sqlite）——迁移期 kube-inner 暂显式 git，后续定单写者/写面归属。
+4. 跨进程 sqlite 变更通知：`Watch` 当前为进程内写直通知，多 cored 共享 docs DB 时权限热装载/缓存不跨进程；下一段用 DB 轮询代际或事件总线补齐。
 
 ## 横切
 
