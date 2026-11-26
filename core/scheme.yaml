@@ -332,6 +332,14 @@ spec:
   runtime:
     baseAgent: dsh                  # 外部运行时（deepseek 插件机制）；core 即 dsh plugin
     executionLayers: [intent, agent, scheme, code]
+    ruleVerification:               # R-TYPE-3：规则→验证模式的声明（Rule 条目 mode/checker/agent 与 ruleChecks 双向追溯）
+      modes: [code, agent, human]
+      code: {registry: ruleChecks, executor: "connectorOps/code-audit#check", unbound: error}   # code-audit=新 ConnectorOps 实现（deploy-system connectops-code-audit）
+      agent: {handTo: service-agent, verdict: "pass|fail|unverified", record: VerifyDoc}          # 语义规则丢给 agent 验证；unverified 不算通过
+    ruleChecks:                     # Rule→checker 机读注册表（ruleId 双向追溯；code 规则缺行=unbound error）
+      - {ruleId: R-PUB-1, mode: code, checker: "lint/personal-info.sh", targets: [all], severity: error}
+      - {ruleId: R-DOC-6, mode: code, checker: "lint/metadatainfo.sh", targets: [docs], severity: error}
+      - {ruleId: R-UX-3, mode: agent, agent: service-agent, severity: error}   # 示例：界面黑话/用户视角由 agent 语义验证
     workflows: {default: default-task, builtin: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]}
     autoLevels: {rootAgent: "ask（默认，可配置 auto/all）", serviceAgent: auto, all: "需显式授权+权限系统放行"}  
     escalation: root                

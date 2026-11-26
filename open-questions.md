@@ -65,6 +65,13 @@
 2. CLI 审批动作（approve/reject）与会话发送命令的落点/权限口径——v1 只读账面，动作命令下一段。
 3. CLI `watch`（事件订阅流）是否复用 dsh 会话流/SSE，还是轮询 `/v1/events?since=`。
 
+## rule-verification（规则验证）
+
+1. `connectops-code-audit` 实现范围/语言与首批 checker（R-ENG-1 代码语言、R-PUB-1 脱敏、R-DOC-6 侧车等）；仓库落 deploy-system `connectops-code-audit`，build 生效后接 Verify。
+2. `ruleChecks` 首批条目与 ruleId 注册；现有 shell lint（personal-info/metadatainfo）是保留独立 checker 还是统一收编为 code-audit op。
+3. agent verdict 的结构化 schema（`pass|fail|unverified`+证据 ref+hash+理由）与落点（VerifyDoc / DriftReport / Event）。
+4. Verify 节点如何取得 diff/base（git ref/工作树）与增量审核边界（全仓 vs base..ref）。
+
 ## storage（文档库 sqlite / git 导出）
 
 1. 定时导出 git + push 的实现落点（`corectl export` / 独立 exporter / 部署 cron/systemd timer）与规则（频率/分支/远端/失败告警）——下一段。

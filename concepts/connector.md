@@ -74,6 +74,8 @@ spec:
 
 8. **`connectops-context`（上下文索引/亲和/失效/预热）**：上下文检索的代码承载能力归 deploy-system 的 `connectops-context` 仓（R-ENG-3 同款生命周期：声明 → 代码 → build 生效 → 运行时；每次变更必提交）。op 集：`index`（增量/全量构建 DocIndex）、`affinity`（tag 亲和矩阵重算，定时）、`invalidate`（文档变更主动失效 chunk/pack 缓存）、`prewarm`（L0/L1 常驻摘要预热）、`evaluate`（命中率回归，只出因子建议不自动应用）。调度两入口同一代码路径：cored 内建调度（旗标缺省关断）或部署侧 timer 调 CLI；因子与预算来自 ContextPolicy 对象（apply 生效），不硬编码。
 
+9. **`connectops-code-audit`（代码级规则审核）**：`mode: code` 的规则统一由该 ConnectorOps 实现审核（R-TYPE-3）：Rule 条目 → scheme `runtime.ruleChecks`（ruleId→checker/参数/severity）→ `connectops-code-audit` 仓（deploy-system，R-ENG-3 生命周期）执行。op 集：`check`（按 ruleId/targets 审核仓库/工作树，返回 findings：ruleId/file/line/severity/message/evidence{ref,hash}）、`verify`（check+汇总，产 VerifyDoc 片段）。只读、幂等、不提交、不 Apply；未注册/未实现的 code 规则=unbound error，不得静默跳过。findings 进 VerifyDoc/DriftReport/Report，`error` 阻断 Deploy；`warn` 记录。`mode: agent` 的规则不走本实现——由 Verify 节点把规则原文（ref+hash）+ diff 丢给 agent 验证（见 rule-verification.md）。
+
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |

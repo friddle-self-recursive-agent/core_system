@@ -73,11 +73,13 @@ spec:
 ```
 触发(event) → Analyze（定位错误/拆解需求） → Gate（高危人批，auto 白名单直过）
  → Plan（选 TaskScheme 模板） → Execute（developer-system pull → 本地 build+test
-   红线全绿 → 产物 digest） → Verify（探针复测） → Deploy（deploy-system 按
+   红线全绿 → 产物 digest） → Verify（探针复测 + **代码规则审核 connectops-code-audit** + **agent 规则验证**） → Deploy（deploy-system 按
    DeployDesign.envs 升序发布，prod 人批） → Report（Status 追平+归档+Event）
 ```
 
 每一步=声明的相位与 TaskScheme 引用，调整=改 spec/模板参数后 Apply；整条可 `enabled: false` 一键停用。步锚→引擎相位词汇映射见 §1 映射表（Analyze→Analyzing、Gate→AwaitingApproval、Deploy→Deploying 交付锚，其余同名同族）。
+
+**Verify 是硬 gate（R-TYPE-3 / rule-verification.md）**：code 规则→`connectops-code-audit`（ruleChecks 注册表）审核；agent 规则→把规则原文（ref+hash）+diff 丢给 agent 验证。`error` finding / `fail` verdict 阻断 Deploy；缺 checker/agent=`unbound`/`degraded` 显式不通过，不得静默跳过。
 
 ### 1.2 Workflow 落地 = 专用 agent（`apply-workflow`）
 
@@ -185,6 +187,8 @@ spec:
     - **冷却门（受理路径）**：同锚同 involved 窗口判——该锚该 involved 最新 run 受理时刻起 cooldown 窗口内的后续触发**不落 run**（触发留痕仍在，braked 计数可见）；窗口外照落；跨 involved 不互踩（防震荡语义粒度=同一对象——对象级修复互踩是震荡本体，锚级窗口会误伤并行对账）。cooldown 锚首段=run 受理时刻（完成语义缺位——「成功后最小间隔」的完成锚随真实执行面接线后切换，锚切换规则声明面先定）；冷却门只作用于受理落 run 路径且不区分 source（触发→run 转换的统一闸），审批信号面不经此门（审批信号是迁移事件不是对账触发，规则 13 口径不变）。
     - **推进拍变更上限（推进路径）**：每拍对每锚的 run 相位变更数受生效刹车值约束（变更单元首段=run 相位变更留痕）；上限只计实际发生的迁移（序列尾零动作不占额）；超限 run 本拍零动作、下拍续推（level-triggered 不丢拍）。
     **关断语义组合（声明面先定）**：刹车闸单一挂接点=部署旗标显式开启（缺省关断=零刹车行为面不变）；刹车闸与推进总闸、巡检闸正交（刹车只作用于已挂接的执行路径，不产事件不旁路任何闸；受理冷却门在订阅路径上与写面开关分立——只读装配亦可挂接）。**表驱动口径**：刹车值是声明数据（spec.brakes → 强制默认钳定 → 每锚生效值），判定面零即兴——每 run 载荷投影生效刹车值（`brakes` 键：cooldown、maxMutationsTick、source（default=强制默认、spec=声明收紧值）——**新载荷键出现=代际判别器**）。查询面新增**刹车可见键**：run 投影状态新增 `braked`（累计冷却门拦阻触发数）与 `capped`（累计推进拍上限拦阻 run·步数）——新载荷键出现=代际判别器。机械判别器：刹车闸挂接实例同锚同 involved cooldown 窗口内第二触发不落 run（braked>0）∧ 窗口外照落 ∧ 跨 involved 照落 ∧ 推进拍锚内变更数超上限时超额 run 相位本拍不变（下拍续推）∧ 未挂接实例同型触发全落 run 且 braked=0（双实例对照）。余量：avoidRepeatFix 与 DriftReport 回归面、cooldown 完成锚切换、minLevel 与真实执行面接线、事件拍余量源。
+18. **Verify 节点=规则验证硬 gate（code→ConnectorOps；agent→丢给 agent）**：代码开发流程的 `Verifying` 必须执行两类验证——① `mode: code` 规则经 scheme `runtime.ruleChecks` 由 `connectops-code-audit` 审核（只读、findings 结构化）；② `mode: agent` 规则把规则原文（ref+hash）+ diff/上下文交给指定 agent/服务 agent 验证（verdict + 证据）。`error` finding / `fail` verdict 阻断 Deploy；`warn` 进 Report；checker 未注册/未实现/超时、agent 不可用/`unverified` = 显式失败或降级，**不得默认通过**。Verify 节点缺失=流程缺陷（相位序列 Execute→Verify→Deploy 强制）。
+
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 跨权限完整分析
