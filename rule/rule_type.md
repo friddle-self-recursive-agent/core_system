@@ -23,7 +23,7 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 
 - 双向可追溯：规则条目写 `checker: lint/<name>.sh`，checker 头部注释回指 ruleId。
 - lint 只做机械判定，判不准的留在 policy（可行性：正则/结构校验成本低；风险=规则改了 checker 没改，靠 ruleId 回指 + 巡检比对压住）。
-- 已落地：**R-PUB-1 → [lint/personal-info.sh](../lint/personal-info.sh)**（IP/内网域名/部署路径/凭据名/个人选型扫描）；**R-DOC-6 → [lint/metadatainfo.sh](../lint/metadatainfo.sh)**（每篇文档侧车存在性与字段合法性）。
+- 已落地：**R-PUB-1 → [lint/personal-info.sh](../lint/personal-info.sh)**（IP/内网域名/部署路径/凭据名/个人选型扫描）；**R-DOC-6 → [lint/metadatainfo.sh](../lint/metadatainfo.sh)**（每篇文档侧车存在性与字段合法性）；**R-ENG-7 → [lint/max-file-lines.sh](../lint/max-file-lines.sh)**（单文件 ≤800 行硬上限，rule/rule_eng.md）。
 
 ## R-TYPE-3 规则验证模式：code→scheme→ConnectorOps；agent→丢规则给 agent（2026-11-26 用户裁决）
 
@@ -49,6 +49,7 @@ Rule 文档内的每条规则条目可携带 `type` 字段（缺省 `policy`）�
 | R-DOC-9 | policy | —（`ServiceDesc` ↔ `ServiceInstance` 设计/实现文档 1:N `[metadata 关联]` `trace` 双向追踪与过期检测） |
 | R-DOC-10 | policy | —（Bug 文档为中间临时产物；任务完成且 Verify 验证 OK 后直接删除对应条目或整个 `bug.md` 临时文档） |
 | R-ENG-1..4 | policy | —（R-ENG-4 Scheme 值修改免改代码 vs 契约改动必触发代码构建） |
+| R-ENG-7 | **lint** | lint/max-file-lines.sh（单文件≤800 行——代码/标记语言全适用；dist 与 lockfile 豁免） |
 | R-PUB-1 | **lint** | lint/personal-info.sh |
 | R-PUB-2 | lint（部分） | personal-info.sh 扫 friddle_decision.md 残留引用 |
 | R-PUB-3 | lint（目录级） | acceptance/ 根在 .gitignore、acceptance/<主题>/ 入库；checker 暂缓 |

@@ -36,6 +36,7 @@
 | [cli.md](cli.md) | — | 命令行（桌面同源控制面；`corectl loop` 事件点火） | kubectl |
 | [rule-verification.md](rule-verification.md) | — | 规则验证（code→scheme→ConnectorOps；agent→丢规则给 agent） | admission/policy audit |
 | [task-scheduler.md](task-scheduler.md) | Task | 多任务并发调度（无关并行 agent，相关串行；并发度可调） | Job/queue controller |
+| [engineering.md](engineering.md) | — | 高性能与工程化建议基线（lint 族基线含 R-ENG-7/读侧性能/库选型/RuntimeStore） | —（工程基线） |
 
 ## 边界矩阵（一屏总览）
 
