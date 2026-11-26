@@ -9,11 +9,13 @@
 
 ## 1. 定义
 
-Proposal 把"任何一个主体提的一个需求"变成**一等文档对象**：标题/目标/验收标准/影响面/优先级/提出人六要素入库，
+Proposal 把"一次跨系统或高危变更意图"结构化为**一等文档对象**：标题/目标/验收标准/影响面/优先级/提出人六要素入库，
 走审批（**双路缺省**：界面人审 或 自动批准，按 priority 分流配置），批准后派单 `apply-workflow` agent 落地为文档草稿（docsRoot 对象）或
-部署侧任务文件，产物落盘后状态回写 `landed`。**提交入口不限于 console**：console「需求提案」屏（对话式）、
-agent 节点（workflow 内自动提交）、API/CLI——一切主体都可提需求、提更新；**写路径唯一入口=apply 管线**
-（concepts/apply.md）——提案不是旁路通道，是过同一三步闸门的普通对象，入口多样、闸门唯一。
+部署侧任务文件，产物落盘后状态回写 `landed`。
+
+- **与人类入口的边界（对齐 `goal.md` 与 console-ui §18.1）**：**人类用户的日常入口永远是统一的 rootAgent 对话框**（对话找文档、更新文档、发起任务），控制台**不再前置独立的「需求提案」一级菜单**——Proposal 退居机制层与审计层，供 agent 节点（跨系统提案 P6）、对话落地、API/CLI 与审批归档使用；用户只在「审批」与对象详情中感知待裁决提案。
+- **写路径唯一入口=apply 管线**（concepts/apply.md）——提案不是旁路通道，是过同一三步闸门的普通对象，入口多样、闸门唯一。
+- **审批事件锚对齐**：`ApprovalNeeded`（`involved=Proposal/<scope>/<name>`）进入审批面后，人工批准/驳回动作**直接支持 `Proposal/<scope>/<name>` 锚**（通过草稿/Apply 更新 `status=approved|rejected` 并同拍发布 `ApprovalGranted`/`ApprovalRejected`，不得因 `involved` 非 `Workflow/...` 而把审批按钮置灰成死路）。
 
 ```
 <any 主体> 提需求/提更新（console 对话 / agent 节点 / API / CLI → 草稿 → fromDraft Apply）

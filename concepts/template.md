@@ -1,11 +1,11 @@
-# Template — 模具（四层 appliesTo；要求语义，不是实际系统）
+# Template — 模具（五层 appliesTo；要求语义，不是实际系统）
 
 | 项 | 值 |
 |---|---|
 | K8s 对照 | Helm Chart（声明需要什么、怎么装、装完如何纳管） |
-| 形态 | 对象（`global/templates/<name>.yaml`），builtin Scheme；一个 kind × 四层 `appliesTo` |
-| 作用域 | Global（模板本体）/ 安装实例落为 WorkService / 实例化落为 ServiceInstance / Workspace |
-| 状态 | 定稿（终态制，rule/rule.md；**2026-11-26 用户裁决：模板=要求集（Ref 语义）——storage/端点/算力都是"要求"不是实际系统；系统自动判断配置好，没有就一层层询问；四层模具+实例化逐层下探**） |
+| 形态 | 对象（`global/templates/<name>.yaml`），builtin Scheme；一个 kind × 五层 `appliesTo` |
+| 作用域 | Global（模板本体）/ 安装实例落为 WorkService / 实例化落为 ServiceInstance / Workspace / Workflow |
+| 状态 | 定稿（终态制，rule/rule.md；**2026-11-26 裁决：模板=要求集（Ref 语义）——storage/端点/算力都是"要求"不是实际系统；系统自动判断配置好，没有就一层层询问；五层模具含 `workflow` 层+实例化逐层下探**） |
 
 ## 1. 定义
 
@@ -16,7 +16,7 @@ Template 是**模具**：描述"这一层需要什么（要求）、骨架长什
 - `compute`/`ports`/`endpoints` 同理——要求与偏好，不是事实；
 - **系统判断给配置好**（resolver）：对照在册的 storage-system / Provider / WorkService 能力自动选型并落配置；**解析不了就一层层询问**（asks，带缺省与示例）。
 
-### 1.1 四层模具（appliesTo）
+### 1.1 五层模具（appliesTo）
 
 | 层 | 用户叫法 | 模具回答的问题 |
 |---|---|---|
@@ -24,8 +24,9 @@ Template 是**模具**：描述"这一层需要什么（要求）、骨架长什
 | `servicedesc` | ServiceTemplate / ServiceDescTemplate | 这个**系统**由哪些系统构成（`systems` 要求清单）、有哪些要求、**哪些 goal** |
 | `serviceinstance` | ServiceInstanceTemplate | 这个系统的**一个实例**怎么落地（agentRefs/docs/实例级要求） |
 | `workspace` | ServiceWorkSpaceTemplate | 这个系统的**工作空间**怎么组织（project/会话归组/入口） |
+| `workflow` | WorkflowTemplate | 一个**循环工作流**怎么编排（正向相位序列/触发事件/闸门审批策略/回滚策略，workflow.md §9b） |
 
-四层同一个 kind、同一套要求语义、同一套 resolver→asks 机制；`chain` 字段声明实例化时的下探层序。
+五层同一个 kind、同一套要求语义、同一套 resolver→asks 机制；`chain` 字段声明实例化时的下探层序。
 
 ### 1.2 实例化询问链（一层层问下去）
 
@@ -94,6 +95,21 @@ spec:
  - {field: repo.visibility, kind: enum, options: [private, internal], default: internal}
 
 # ③ serviceinstance 层 / ④ workspace 层同理（agentRefs/docs 骨架 / project 组织骨架），asks 走同一机制
+
+# ⑤ workflow 层（WorkflowTemplate；workflow.md §9b——真实入库对象，禁止前端硬编码假模板卡）
+apiVersion: core/v1
+kind: Template
+metadata: {name: wf-bug-lifecycle, scope: global}
+spec:
+ appliesTo: workflow
+ mold:
+  workflow:
+   triggers: {events: {types: [BugReport], minLevel: error}}
+   phases: [Idle, Analyzing, Planning, Executing, Verifying, Deploying, Reporting]
+   approval: {mode: human}
+ asks:
+ - {field: services.involved, kind: resource-ref, question: "该工作流作用在哪个系统？"}
+ - {field: approval.mode, kind: enum, options: [human, auto], default: human, question: "审批闸门策略？"}
 ```
 
 ## 4. 生命周期与 resolver
@@ -142,7 +158,7 @@ spec:
 | 恶意模板 | ⚠️ 中 | install 段有任意动作 | digest+人审+权限系统高危动作拦截；模板来源限定本 org |
 | kind 更名迁移 | ⚠️ 低 | 原 WorkServiceTemplate 对象 | 存量按 appliesTo: workservice 平移（目录即对象，一次性迁移提交） |
 
-**结论：可行。四层模具一套机制，要求语义与 Ref/Resolver 同构——模板回答"要什么"，系统回答"用哪个"。**
+**结论：可行。五层模具一套机制（含 workflow 模板），要求语义与 Ref/Resolver 同构——模板回答"要什么"，系统回答"用哪个"。**
 
 ## 8. 待决问题
 

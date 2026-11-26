@@ -27,20 +27,25 @@ event（触发规则命中）
  → 满足现有系统在文档上描述的需求（文档回归：DriftReport/SessionLog 归档）
 ```
 
-builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）。
+builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）、`bug-lifecycle`（运行期 bug 生命周期闭环，§9a）。
 
-**builtin 六项相位词汇映射**（引擎投影面同源——运行时注册表按此表构造声明相位序列；相位语义只加不改，§4）：
+**builtin 七项正向相位词汇映射**（引擎投影面同源——运行时注册表按此表构造声明相位序列；相位语义只加不改，§4）：
 
-| builtin | 声明相位序列（引擎词汇） | 设计依据 |
+| builtin | 声明正向相位序列（引擎词汇） | 设计依据 |
 |---|---|---|
-| core-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | 系统级循环（§1 流程图，八相位全量） |
-| default-task | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | 单任务态机（Agent 引用，与 core-workflow 同族词汇） |
+| core-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | 系统级循环（§1 流程图；到达 Reporting 完成即正常收束 `converged`） |
+| default-task | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | 单任务态机（Agent 引用，与 core-workflow 同族词汇） |
 | simple-shot | Idle→Executing→Reporting | 简单派发（无分析/计划段） |
 | watch-only | Idle→Analyzing→Reporting | 只观察不执行（无执行/验证段） |
-| dev-delivery | Idle→Analyzing（Analyze）→AwaitingApproval（Gate）→Planning（Plan）→Executing（Execute）→Verifying（Verify）→**Deploying**（Deploy）→Reporting（Report）→Failed | §1.1 步锚映射；**Deploying=相位词汇只加不改的新锚**（Deploy 步=deploy-system 按 DeployDesign.envs 升序发布、prod 人批——交付段独立于通用 Executing） |
-| apply-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting→Failed | §1.2 落地 agent 任务态机=**default-task 词汇全量复用**（不另立词汇——语义差异在触发接线与 agent 角色，不在相位词汇） |
+| dev-delivery | Idle→Analyzing（Analyze）→AwaitingApproval（Gate）→Planning（Plan）→Executing（Execute）→Verifying（Verify）→**Deploying**（Deploy）→Reporting（Report） | §1.1 步锚映射；**Deploying=相位词汇只加不改的新锚**（Deploy 步=deploy-system 按 DeployDesign.envs 升序发布、prod 人批——交付段独立于通用 Executing） |
+| apply-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | §1.2 落地 agent 任务态机=**default-task 词汇全量复用**（不另立词汇——语义差异在触发接线与 agent 角色，不在相位词汇） |
+| bug-lifecycle | Idle→Analyzing（评审）→Planning（写临时 BugDoc）→Executing（修复）→Verifying（验证）→Deploying（发版）→Reporting（删 BugDoc+整理文档/记忆） | §9a 运行期 bug 生命周期闭环（`BugReport` 事件触发） |
 
-> 相位词汇基座=Agent.status.phase 八相位（scheme.yaml）；Deploying 是 workflow 域交付相位扩展（只加，不入 Agent 任务态机枚举）。Gate→AwaitingApproval 锚位：dev-delivery 的人批闸在 Analyze 之后 Plan 之前（§1.1 流程序），与 core-workflow 的 Planning→AwaitingApproval 序各按各自声明——相位机=标准 FSM，序即声明。
+> **正向相位序列与侧轨态严格分轨（修正 `Reporting --advance--> Failed` 缺陷）**：
+> - `spec.phases` **只声明正向业务步序**；异常终态 **`Failed`** 与挂起态 **`Paused`** 属**侧轨态**，禁止列在 `spec.phases` 线性末尾。默认物化相邻 `advance` 边止于正向序列末步（`Reporting` 完成后单次 run 落正常收束态 **`converged`**，Workflow 本体按 P5 持续监听下一触发——绝不允许从 `Reporting` 经 `advance` 自动落入 `Failed`）。
+> - `Failed` / `Paused` 仅由显式侧轨边到达（如 `ApprovalRejected → Failed`、`StepFailed → Failed`、`Escalate → Paused`）。
+> - **单次 run 状态闭合集**：`triggered | running | suspended | converged | failed | canceled`；**静态迁移规则表（`transitions`）与运行期实际轨迹（`history: [{from, to, on, at, sessionId?, actor?}]`）必须分离**——UI 节点图按 `history` 标绿已走过的真实节点，不得按数组下标误把失败前未执行节点全标绿，也不得把静态 `transitions` 当事件时间线展示。
+> - Gate→AwaitingApproval 锚位：dev-delivery 的人批闸在 Analyze 之后 Plan 之前（§1.1 流程序），与 core-workflow 的 Planning→AwaitingApproval 序各按各自声明——相位机=标准 FSM，序即声明。
 
 builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）：
 
@@ -130,7 +135,7 @@ spec:
  dedup: {window: 5m}
  group: {by: dedupKey, max: 100}
  filterLevels: [info, warn, error, fatal]
- phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting, Failed, Paused]
+ phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting] # 仅声明正向主线步序；Failed/Paused 为侧轨态，不入线性 phases 末尾
  onEscalate: {action: pause, notify: bind-role} # AUTO 处理不了的 Escalate 到达时的暂停策略（可配置）：
                                                 #   pause=立即挂起（相位冻结，现场+断点保留，SessionLog 可续）
                                                 #   finish-tick=跑完本轮再停（防半成品，Execute 中途不打断）
@@ -174,7 +179,7 @@ spec:
 1. 相位/迁移纯声明（相位机=标准 FSM：引擎按声明执行，规则之外无动作；失败走 onFailed）。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
 3. **预算/成本不在核心循环语义内**：budget 是 metrics 关注的东西（由 ConnectorOps 收集→agent 报告的默认 workflow 承接），暂不做——核心循环只有触发/整理/相位/回归，不再往里加预算机器。
-4. builtin Workflow（六项：core-workflow/default-task/simple-shot/watch-only/dev-delivery/apply-workflow）修改属高敏 权限系统 项；builtin 相位词汇映射（§1 映射表）是声明面，运行时注册表与它同源——映射未落设计的 workflow 不进注册表（不即兴发明）。
+4. builtin Workflow（七项：core-workflow/default-task/simple-shot/watch-only/dev-delivery/apply-workflow/bug-lifecycle）修改属高敏 权限系统 项；builtin 正向相位词汇映射（§1 映射表）是声明面，运行时注册表与它同源——映射未落设计的 workflow 不进注册表（不即兴发明）；`Failed`/`Paused` 为侧轨态，默认物化 `advance` 边止于正向序列末步（落 `converged`），绝不自动 advance 至 `Failed`。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
 6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 workflow 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
 7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。
@@ -270,15 +275,16 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 | 6 | 整理更新部分文档/记忆（loop-next.md 记忆面+相关概念文档增量更新） | R-DOC 面收敛 |
 
 - 与 R-TYPE-3 验证链同族：BugDoc 的 apply/删除均走权限+预检；步骤 3-4 属代码任务（R-ENG-5 调度；串行=同 repo）。
-- scheme 增量：eventType `BugReport`（source=core，tier=domain，default-visible）；kind `BugDoc`（docType 临时文档类，声明 ttl/关联 run）——注册即跑（默认 workflow 声明进 dispatch 表）。
+- scheme 增量：eventType `BugReport`（source=`core|agent`，tier=attention，default-visible，route=`workflows/bug-lifecycle`）；docType `BugDoc`（临时文档类，sections=`[repro, impact, fix]`，修完经 `DocDeleted` 删除）；builtin 集纳入 `bug-lifecycle`（均已同步入 `core/scheme.yaml`）。
 
 ## 9b. Workflow 模板（2026-11-26 用户裁决）
 
 > 用户原话：「workflow 感觉也要有 workflow 模版了。」
 
-- Workflow 模板=**Template 概念在 workflow 层的应用**（template.md 四层 appliesTo 已在册——非新概念）：预置相位序列/转移表/闸门/回滚声明的可实例化模具。
-- 实例化=复制模具→改参数（phases/闸/绑定 agent）→apply 落为具体 Workflow 对象；模板本身入 `global/templates/`（要求集语义不变）。
-- 首批内置模板：①**bug 生命周期**（9a 全链）②**dev-delivery**（现有 core-workflow 骨架提炼）③**文档收敛**（对账→修订→评审→同步）。
+- Workflow 模板=**Template 概念在 workflow 层的应用**（`core/scheme.yaml` 与 `concepts/template.md` 已扩为**五层 `appliesTo`**，含 `workflow` 层——非新概念）：预置正向相位序列/侧轨迁移/闸门/回滚声明的可实例化模具。
+- 实例化=读取 `Template(appliesTo=workflow)` 真实在册对象→改参数（phases/闸/绑定 agent）→Apply 落为具体 Workflow 对象；模板本身入 `global/templates/`（要求集语义不变）。**禁止在前端硬编码静态假模板卡**——未入库前诚实显示空态，入库后直读真对象并允许实例化。
+- 首批内置模板：①**bug 生命周期**（9a 全链）②**dev-delivery**（现有研发交付骨架提炼）③**文档收敛**（对账→修订→评审→同步）。
+- **可行性分析**：改动面低（`Template.spec.appliesTo` 扩枚举 + 3 份种子 YAML 入 `global/templates/`）；风险=模板与 builtin 漂移，缓解=实例化只复制声明快照并在 `metadata.labels` 标注来源模板与 rv。
 
 ## 10. 审阅标注区
 

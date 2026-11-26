@@ -12,7 +12,7 @@ spec:
   version: core/v1
 
   # ============================================================
-  # 一、对象类型（kinds，18 项；已采纳的墓碑概念不注册，见文末不注册清单）
+  # 一、对象类型（kinds，19 项；已采纳的墓碑概念不注册，见文末不注册清单）
   # storage=纯路径模板：占位符 <name>=对象名、<s>=系统段、<i>=实例段；
   # 交替分支以 | 分隔；分支须含 <name> 或为固定单例路径，否则机器不可寻址。
   # ============================================================
@@ -132,19 +132,20 @@ spec:
         triggers: "{events: {types: []string, minLevel}, timer: {resync}}"
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
         connector: "?ref (=<同名 ConnectorOps>)"        # 默认绑定的 ConnectorOps（缺省同名；apply 时开始实现节点流转；节点执行单元=session|agent，global/服务内=session、跨服务=agent 调 agent——concepts/workflow.md §1.3）
-        phases: "[]Phase"                              # 含 Paused（挂起态，见 onEscalate）；节点执行单元=session|agent（workflow.md §1.3）；引擎词汇基座=Agent.status.phase 八相位 + workflow 域交付锚 Deploying（concepts/workflow.md §1 映射表）
-        transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（workflow.md 规则 14；v0.25 首段=builtin 表=序列物化相邻行+审批边表行先例；v0.27 对象自声明表解析首段=object 源投影（规则 16）——v0.28 相位投影与迁移判定接线收口）
+        phases: "[]Phase"                              # 仅声明正向主线步序（如 Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting）；异常终态 Failed 与挂起态 Paused 属侧轨态，禁止放在线性 phases 末尾（防 Reporting --advance--> Failed 缺陷，workflow.md §1/规则 14）；节点执行单元=session|agent（workflow.md §1.3）
+        transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（静态 FSM 规则表——严禁与运行期实际轨迹 run.history 混用）；默认物化相邻推进边止于正向序列末步（落正常收束态 converged，绝不自动 advance 至 Failed）；Failed/Paused 仅由 ApprovalRejected/StepFailed/Escalate 等侧轨边到达
         onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
         onFailed: "{backoff, maxAttempts, rollbackPolicy: ?never|auto|ask|by-step, escalate: {to: root, notify: role-holders}}"
         trustGate: "?{enabled: bool, mode: code|agent|both, verifierRef?: string, onReject: block|ask|sanitize}"   # 针对 trustLevel=external 的 ConnectorOps/Provider 外部返回内容，Workflow 级可配由代码或 Agent 先判断一遍内容是否 OK
         brakes: "{cooldown, maxMutationsPerTick, avoidRepeatFix}"    # 强制默认（可收紧不可关闭；v0.32 刹车首段：cooldown 强制默认 2m ∧ 变更上限强制默认 10——宽松方向声明一律钳回默认=不可关闭机读落点；冷却门键=锚+involved 防震荡语义粒度=同一对象；变更上限=推进拍锚级只计实际迁移；cooldown 锚首段=run 受理时刻；avoidRepeatFix 随 DriftReport 回归声明面顺延）
         approval: "{mode: human|auto}"               # 审批策略（2026-11-26 用户裁决「Workflow 可设置 Agent 节点是否自动级别」；缺省 human=闸锚挂起等人——现状；auto=闸锚自动通过：落 AwaitingApproval 不挂起直续行、ApprovalNeeded 提升不挂起；驳回边表行保留（手动驳回仍可达））
         regression: "{statusWriteback: bool, reports: [DriftReport, SessionLog]}"
-      builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]   # 改 builtin 项=高敏权限项；六项相位词汇映射见 concepts/workflow.md §1（运行时注册表同源）；预算/成本归 metrics 域（暂不做）
+      builtinSet: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow, bug-lifecycle]   # 改 builtin 项=高敏权限项；七项相位词汇映射见 concepts/workflow.md §1（含 §9a bug 生命周期闭环；运行时注册表同源）；单次 run 状态闭合集=triggered|running|suspended|converged|failed|canceled，运行轨迹与静态 transitions 分离（run.history[]{from,to,on,at,sessionId?,actor?}）
 
     - kind: Task                     # 多任务并发调度单位（concepts/task-scheduler.md；2026-11-26 用户裁决：无关任务并发 agent，可调）
       builtin: true
-      storage: "global/tasks/<name>.yaml | systems/<s>/tasks/<name>.yaml"
+      storage: "global/tasks/<name>.yaml | systems/<s>/tasks/<name>.yaml | global/tasks/<name>.md | systems/<s>/tasks/<name>.md"
+      format: "yaml|markdown-frontmatter"            # 支持纯 YAML 或 YAML frontmatter + Markdown 正文（解析器与 UI 必须双形态识别，禁按纯 YAML 失败而判空）
       spec:
         title: "!string"                                  # 人话标题（任务中心展示）
         summary: "?string"                                # 目标/验收摘要
@@ -165,9 +166,10 @@ spec:
         lastAction: "?string"                             # 一句话（人看）
         lastError: "?string"
 
-    - kind: Proposal                 # 需求提案（concepts/proposal.md——多主体提需求→审批双路→派工的一等对象；能力 B 2026-11-24；2026-11-26 多主体入口/agent 全自动链/提案×上下文对照/派工含文档更新）
+    - kind: Proposal                 # 内部变更提案对象（concepts/proposal.md——系统/Agent 跨系统提案与审计归档载体；人类日常入口统一为 rootAgent 对话，不在控制台前置独立「需求提案」一级菜单）
       builtin: true
-      storage: "global/proposals/<name>.yaml | systems/<s>/proposals/<name>.yaml"
+      storage: "global/proposals/<name>.yaml | systems/<s>/proposals/<name>.yaml | global/proposals/<name>.md | systems/<s>/proposals/<name>.md"
+      format: "yaml|markdown-frontmatter"            # 支持 YAML frontmatter + Markdown 需求正文（避免按纯 YAML 解析失败渲染空正文）
       spec:
         title: "!string"                     # 标题
         summary: "!string"                   # 目标（做什么/为什么——批准后随派单载荷交给执行体）
@@ -244,19 +246,19 @@ spec:
         onFailure: "{retry, backoff, rollbackPolicy?: never|auto|ask|by-step, then: escalate}"
       rules: [禁止多Scheme在一个文件(导入除外,落库必拆单文件,R-DOC-8), 改值与行为描述免改代码/值不支持或契约改动必触发代码改动(R-ENG-4), 回滚区分要不要回滚与四类回滚方式(irreversible|code|agent|human)并强制回滚文档描述]
 
-    - kind: Template                  # 统一模具×四层 appliesTo（2026-11-26 用户裁决：模板=要求集，Ref 语义非实际系统；resolver 自动选型，解析不了逐层询问；原 WorkServiceTemplate=workservice 层）
+    - kind: Template                  # 统一模具×五层 appliesTo（2026-11-26 裁决：模板=要求集，Ref 语义非实际系统；resolver 自动选型，解析不了逐层询问；含 workflow 层模板 workflow.md §9b）
       builtin: true
       storage: global/templates/<name>.yaml
       spec:
-        appliesTo: "!workservice|servicedesc|serviceinstance|workspace"   # 模具层（四层一套机制；DocType 同款 appliesTo 模式）
+        appliesTo: "!workservice|servicedesc|serviceinstance|workspace|workflow"   # 五层模具（含 workflow 层——支撑真实 Workflow 模板入库，取代界面硬编码静态卡）
         provides: "?{capabilities: []string, category}"
         requires: "?{images: [{name, source, digest!}], storage: {kind: oss|nas|system|any, size: ?string, speed: ?hot|warm|cold}, ports: []int, compute: ?map, endpoints: ?map, systems: ?[]ref}"   # 要求集（类型偏好+大概空间+速度要求——禁止实际地址；镜像 source=取货地址要求可换源，digest 不变）
         goals: "?[]string"                          # servicedesc 层：哪些 goal
-        mold: "?map"                                # 层特有骨架（workservice=六面体 / servicedesc=goalRef+docs / instance=agentRefs+docs / workspace=project 组织）
+        mold: "?map"                                # 层特有骨架（workservice=六面体 / servicedesc=goalRef+docs / instance=agentRefs+docs / workspace=project 组织 / workflow=phases+transitions+gates+rollback）
         install: "?[]{action}"                      # workservice 层：digest 必填；幂等；三段 undo
         postInstall: "?[]{action: register-workservice}"   # 产出六面体骨架
         asks: "[]{field, question, kind: ?provider-ref|resource-ref|enum|string, options: ?[]string, default: ?}"   # resolver 解析不了的才问（必带缺省/示例；R-UX-1）
-        chain: "?[]workservice|servicedesc|serviceinstance|workspace"   # 实例化下探层序（一层层问下去；每层 resolver→asks→确认卡）
+        chain: "?[]workservice|servicedesc|serviceinstance|workspace|workflow"   # 实例化下探层序（一层层问下去；每层 resolver→asks→确认卡）
 
     - kind: Skill                    # 工具使用缓存
       builtin: true
@@ -299,6 +301,7 @@ spec:
     - {name: Memory,         mandatory: optional, sections: [content, refs],               writers: [agent],              appliesTo: ServiceInstance, admission: normal}   # Agent 记忆条目（默认记忆系统=Service 文档管理）
     - {name: StateModel,     mandatory: default,  sections: [objects, transitions],        writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}   # 业务对象状态词表+迁移表（闭合集+主体纪律；R-BIZ-1）——common-business-system 约束层（concepts/business-system.md §4.1）
     - {name: Finance,        mandatory: default,  sections: [budget, gates],               writers: [human, "role:owner"], appliesTo: ServiceDesc, admission: normal}   # 预算科目+闸门规则（现状数字禁手填，只许从流水推导——R-BIZ-2）——common-business-system 约束层
+    - {name: BugDoc,         mandatory: optional, sections: [repro, impact, fix],          writers: [agent, human],         appliesTo: ServiceInstance, admission: normal}   # 运行期临时 bug 文档（workflow.md §9a / R-DOC-10：BugReport 评审产出，修复发版验证通过后经 DocDeleted 删除）
     # mandatory=注册级；Service 可加严；Builtin 无特殊档
 
   # ============================================================
@@ -323,8 +326,8 @@ spec:
     - {type: DocDeleted,       source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "doc-deleted:<obj>",   route: dead-letter}   # 对象删除（DELETE /v1/objects 面——2026-11-26 假数据清理批；involved=被删对象锚；删除已成事实事件 best-effort，账面=doc_history 终态行+apply_log deleted）；bug 生命周期 §9a「修复后删临时 BugDoc」即走此词
     - {type: DriftFixed,       source: engine,    defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "<workflow>:<tick>",       route: observation-bus}
     - {type: ApprovalNeeded,   source: "permission|core",defaultLevel: warn, tier: attention, visibility: default-visible, dedup: "<rule>:<obj>",    route: notification/*}   # 双产源：permission=人审档拒绝路径（v0.21）；core=Proposal 提交高危分流自产（v0.51，dedup=proposal:<obj>——concepts/proposal.md 规则 5）
-    - {type: ApprovalGranted,  source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "approval:<obj>",      route: dead-letter}   # 审批信号族（workflow.md 规则 13/event.md 规则 11）：run 域迁移事件——involved=Workflow 引用即锚；dispatch 派发面无目标
-    - {type: ApprovalRejected, source: human,     defaultLevel: warn,  tier: attention, visibility: default-visible, dedup: "approval:<obj>",      route: dead-letter}   # 同上：驳回=闸锚终态迁移
+    - {type: ApprovalGranted,  source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "approval:<obj>",      route: dead-letter}   # 审批通过信号（workflow.md 规则 13 / proposal.md）：involved 支持 Workflow/<scope>/<name>（run 闸锚续行）、Proposal/<scope>/<name>（提案批准落账与派单）及草稿审批锚；dispatch 派发面无目标
+    - {type: ApprovalRejected, source: human,     defaultLevel: warn,  tier: attention, visibility: default-visible, dedup: "approval:<obj>",      route: dead-letter}   # 同上：驳回=Workflow run 侧轨终态 Failed 或 Proposal status=rejected 落账
     - {type: Escalate,         source: engine,    defaultLevel: error, tier: attention, visibility: default-visible, dedup: "<workflow>:<reason>",     route: owner-workflow+root+notification/*}   # owner-workflow 收到后按其 onEscalate 策略决定暂停
     - {type: Heartbeat,        source: "agent|core", defaultLevel: debug, tier: infra,  visibility: default-hidden,  dedup: "heartbeat:<subject>:<window>", route: dead-letter}   # 周期正常心跳底层事件（event.md 规则 18）：默认不展示（default-hidden），仅调试显式开启 showInfra 时可见
     - {type: HeartbeatLost,    source: core,      defaultLevel: error, tier: attention, visibility: default-visible, dedup: "<agent>",             route: parent-agent+notification/*}
@@ -340,6 +343,7 @@ spec:
     - {type: SessionStalled,   source: core,      defaultLevel: error, tier: attention, visibility: default-visible, dedup: "session:<id>",        route: root-agent+notification/*}   # 停滞判定态=SuspectedStall（判定词与事件词分立：事件名=SessionStalled 与 HeartbeatLost 同族）；自愈固定顺序第一步=注入「继续」
     - {type: SessionHealed,    source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "session-heal:<id>",   route: dead-letter}   # 注入「继续」后心跳恢复——底层恢复事实默认不展示（tier=infra, default-hidden）
     - {type: LongTaskRunning,  source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "longtask:<id>",       route: dead-letter}   # 长任务显式化（有进展心跳=不判停滞，tier=infra 默认折叠/不混入异常流）
+    - {type: BugReport,        source: "core|agent", defaultLevel: error, tier: attention, visibility: default-visible, dedup: "bug:<sess>:<sig>", route: workflows/bug-lifecycle}   # 运行期 bug 上报（workflow.md §9a）：触发 bug-lifecycle 内置工作流（评审→临时 BugDoc→修复→发版→删 BugDoc→整理文档/记忆）
 
   # ============================================================
   # 四、事件路由（穷举缺省 + 死信兜底）
@@ -367,6 +371,7 @@ spec:
     - {on: SessionStalled,   for: "any",            dispatch: root-agent, cc: notification/*}   # 会话停滞=人注意事实（KI-003，event.md 规则 14）：root-agent 主路=自愈链入口（第一动作=注入固定 prompt「继续」）；cc=bind 通知旁路
     - {on: SessionHealed,    for: "any",            dispatch: dead-letter}   # 恢复=活性事实非处置触发（自愈动作在 watchdog 侧已执行）——dead-letter 观测兜底可见
     - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
+    - {on: BugReport,        for: "any",            dispatch: workflows/bug-lifecycle, cc: root-agent}   # 运行期异常自动进 bug 生命周期闭环（workflow.md §9a）
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: dead-letter}   # 死信必须可见（词汇=hub 合成死信/eventbus routed_to 同一词）
 
@@ -383,6 +388,8 @@ spec:
     ruleChecks:                     # Rule→checker 机读注册表（ruleId 双向追溯；code 规则缺行=unbound error）
       - {ruleId: R-PUB-1, mode: code, checker: "lint/personal-info.sh", targets: [all], severity: error}
       - {ruleId: R-DOC-6, mode: code, checker: "lint/metadatainfo.sh", targets: [docs], severity: error}
+      - {ruleId: R-DOC-8, mode: code, checker: "lint/single-scheme.sh", targets: [scheme], severity: error}
+      - {ruleId: R-ENG-7, mode: code, checker: "lint/max-file-lines.sh", targets: [all], severity: error}
       - {ruleId: R-UX-3, mode: agent, agent: service-agent, severity: error}   # 示例：界面黑话/用户视角由 agent 语义验证
     taskScheduler:                  # 多任务并发调度（concepts/task-scheduler.md；无关任务并发、相关任务串行；可调）
       enabled: true
@@ -396,7 +403,7 @@ spec:
       maxAttempts: 2
       spawn: "host:/task/spawn"     # 宿主 agent spawn 桥（每任务一个 dsh session）
       observability: "Task.status + TaskStateChanged + console #/tasks"
-    workflows: {default: default-task, builtin: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow]}
+    workflows: {default: default-task, builtin: [core-workflow, default-task, simple-shot, watch-only, dev-delivery, apply-workflow, bug-lifecycle]}
     autoLevels: {rootAgent: "ask（默认，可配置 auto/all）", serviceAgent: auto, all: "需显式授权+权限系统放行"}  
     escalation: root                
     permissionSystem:
@@ -417,10 +424,10 @@ spec:
       heartbeat: "会话推进点（相位推进/工具调用完成/产物落盘任一）上报——ops DB session_heartbeat 行+进程内计数；POST /v1/sessions/heartbeat 注册+GET /v1/sessions 查询"
       watchdog: "--session-watch-interval <dur>（0=关断零事件缺省不改行为面）；--stall-threshold <dur>（缺省 10m，event.md 规则 14②声明缺省）"
       selfHeal: "固定顺序（每步留事件）：注入固定 prompt「继续」→SessionHealed；仍无心跳→诊断（权限类 ApprovalNeeded 向上提交不自行绕过/人工类按 bind 通道上报/notification.md 规则 6 未配置=零通知零外发/长任务 LongTaskRunning 有进展=不判停滞）"
-      escalation: "同会话连续自愈无效达阈值（--heal-retry-limit，缺省 2）→ Escalate 停自动处置升级（不静默重试）"
+      escalation: "同会话连续自愈无效达阈值（--heal-retry-limit，缺省 2）→ Escalate 停自动处置升级（不静默重试）；进入 escalated 或收到 SessionClosed 后标记终态并退出 watchdog 周期巡检（防历史失活会话持续每周期重复发 SessionStalled 风暴）"
     skills: {cachePolicy: {ttl: 30d, invalidateOnProviderVersionChange: true}, promote: "高频→Global 走人审"}
     storage:
-      docs: "sqlite docs DB=默认权威（--docs-backend 缺省 sqlite；--docs-db 必配；doc 表 (kind,scope,name) 键+resourceVersion 乐观锁；单写者队列/WAL）+ 本地 storage；git 布局=导出/公开格式（周期导出+commit+push 远程，历史=快照非逐次账；root 不得选 git）。迁移：--docs 旧布局根空库一次性种子导入保留 rv，非空库不导入=幂等；兼容期非 root 可显式 --docs-backend git。逐次正文历史=doc_history 待补（sqlite rev-content 503 不冒充）；Repository 接口同一套写语义"
+      docs: "sqlite docs DB=默认权威（--docs-backend 缺省 sqlite；--docs-db 必配；doc 表 (kind,scope,name) 键+resourceVersion 乐观锁；单写者队列/WAL）+ 本地 storage；git 布局=导出/公开格式（周期导出+commit+push 远程，历史=快照非逐次账；root 不得选 git）。迁移：--docs 旧布局根空库一次性种子导入保留 rv，非空库不导入=幂等；兼容期非 root 可显式 --docs-backend git。逐次正文历史=doc_history 账表（GET /v1/doc-history + rev-content 可查）；Repository 接口同一套写语义"
       opsLog: SQLite WAL（六表；DB=操作流水可丢弃可重建；每日对账）
       secrets: "SQLite 0600 独立文件（部署侧凭据真实值权威运行时面——secret: 引用的解析源；独立于 ops DB（秘密非缓存不可重建）与 docs DB（脱敏红线——值只进不出，任何查询/导出面只出名称零值出）；缺省关断，--secrets-db 显式装配）"
       refResolution: {cacheTtl: 10m, 失败降级旧缓存+Event}
@@ -435,15 +442,15 @@ spec:
       conditions: "[]{type, status: True|False|Unknown, reason(枚举注册), message, lastTransitionTime}"
       drift: "{summary, reportRef}"  # Instance 必有
       writers: {status: workflow-engine(fieldManager), spec: human/agent-by-role}   # P2/P6
-    tags:                            # 检索元数据（统一 0-100 标度；R-CTX-3 / R-DOC-6）
-      spec.metadata.tags: "?[]string"          # 关键 tag（tag∈唯一 tagType；词表无全局上限，conventions.context.tagModel）
-      spec.metadata.tagRelevance: "?map<string,int(0-100)>"  # 文档×tag 相关度（统一 0-100 标度；context.md §1.2）
-      spec.metadata.importance: "?int(0-100)"  # 全局重要度分（统一 0-100 标度，含事件 importance；由层级基准+人类评论因子+跨任务多样性折扣合成）
-      spec.metadata.humanScore: "?int(0-100)"  # 界面审核时的人类评论/重要度锚定分（0-100）
-      spec.metadata.digest: "?string"          # 一句话标题+描述（检索列表展示用）
-      spec.metadata.level: "?L0|L1|L2|L3|L4"   # 文档分级（L0 宪法刚性保底≥95 / L1 概念 / L2 运行时设计 / L3 证据 / L4 笔记）
-      spec.metadata.module: "?string"          # 主模块（单值；跨模块关系走 tags）
-      spec.metadata.trace: "?{requires: ?[]DocType, implements: ?[]{doc, sections?, designRev?}, verifies: ?[]{doc, sections?, targetRev?}, implemented_by: ?[]{doc, instance, sections?, status: synced|stale}, verified_by: ?[]{doc, instance, sections?, status: synced|stale}}"   # ServiceDesc 设计文档 ↔ ServiceInstance 实现/验证文档的 1:N [metadata 关联] 双向追踪（R-DOC-9）
+    tags:                            # 检索元数据（统一 0-100 标度；R-CTX-3 / R-DOC-6；统一落顶层 metadata 与 .metadatainfo 侧车，不嵌套进 spec，对齐 P2；读侧兼容旧 spec.metadata.*）
+      metadata.tags: "?[]string"          # 关键 tag（tag∈唯一 tagType；词表无全局上限，conventions.context.tagModel）
+      metadata.tagRelevance: "?map<string,int(0-100)>"  # 文档×tag 相关度（统一 0-100 标度；context.md §1.2）
+      metadata.importance: "?int(0-100)"  # 全局重要度分（统一 0-100 标度，含事件 importance；由层级基准+人类评论因子+跨任务多样性折扣合成）
+      metadata.humanScore: "?int(0-100)"  # 界面审核时的人类评论/重要度锚定分（0-100）
+      metadata.digest: "?string"          # 一句话标题+描述（检索列表展示用）
+      metadata.level: "?L0|L1|L2|L3|L4"   # 文档分级（L0 宪法刚性保底≥95 / L1 概念 / L2 运行时设计 / L3 证据 / L4 笔记）
+      metadata.module: "?string"          # 主模块（单值；跨模块关系走 tags）
+      metadata.trace: "?{requires: ?[]DocType, implements: ?[]{doc, sections?, designRev?}, verifies: ?[]{doc, sections?, targetRev?}, implemented_by: ?[]{doc, instance, sections?, status: synced|stale}, verified_by: ?[]{doc, instance, sections?, status: synced|stale}}"   # ServiceDesc 设计文档 ↔ ServiceInstance 实现/验证文档的 1:N [metadata 关联] 双向追踪（R-DOC-9）
     context:                         # 上下文装配与三段式自演化（concepts/context.md；R-CTX 底座规则；索引/缓存为派生物可重建）
       scoreScale: "0-100（全系统统一标度：importance / tagRelevance / affinity / humanScore / 事件 importance / Relevance(A,B) 一律 0-100）"
       relevanceFormula: "Relevance(A,B) = clamp_0..100(0.45*TagCoverage_Tversky + 0.20*Affinity + 0.25*Keyword_BM25 + 0.10*ScopePrior)"

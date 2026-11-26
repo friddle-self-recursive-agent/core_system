@@ -95,6 +95,7 @@ report:
 9. **注意力预算**：attention 上限（默认 7，只截 medium）、生成频率、token 预算可配；critical / high 不截断。
 10. **派生纪律**：不注册 DocType、不入 git、无 revision；删除缓存可重建；生成参数（模型/提示/映射表版本）随报告记录。
 11. **可复现**：同窗口 + 同候选指纹 + 同生成器版本，条目集合与排序稳定（LLM 文本可不同，但不得增删 critical / high）。
+12. **活体收敛口径（对齐 P3 Level-triggered，防待办无限堆积）**：关注报告、待审区与收件箱（`/v1/inbox`）**只投影当前仍未收敛的活体项**——Workflow run 已离开 `AwaitingApproval`（进入 `running`/`converged`/`failed`/`canceled`）、Proposal 已离 `submitted`、草稿已 Apply/弃稿、或 `Escalate` 已被确认归档/对应会话已终结时，**立即退出待处理队列**，仅保留在历史事件/审批审计流中；严禁把只增不减的 append-only 历史事件条数直接显示为「待你处理」。
 
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
