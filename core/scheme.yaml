@@ -332,6 +332,8 @@ spec:
     - {type: ReconcileTick,    source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "reconcile:<at>",      route: workflows/core-workflow}   # 定时巡检到点（底层节拍 tier=infra，默认不展示 default-hidden；event.md 规则 18）
     - {type: LoopRequested,    source: human,     defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "<loop>:<round>",       route: root-agent}   # CLI/API 请求跑一轮自循环（corectl loop；R-UX-8）：事件→wake 桥→宿主拉起 core-headless 会话；source 服务侧恒 human
     - {type: TaskStateChanged, source: core,      defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "task:<id>:<phase>",   route: observation-bus}   # 多任务调度状态变迁（concepts/task-scheduler.md）：queued/ready/running/verifying/done/failed/blocked；任务中心实时刷新
+    - {type: TaskCancelRequested, source: human,  defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "task-cancel:<id>", route: scheduler}   # 任务取消请求（concepts/task-scheduler.md；involved=Task/<scope>/<name>）：调度器每拍扫归档→非 running 直接 canceled；running 注记等自然结束
+    - {type: TaskConflictResolved, source: human, defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "task-conflict:<id>:<choice>", route: scheduler}   # Apply 关口冲突裁决（BUG-013：detail=abort-current|pause-first）：调度器据裁决放弃当前任务或让位在先任务
     # 会话活性事件族（KI-003，event.md 规则 14/18；引擎内部源六段=装配层 watchdog 自产，source 恒 core）
     - {type: SessionStalled,   source: core,      defaultLevel: error, tier: attention, visibility: default-visible, dedup: "session:<id>",        route: root-agent+notification/*}   # 停滞判定态=SuspectedStall（判定词与事件词分立：事件名=SessionStalled 与 HeartbeatLost 同族）；自愈固定顺序第一步=注入「继续」
     - {type: SessionHealed,    source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "session-heal:<id>",   route: dead-letter}   # 注入「继续」后心跳恢复——底层恢复事实默认不展示（tier=infra, default-hidden）
@@ -357,6 +359,8 @@ spec:
     - {on: ReconcileTick,    for: "any",            dispatch: workflows/core-workflow}   # 巡检到点→一次全量对账 run（对账锚=系统级循环本体）；v0.29 事件驱动推进源首段：该行落 run 的同拍即一次全量推进拍（source=core 三重闸——workflow.md 规则 15 v0.29 段，推进总闸同闸不旁路）
     - {on: LoopRequested,    for: "any",            dispatch: root-agent}   # CLI 触发自循环（R-UX-8）：wake 桥按白名单转发宿主 /wake/spawn，由部署侧 loop 命令拉起 core-headless 会话
     - {on: TaskStateChanged, for: "any",            dispatch: observation-bus}   # 任务状态变迁=观测事实（任务中心/事件流消费）
+    - {on: TaskCancelRequested, for: "any",         dispatch: dead-letter}   # 取消请求由调度器归档扫描消费（非派发面）——dead-letter 兜底可见
+    - {on: TaskConflictResolved, for: "any",        dispatch: dead-letter}   # 冲突裁决同上（调度器扫描面）
     - {on: SessionStalled,   for: "any",            dispatch: root-agent, cc: notification/*}   # 会话停滞=人注意事实（KI-003，event.md 规则 14）：root-agent 主路=自愈链入口（第一动作=注入固定 prompt「继续」）；cc=bind 通知旁路
     - {on: SessionHealed,    for: "any",            dispatch: dead-letter}   # 恢复=活性事实非处置触发（自愈动作在 watchdog 侧已执行）——dead-letter 观测兜底可见
     - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
