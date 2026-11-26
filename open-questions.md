@@ -53,6 +53,12 @@
 2. R-BIZ-1/4 的 lint checker 落点（core_design `lint/` 还是实例侧投产检查）——投产前定。
 3. Template（appliesTo: servicedesc）出业务系统模具（五域骨架模板）的时机——v1 不做，首个实例跑通后评估。
 
+## attention（关注报告）
+
+1. attention 条数上限（默认 7）与严重度权重、「忽略/这也要看」反馈的调参口径——上线后按误报率与使用率定。
+2. 报告缓存粒度（viewer 指纹 vs 角色集指纹）与 TTL 默认值（暂定 5m）。
+3. clear 区窗口（只列本窗口 or 最近 N 次检查）——先按本窗口，实测后定。
+
 ## 横切
 
 1. 文档量与 ops DB 规模增长后的对账/归档节奏。

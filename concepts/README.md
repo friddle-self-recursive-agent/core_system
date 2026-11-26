@@ -32,6 +32,7 @@
 | [scope.md](scope.md) | — | 四层作用域（目录即 scope） | Namespace |
 | [revision.md](revision.md) | — | 版本管理（乐观锁/审计/语义 diff） | resourceVersion + audit |
 | [context.md](context.md) | — | 上下文装配（索引/检索/压缩/缓存/背景会话） | —（informer 缓存 + 调度 predicate） |
+| [attention.md](attention.md) | — | 关注报告（读侧派生：值得关注/不值得关注+证据链，默认主界面） | —（告警摘要的人话归并） |
 
 ## 边界矩阵（一屏总览）
 
@@ -47,3 +48,4 @@
 | MetricsInfo | 现实序列 | — | 支撑判断与验证 |
 | Core/Scheme | 机制 | 内 | 让以上一切成立 |
 | common-business-system | 意图（约束） | 内 | 企业语义怎么落既有机制（状态/财务/业务/监控/事务五域纪律，零新机制） |
+| AttentionReport | 现实（只读派生） | 内 | 回答"现在该看什么"（不是事实源、不是文档对象） |

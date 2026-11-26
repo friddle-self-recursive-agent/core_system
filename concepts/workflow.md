@@ -154,7 +154,7 @@ spec:
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
 - Escalate 出口：默认上溯 root agent；有 role 挂载时 role 持有者经 Notification 同达。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
-- **展示面**（console）：workflow 详情页四 tab——流程图（相位态机自动渲染、当前相位高亮）/ 事件流 / 流转（每轮相位流水，ops DB）/ 数据流（dataflow 拼图）；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。
+- **展示**（console）：workflow 详情=同一对象工作台——默认**关注报告**（发生了什么/值得关注/下一步）+常驻对话；流程图/事件/流转/数据流/运行/配置为次级 tab；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。（R-UX-7；runtime/console-ui.md §14.6）
 - **第三方**：其他系统/他人编辑、导入、管理、触发设置，走同一 Apply+权限系统入口；导入=外部编排渲染成 spec（预览=dry-run，导入件首期 observe 模式）。
 - **落地 agent**：新 workflow 的接线/代码化由 `apply-workflow` agent 承担（§1.2）。
 

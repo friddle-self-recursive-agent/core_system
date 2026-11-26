@@ -25,7 +25,7 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 |---|---|
 | **改文档** | 改 Goal/Rule/Desc 经 Apply 落库=改系统；agent 代改的默认先进草稿缓存，你确认后才落库 |
 | **批升级** | agent 收敛失败或拿不准时升级（Escalate）给人；它也可以提提案，由有权限者合入 |
-| **看观测面** | 总控界面两层视角：资源树（Global→Service→Instance→WorkService/Agent 逐层点入）+ 信息流（事件/监控/状态） |
+| **看关注报告** | 总控首屏=关注报告（值得关注/不值得关注+证据链），旁边直接开对话；系统/工作流/事件/审批页是钻取面 |
 
 剩下的活由四个面分工（职责单一，谁都不越界）：
 
@@ -34,7 +34,7 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 | 文档面 | ServiceDesc / ServiceInstance / 各对象声明 | 存意图与约束 | 执行任何动作 |
 | 控制面 | Core 进程（Apply / Workflow 引擎 / Event 分发 / Scheme / 权限系统） | 校验存取文档、调度收敛 | 干活（干活是 Agent 的事） |
 | 执行面 | Agent / Connector / WorkService | 收敛意图、驱动外部系统 | 定义意图 |
-| 观测面 | Event 汇聚 / MetricsInfo / DriftReport | 让人看得见 | 反过来直接改状态 |
+| 观测面 | Event 汇聚 / MetricsInfo / DriftReport（关注报告是读侧派生） | 让人看得见 | 反过来直接改状态 |
 
 一次收敛闭环：
 

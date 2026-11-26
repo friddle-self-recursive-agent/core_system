@@ -9,7 +9,7 @@
 | 文档面 | ServiceDesc / ServiceInstance / 各对象声明 | 存意图与约束 | 执行任何动作 |
 | 控制面 | Core 进程（Apply / Workflow 引擎 / Event 分发 / Scheme / 权限系统） | 存取校验文档、调度收敛 | 干活（干活是 Agent 的事） |
 | 执行面 | Agent / Connector / WorkService | 收敛意图、驱动外部系统 | 定义意图 |
-| 观测面 | Event 汇聚 / MetricsInfo / DriftReport | 让人看得见 | 反过来直接改状态 |
+| 观测面 | Event 汇聚 / MetricsInfo / DriftReport（关注报告是读侧派生） | 让人看得见 | 反过来直接改状态 |
 
 ## 2. 概念关系图
 
