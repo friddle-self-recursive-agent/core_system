@@ -21,7 +21,7 @@
 | [workflow.md](workflow.md) | Workflow | 循环本体（触发→整理→处理→回归；Workflow=其实例） | Controller/Reconciler + 相位机 |
 | [proposal.md](proposal.md) | Proposal | 需求提案（console 提需求→审批→派工的一等对象） | Issue/Enhancement 提案 |
 | [task-scheme.md](task-scheme.md) | TaskScheme | 确定性步骤图（四层执行第三层） | Job spec |
-| [template.md](template.md) | WorkServiceTemplate | 安装模板（builtin Scheme） | Helm Chart |
+| [template.md](template.md) | Template | 统一模具×四层 appliesTo（要求语义/Resolver/逐层询问） | Helm Chart |
 | [provider.md](provider.md) | Provider | 外部能力账号包（auth.secret 内化） | Secret+ConfigMap+Endpoint 聚合 |
 | [notification.md](notification.md) | Notification | 通知渠道（一 Scheme 一 Instance） | Alertmanager route |
 | [user-system.md](user-system.md) | User | 用户目录（builtin 本地表） | — |

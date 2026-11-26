@@ -213,15 +213,19 @@ spec:
         params: "[]string"
         onFailure: "{retry, backoff, then: escalate}"
 
-    - kind: WorkServiceTemplate      # 安装模板 builtin Scheme
+    - kind: Template                  # 统一模具×四层 appliesTo（2026-11-26 用户裁决：模板=要求集，Ref 语义非实际系统；resolver 自动选型，解析不了逐层询问；原 WorkServiceTemplate=workservice 层）
       builtin: true
       storage: global/templates/<name>.yaml
       spec:
-        provides: "{capabilities: []string, category}"
-        resources: "{images: [{name, source, digest!}], storage, ports, min}"
-        install: "[]{action}"                       # digest 必填；幂等；三段 undo
-        postInstall: "[{action: register-workservice}]"   # 产出六面体骨架
-        asks: "[]{field, question}"
+        appliesTo: "!workservice|servicedesc|serviceinstance|workspace"   # 模具层（四层一套机制；DocType 同款 appliesTo 模式）
+        provides: "?{capabilities: []string, category}"
+        requires: "?{images: [{name, source, digest!}], storage: {kind: oss|nas|system|any, size: ?string, speed: ?hot|warm|cold}, ports: []int, compute: ?map, endpoints: ?map, systems: ?[]ref}"   # 要求集（类型偏好+大概空间+速度要求——禁止实际地址；镜像 source=取货地址要求可换源，digest 不变）
+        goals: "?[]string"                          # servicedesc 层：哪些 goal
+        mold: "?map"                                # 层特有骨架（workservice=六面体 / servicedesc=goalRef+docs / instance=agentRefs+docs / workspace=project 组织）
+        install: "?[]{action}"                      # workservice 层：digest 必填；幂等；三段 undo
+        postInstall: "?[]{action: register-workservice}"   # 产出六面体骨架
+        asks: "[]{field, question, kind: ?provider-ref|resource-ref|enum|string, options: ?[]string, default: ?}"   # resolver 解析不了的才问（必带缺省/示例；R-UX-1）
+        chain: "?[]workservice|servicedesc|serviceinstance|workspace"   # 实例化下探层序（一层层问下去；每层 resolver→asks→确认卡）
 
     - kind: Skill                    # 工具使用缓存
       builtin: true

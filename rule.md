@@ -27,6 +27,18 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 - **适用**：concepts/ 全部概念文档、concepts/README 索引。
 - **不适用**：requirements/（原稿存档）、open-questions.md（活问题清单）、git 历史（唯一历史）。
 
+## R-DOC-5 双仓承载（2026-11-26 用户裁决）
+
+每一份设计**两仓承载、缺一不可**：
+
+| 仓 | 承载 |
+|---|---|
+| **core_design**（GitHub `core_system`） | 概念与规则：concepts/、rule.md、core/scheme.yaml（声明面权威） |
+| **core_system_instance** | 机读落地口径：runtime/*.md（流程/接口/判据）、console-ui 等实现面设计 |
+
+- 改设计=**两仓同步提交并 push**（触发 loop 下轮 pull 对账收录）；只改一侧=未完成。
+- 概念文档与 runtime 文档头部互相回链（概念→runtime 口径；runtime→概念依据）。
+
 ---
 
 # Rule — 工程规则
