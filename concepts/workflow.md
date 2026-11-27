@@ -367,6 +367,8 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 这两条 workflow=**声明层配置对象**（非 builtin 代码；解释器按文档执行，主干词汇与 core-system-developer-loop 同族）：
 
+**内置轻量 agent 润滑剂（2026-11-28 用户裁定「doc-apply 的审批以及部分服务运行起来可以使用内置的 agent 来做润滑剂。即低智商要求的可以使用内置 agent」）**：节点 phases 行 `executor: ?dsh|inner`（缺省 dsh 重型通路）——`inner`=**内置轻量 agent**（ops_core_inner_agent 词形）：引擎内直调 Provider（模型名走 taskModelMapping[op] 真名映射）完成低智商环节（文档整理/摘要/简单判断/doc-apply 审批辅助/服务运行轻量检查），**不拉 session 零拉起开销**；产物落 DocumentDiff（inneragent-<node>-run<N>）+InnerDone 续行（on=inner-resume 轨迹行）。判据：智商要求低→inner；需真实开发/多文件/长任务→dsh 重型。同一 workflow 可混排（逐节点声明）。
+
 **审批判决文档（2026-11-28 用户裁定 ops_core_inner_agent）**：审批裁定环节走**小内置 agent**（只调 LLM 即可——`ops_core_inner_agent`，Provider low 档）整理 **DocumentDiff**：人审挂起即读「现值 vs 待批稿」→生成 **Diff 文档**（改了什么/为什么/影响面/风险，≤300 字）→落库（kind DocumentDiff，workflow-engine writer，同名幂等）；**run/审批视图现读判决文档展示**——「我要能在这个 workflow 实际的 run 节点中看到这个判决报告」。声明面=scheme docTypes DocumentDiff+`spec.approval.approvalDiff{enabled,agent,provider}`（scheme 配置改行为，改 scheme 零代码）。
 
 ### 9c.1 `gh-issue-trigger`（GitHub Issue 触发 → 判断 → 文档更新 → 发版 → issue 回评闭环；2026-11-27 用户指令加第 9 节点 issue-feedback=connectops issue-comment）
