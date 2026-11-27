@@ -73,7 +73,7 @@ Q4 它是类型还是实例？
 
 | 本系统 | K8s | 差异要点 |
 |---|---|---|
-| 文档面（文件夹+git） | etcd | 无事务无 watch，由 Core 封装补齐（可行性⚠️见 instance 仓 feasibility.md） |
+| 文档面 | etcd | 权威=sqlite docs DB（R-DOC-7，无事务/watch 问题消解）；git=定时导出的公开/备份格式 |
 | Core 进程 | kube-apiserver + controller-manager | 合并为一个小进程，v1 不拆 |
 | Scheme | scheme + CRD 机制 | 同时注册对象类型与文档类型 |
 | ServiceDesc | Deployment（Spec 部分） | Spec 是一组异构文档而非单 yaml |

@@ -62,7 +62,7 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 | 仓库 | 概念角色 | 放什么 |
 |---|---|---|
 | **core_system**（本仓） | ServiceDesc | 声明：requirements 存档、Goal/Desc/Rule、概念定义（Scheme 层）、builtin 服务声明 |
-| [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Workflow 管线与 bootstrap、可行性报告 |
+| [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Workflow 管线与 bootstrap |
 | [core_system_workservice](https://github.com/friddle-self-recursive-agent/core_system_workservice) | 代码 | Igniter、Core 进程、dsh 插件宿主、内置 Connector |
 | [core_system_dsh_plugin](https://github.com/friddle-self-recursive-agent/core_system_dsh_plugin) | 代码（plugin 面） | dsh plugin 宿主 + connector 实现；core 本体 Go build 于 workservice 仓，经 submodule `core_system/` 指向最新 |
 | 用法仓（**private**，托管于私域 SCM，地址不入公开仓） | 代码（用法型 connector） | 按部署用法决定的驱动（onedev/nas/oss）；workservice 仓 connectors/ 只收 builtin 驱动 |
@@ -95,7 +95,7 @@ core_system/
 1. [requirements/runtime.md](requirements/runtime.md)（原始运行时要求：三仓结构、运行时规则、builtin 系统、install 流程）
 2. [goal.md](goal.md)（验收条款）→ [principles.md](principles.md) → [architecture.md](architecture.md) → [rule/](rule/rule.md)（按方面查规则）
 3. [concepts/](concepts/)（新读者从 README 索引入）
-4. 实现与可行性 → instance 仓
+4. 实现 → instance 仓（可行性=中间文档已随实现收敛删除，R-DOC-10；可行性分析保留在概念文档小节与 runtime 判据）
 
 ## 审阅方式
 

@@ -15,4 +15,4 @@ ownerRefs: [{kind: ServiceDesc, name: builtin-user-system}]
 - A1. Bind.status.holders 与 user.spec.roles 双向对账零差异（每日探针）。
 - A2. 任一 critical Notification 能解析到至少一个可达联系人（contact 探测）。
 - A3. 用户变更 100% 人审留痕（ops DB）。
-- A4. IdP 接入演练：authentik 以 WorkService 形态 adopt 后，用户表可切投影且可回退（未来可行性项，见 instance feasibility §13）。
+- A4. IdP 接入演练：authentik 以 WorkService 形态 adopt 后，用户表可切投影且可回退（接入设计见 concepts/user-system.md §6；ldap/sso 阶段才落地）。
