@@ -65,8 +65,8 @@ core_system 的答案是把 K8s 的逻辑搬过来：**不把单个 agent 做得
 | [core_system_instance](https://github.com/friddle-self-recursive-agent/core_system_instance) | ServiceInstance | 实现形式：ImplDoc/VerifyDoc、运行时设计（四层执行、dsh 插件、总控界面、ops 日志）、Workflow 管线与 bootstrap、可行性报告 |
 | [core_system_workservice](https://github.com/friddle-self-recursive-agent/core_system_workservice) | 代码 | Igniter、Core 进程、dsh 插件宿主、内置 Connector |
 | [core_system_dsh_plugin](https://github.com/friddle-self-recursive-agent/core_system_dsh_plugin) | 代码（plugin 面） | dsh plugin 宿主 + connector 实现；core 本体 Go build 于 workservice 仓，经 submodule `core_system/` 指向最新 |
-| sybran_usage_connector（**private**，托管于公司 SCM `<公司 SCM>/sybran_usage_connector`，地址不入公开仓） | 代码（用法型 connector） | 按部署用法决定的驱动（onedev/nas/oss）；workservice 仓 connectors/ 只收 builtin 驱动 |
-| sybran-developer-system（**private**，托管于公司 SCM `<公司 SCM>/sybran-developer-system`） | 部署实例设计 | developer/deploy 的 sybran 实例：节点绑定值与实测契约（公司 SCM adopt、部署渠道实例）；builtin 本体在其余四仓，零部署锚点（2026-11-26 裁决：sybran 相关=sybran-* private 仓、托管公司 SCM） |
+| 用法仓（**private**，托管于私域 SCM，地址不入公开仓） | 代码（用法型 connector） | 按部署用法决定的驱动（onedev/nas/oss）；workservice 仓 connectors/ 只收 builtin 驱动 |
+| 业务实例仓（**private**，托管于私域 SCM） | 部署实例设计 | developer/deploy 的业务实例：节点绑定值与实测契约（私域 SCM adopt、部署渠道实例）；builtin 本体在其余四仓，零部署锚点（2026-11-26 裁决：业务侧内容=private 仓、托管私域 SCM） |
 | [common_connector](https://github.com/friddle-self-recursive-agent/common_connector) | 代码（通用 connector） | 跨部署复用的通用 connector（通知/邮件 OpsConnector、SMTP；default user-system Event 默认通知） |
 
 六个 builtin service（[systems/builtin/](systems/builtin/)）构成自举最小集：**self-recursive-core**（控制面本体）、developer-system（开发流水线）、deploy-system（安装执行）、storage-system（文档与产物存储）、connector（默认 Ops 宿主）、user-system（用户目录）。冷启动 = Igniter 点火 → Core 按文档把全部 builtin service 拉到 InSync，全程无需人工编辑运行时状态。

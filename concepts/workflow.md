@@ -22,7 +22,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 >    - **`core-system-developer-loop`**：管理自我迭代与研发发布闭环的主干工作流（出厂默认不启动 `spec.enabled: false`，不可删除 `undeletable: true`；2026-11-27 用户裁决：节点拓扑**可在前端加删**——`immutableNodes: false`，加节点/删验收节点走 draft→apply）。
 >    - **`default-task`**：内置通用任务相位状态机（`Idle → Analyzing → Planning → AwaitingApproval → Executing → Verifying → Reporting`），供单次任务与 Agent Session 执行，其中 `session` / `agent` 节点支持通过 `globalRuleRefs` 引用相应的 `global` 规则（如 `rule/rule_eng`、`rule/rule_doc`、`rule/rule_ux`、`rule/rule_ctx`、`rule/rule_pub`）。
 >    - 其余历史名称（`core-workflow`、`bug-lifecycle`、`bug-workflow`、`dev-delivery`、`apply-workflow`、`simple-shot`、`watch-only`）全部退入 `core/scheme.yaml` 的 `runtime.workflows.aliases` 做 Scheme Adapter 兼容映射，不再作为独立内置 workflow 存在。
-> 2. **出厂默认不启动（`spec.enabled: false`）**：`core-system-developer-loop` 在 `core_system` 自身实例中因需要自我迭代才显式开启（`enabled: true`），而在 `sybran` 等对外交付项目中**默认不启动**，需先通过 `systemBindings` 选择或配置绑定的 `developer-system` 与 `deploy-system`（`default` 默认开源习惯 / `install` 模板安装 / `import` 导入外部系统，一层层询问下去）后按需开启。
+> 2. **出厂默认不启动（`spec.enabled: false`）**：`core-system-developer-loop` 在 `core_system` 自身实例中因需要自我迭代才显式开启（`enabled: true`），而在 `业务实例` 等对外交付项目中**默认不启动**，需先通过 `systemBindings` 选择或配置绑定的 `developer-system` 与 `deploy-system`（`default` 默认开源习惯 / `install` 模板安装 / `import` 导入外部系统，一层层询问下去）后按需开启。
 > 3. **不可删除，但主干节点可在前端加删、全节点参数与环境绑定在 Scheme/文档与前端可配置**（`undeletable: true`、`immutableNodes: false`——2026-11-27 用户裁决「我要加节点或者我要去掉验收节点了？」）：配置下沉到 `scheme.yaml` 的 `adapters` 与 `Workflow` 文档对象层，不再修改 Go 代码层级。
 > 4. **多节点与多入口触发 + 临时 `BugDoc` 运行时闭环（不改设计也可触发，最后一步删 `BugDoc` 并回写 `InSync`）**：
 >    - 不仅可以从首节点（监听日志/Event）触发完整闭环，当**用户通过对话/控制台修改设计文档**或**发现 Bug（不修改设计文档）产出/直接提交临时 `BugDoc`** 触发 `DocApplied` 时，直接从第 4 节点 **`doc-apply`（`Planning` 相位）** 切入，走同一条后续链路（`doc-apply → developer-system → 验收 → deploy-system → report-archive`）。
@@ -67,7 +67,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 > - `Failed` / `Paused` 仅由显式侧轨边到达（如 `ApprovalRejected → Failed`、`StepFailed → Failed`、`Escalate → Paused`）。
 > - **单次 run 状态闭合集**：`triggered | running | suspended | converged | failed | canceled`；**静态迁移规则表（`transitions`）与运行期实际轨迹（`history: [{from, to, on, at, sessionId?, actor?}]`）必须分离**——UI 节点图按 `history` 标绿已走过的真实节点，不得按数组下标误把失败前未执行节点全标绿，也不得把静态 `transitions` 当事件时间线展示。
 
-### 1.1 跨项目复用与逐层询问绑定（`core-system` vs `sybran` 等对外项目）
+### 1.1 跨项目复用与逐层询问绑定（`core-system` vs `业务实例` 等对外项目）
 
 `core-system-developer-loop` 同时服务两类场景，全部通过 **Scheme Adapter + 文档配置** 区分，零代码分支：
 
@@ -75,7 +75,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
    - 在 `global/workflows/core-system-developer-loop.yaml` 中显式设置 `enabled: true`，直接管控 `core-system` 的自我迭代；
    - `systemBindings.developerSystem.resolution = default`（默认遵循本项目开源习惯：`agent/<name>` 分支、`worktrees/<repo>/<slug>` 隔离、单文件 ≤ 800 行、临时文件入 `tmp/`）；
    - `systemBindings.deploySystem.resolution = default`（默认发布至宿主与子模块链）。
-2. **`sybran` 等对外项目实例或业务自定义 Workflow（如监控 `bi-system` 运行 Bug 自动修复发版）**：
+2. **`业务实例` 等对外项目实例或业务自定义 Workflow（如监控 `bi-system` 运行 Bug 自动修复发版）**：
    - 出厂默认 `enabled: false`（不自动启动 core 自我迭代）；
    - 启用或配置时，首先由 workflow `requires` 或 `select` 相应的 `developer-system` 与 `deploy-system`，系统按 Template `resolver -> asks` 机制**一层层询问下去**：
      - **`default`（默认）**：使用系统内置的默认研发/部署通道与开源仓库规约；
@@ -119,7 +119,7 @@ metadata:
   labels:
     core/origin: builtin
 spec:
-  enabled: false                    # 出厂默认不启动；core-system 实例自我迭代时显式置 true，sybran 等默认 false
+  enabled: false                    # 出厂默认不启动；core-system 实例自我迭代时显式置 true，对外业务项目默认 false
   immutableNodes: false             # 2026-11-27 用户裁决：主干节点可在前端加删（我要加节点/去掉验收节点），参数全可配；改动走 draft→apply
   undeletable: true                 # 内置核心工作流不可删除
   services:
@@ -259,7 +259,7 @@ spec:
 1. 相位/迁移纯声明（相位机=标准 FSM：引擎按声明执行，规则之外无动作；失败走 onFailed）。
 2. 刹车三件套（cooldown/maxMutations/avoidRepeatFix）为 Workflow 级强制默认，可收紧不可关闭。
 3. **预算/成本不在核心循环语义内**：budget 是 metrics 关注的东西（由 ConnectorOps 收集→agent 报告的默认 workflow 承接），暂不做——核心循环只有触发/整理/相位/回归，不再往里加预算机器。
-4. builtin Workflow（七项：core-workflow/default-task/simple-shot/watch-only/dev-delivery/apply-workflow/bug-lifecycle）修改属高敏 权限系统 项；builtin 正向相位词汇映射（§1 映射表）是声明面，运行时注册表与它同源——映射未落设计的 workflow 不进注册表（不即兴发明）；`Failed`/`Paused` 为侧轨态，默认物化 `advance` 边止于正向序列末步（落 `converged`），绝不自动 advance 至 `Failed`。
+4. builtin Workflow（**双内置基座：`core-system-developer-loop`、`default-task`**——2026-11-27 通用解释器收敛；core-workflow/simple-shot/watch-only/dev-delivery/apply-workflow/bug-lifecycle 等旧名退入 scheme `runtime.workflows.aliases` 兼容映射，不再独立占册）修改属高敏 权限系统 项；builtin 正向相位词汇映射（§1 映射表）是声明面，运行时注册表与它同源——映射未落设计的 workflow 不进注册表（不即兴发明）；`Failed`/`Paused` 为侧轨态，默认物化 `advance` 边止于正向序列末步（落 `converged`），绝不自动 advance 至 `Failed`。
 5. 触发规则必须与事件 Level 联动（minLevel 过滤）。
 6. **核心定时驱动**：存在一个核心定时器——system 的 agent 定期处理 event 与报告，转给上游 global 汇聚（上游再 workflow 分析）；**builtin 域不走远端，event/报告本地处理**。timer.resync 是这条链的保险丝（level-triggered，丢事件靠巡检兜底）。
 7. **流程可读性**：workflow spec 由 LLM 生成本段白话描述 + 流程图（mermaid），随对象详情展示——规则是数据，解释与图按需生成，不入库为准（重新可生成）。
@@ -341,7 +341,7 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 ## 9a. 「Workflow + Scheme = 声明层、代码 = 通用解释器」与原临时 BugDoc 闭环失效收敛（2026-11-27 用户裁决）
 
-> 用户原话：「完整的内置的应该是改成这个 `core-system-developer-loop` 默认在出厂不启动。因为我这个 core-system 要自我迭代才启动。sybran 就不会启动这个。`core-system-developer-loop` 是管理 core-system 自我迭代的，不可删除，不可调整节点，可以进行一些基于基础环境的配置，默认就是我基于这个项目的开源习惯……这个就是标准的 监听日志event->agent判断->[审批/自动审批]->doc apply->developer-system->验收->deploy-system……还有 workflow 可以多节点、多节点配置，比如用户对话修改了文档，触发 doc apply，也走下面逻辑这一条。临时 BugDoc 闭环应该是失效。本质 workflow+scheme 代码是解释器。这个删除 bugdoc 默认是可以添加删除以及选择不删除的。」
+> 用户原话：「完整的内置的应该是改成这个 `core-system-developer-loop` 默认在出厂不启动。因为我这个 core-system 要自我迭代才启动。对外项目就不会启动这个。`core-system-developer-loop` 是管理 core-system 自我迭代的，不可删除，不可调整节点，可以进行一些基于基础环境的配置，默认就是我基于这个项目的开源习惯……这个就是标准的 监听日志event->agent判断->[审批/自动审批]->doc apply->developer-system->验收->deploy-system……还有 workflow 可以多节点、多节点配置，比如用户对话修改了文档，触发 doc apply，也走下面逻辑这一条。临时 BugDoc 闭环应该是失效。本质 workflow+scheme 代码是解释器。这个删除 bugdoc 默认是可以添加删除以及选择不删除的。」
 
 1. **代码只做通用解释器（Interpreter）**：
    - `workservice` 引擎不硬编码任何业务专用闭环；原先单独设立的「临时 BugDoc 闭环（`bug-lifecycle`）」失效作废。
@@ -359,11 +359,11 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 ## 9b. Workflow 模板与依赖系统逐层询问（2026-11-27 更新）
 
 - Workflow 模板=**Template 概念在 workflow 层的应用**（`appliesTo: workflow`）：基于 `core-system-developer-loop` 标准主干提供可实例化的业务模具（如跨服务 Bug 监控修复发版模具）。
-- 实例化或在新项目（如 `sybran`）启用 `core-system-developer-loop` 时，首先 `requires/select` 对应的 `developer-system` 与 `deploy-system`，按 Template `resolver -> asks` 一层层问下去（**默认 `default` / 安装 `install` / 导入 `import`**）。
+- 实例化或在新项目（如 `业务实例`）启用 `core-system-developer-loop` 时，首先 `requires/select` 对应的 `developer-system` 与 `deploy-system`，按 Template `resolver -> asks` 一层层问下去（**默认 `default` / 安装 `install` / 导入 `import`**）。
 
-## 9c. 平台级声明 workflow：`gh-issue-triage` 与 `sybran-agent-release`（2026-11-27 用户裁决）
+## 9c. 平台级声明 workflow：`gh-issue-triage` 与 `agent-release`（2026-11-27 用户裁决）
 
-> 用户原话要点：「core_agent 的 workflow 可以添加一个 gh_issue_event，即定时整理 github_issue，然后 agent 判断，然后自动更新文档→更新发版→github release（build 到时候做成使用 gh）。其中按规则，使用 github 的就 gh 创建 gh connector 的代码，放定义和代码。然后再加一个 workflow，用来更新代码编译后更新 sybran 的 agent。sybran-agent 在未来自己的运行的时候报错，默认就开始走 github 提 issue。」
+> 用户原话要点：「core_agent 的 workflow 可以添加一个 gh_issue_event，即定时整理 github_issue，然后 agent 判断，然后自动更新文档→更新发版→github release（build 到时候做成使用 gh）。其中按规则，使用 github 的就 gh 创建 gh connector 的代码，放定义和代码。然后再加一个 workflow，用来更新代码编译后更新业务 agent。业务 agent 在未来自己的运行的时候报错，默认就开始走 github 提 issue。」
 
 这两条 workflow=**声明层配置对象**（非 builtin 代码；解释器按文档执行，主干词汇与 core-system-developer-loop 同族）：
 
@@ -388,13 +388,13 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
  ⑧ report-archive (Reporting：回评 Issue + 收尾 postActions——临时 BugDoc 默认 invalidate 可改 delete/keep)
 ```
 
-- 绑定 `ConnectorOps/global/connectops-gh`（`mode: cli`——core_agent 默认 cli；sybran 侧同名对象声明 `mode: http` 走 GitHub REST），代码与定义同仓 `connectops-gh`（connector.md 规则 12）。
-- sybran-agent 运行报错默认走 github 提 issue：其运行面把错误经 `connectops-gh` 提交 Issue（`issue-comment/issue-create` 语义），自动回流本 workflow 入口 2。
+- 绑定 `ConnectorOps/global/connectops-gh`（`mode: cli`——core_agent 默认 cli；部署侧同名对象声明 `mode: http` 走 GitHub REST），代码与定义同仓 `connectops-gh`（connector.md 规则 12）。
+- 业务 agent 运行报错默认走 github 提 issue：其运行面把错误经 `connectops-gh` 提交 Issue（`issue-comment/issue-create` 语义），自动回流本 workflow 入口 2。
 
-### 9c.2 `sybran-agent-release`（代码编译后更新 sybran agent）
+### 9c.2 `agent-release`（代码编译后更新 业务侧 agent）
 
 ```
-入口 1：DocApplied（sybran-agent 相关代码合并/构建完成）
+入口 1：DocApplied（业务 agent 相关代码合并/构建完成）
   ↓
  ① build-check (Idle：connectops-gh 检查构建产物 digest——build 走 gh)
   ↓
@@ -408,14 +408,14 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
   ↓
  ⑥ verify (Verifying：冒烟探针+规则审核)
   ↓
- ⑦ rollout (Deploying：connectops-deploy mode=http 推 sybran/k8s 滚动更新)
+ ⑦ rollout (Deploying：connectops-deploy mode=http 推 部署侧 k8s 滚动更新)
   ↓
  ⑧ report-archive (Reporting：归档+github release 同步)
 ```
 
-- 与 `gh-issue-triage` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（sybran/k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
+- 与 `gh-issue-triage` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（部署侧 k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
 
-**声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-triage.yaml`、`sybran-agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
+**声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-triage.yaml`、`agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
 
 ## 10. 审阅标注区
 

@@ -2,7 +2,7 @@
 # 依据：concepts/ 全部概念文档 §3。标注：! = 必填；? = 可选；a|b = 枚举；已采纳的墓碑概念不注册。
 # 机读语义（checker=scheme.ValidateDoc，R-TYPE 有规则即有 checker）：无标注=不强制必填但出现即校验形状
 # （类型/枚举/嵌套）；子字段必填=decl 后缀 !（先例 ref!）；未知字段放行（只增不破坏）；散文声明透明放行。
-# 层级判例：System=deploy_system → 实例=sybran 开发实例 → WorkService=jenkins/onedev/bug-management
+# 层级判例：System=deploy_system → 实例=业务域开发实例 → WorkService=jenkins/onedev/bug-management
 apiVersion: core/v1
 kind: Scheme
 metadata:
@@ -95,7 +95,7 @@ spec:
         category: "developer|storage|tool|business|…"   # tool 型=本机工具（dsh/http）
         connector:                                  # 连接面（原 ConnectorProvider 并入）
           types: "[]string"
-          mode: "?cli|http|both (=both)"            # 调用通道（2026-11-27 用户裁决：Ops 双通道——cli=本机命令行 gh/dsh/kubectl；http=web http_ai/REST。core_agent 默认 cli，sybran/k8s 默认 http；同一 op 语义两通道）
+          mode: "?cli|http|both (=both)"            # 调用通道（2026-11-27 用户裁决：Ops 双通道——cli=本机命令行 gh/dsh/kubectl；http=web http_ai/REST。core_agent 默认 cli，部署侧 k8s 默认 http；同一 op 语义两通道）
           impl: "{kind: tool|image|source, ref: ref}"
           download: "!string"                       # image:// git:// pkg://
           scheme: "{ops: []string, params: map}"
@@ -130,7 +130,7 @@ spec:
       spec:
         workservice: "!ref"                          
         workflow: "?string (=core-system-developer-loop)"
-        mode: "?cli|http|both (=both)"               # 调用通道（2026-11-27 用户裁决：Ops 双通道 cli|http——core_agent 默认 cli，sybran/k8s 默认 http；同一 op 语义两通道同实现，配置切换零耦合）
+        mode: "?cli|http|both (=both)"               # 调用通道（2026-11-27 用户裁决：Ops 双通道 cli|http——core_agent 默认 cli，部署侧 k8s 默认 http；同一 op 语义两通道同实现，配置切换零耦合）
         trustLevel: "?trusted|external (=trusted)"   # 默认内部系统均为 trusted；外部系统显式设 external（或继承 auth.provider.trustLevel）
         provider: "?ref (=openai-default)"           # 默认关联的 Provider（点击 Provider 可直接配置 OpenAIProvider 账号/base地址与模型映射）
         llm: "?{provider: ?ref (=openai-default), model: ?string, tier: ?low|standard|high}"   # 算子级模型配置（重复性/日志清洗算子用 low 低智商轻量模型，设计/复杂诊断算子用 high 高智商推理模型）
@@ -143,7 +143,7 @@ spec:
       builtin: true
       storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"
       spec:
-        enabled: "?bool (=false)"                      # 规则开关：内置 core-system-developer-loop 出厂默认 false（不自动启动；core-system 实例自我迭代显式设 true，sybran 等对外项目默认关闭、按需绑定 developer-system/deploy-system 后启用）
+        enabled: "?bool (=false)"                      # 规则开关：内置 core-system-developer-loop 出厂默认 false（不自动启动；core-system 实例自我迭代显式设 true，对外业务项目默认关闭、按需绑定 developer-system/deploy-system 后启用）
         immutableNodes: "?bool (=false)"               # 节点拓扑锁定（2026-11-27 用户裁决「我要加节点或者我要去掉验收节点」：内置主干也不恒锁定——前端节点表支持加节点/删节点/改参数，改动走 draft→apply；工作流本体删除保护走 undeletable）
         undeletable: "?bool (=false)"                  # 禁止删除保护（core-system-developer-loop 与 default-task 恒 true）
         services: "{involved: []ref, mode: observe|act}"   # 涉及哪些 service、怎么涉及
@@ -442,7 +442,7 @@ spec:
     workflows:
       default: core-system-developer-loop
       builtin: [core-system-developer-loop, default-task]
-      factoryEnabledDefault: false  # core-system-developer-loop 出厂默认不启动（core-system 自我迭代显式开启；sybran 等对外项目默认关闭，经 developer-system/deploy-system 逐层询问绑定后按需启用）；default-task 为通用任务相位状态机
+      factoryEnabledDefault: false  # core-system-developer-loop 出厂默认不启动（core-system 自我迭代显式开启；对外业务项目默认关闭，经 developer-system/deploy-system 逐层询问绑定后按需启用）；default-task 为通用任务相位状态机
       immutableNodes: true          # 内置 core-system-developer-loop 主干节点拓扑锁定（不可删除、不可增删/重排节点，但全节点参数/Adapter 在 Scheme 与文档层可配置）
       undeletable: true             # 内置核心工作流禁止删除
       aliases:                      # Scheme Adapter 历史词形兼容映射（旧名自动映射至 core-system-developer-loop 或 default-task，不再作为独立 workflow 存在）

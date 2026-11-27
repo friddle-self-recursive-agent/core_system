@@ -49,7 +49,7 @@
 
 ## business-system
 
-1. 财务流水外部源接入方式（银行/支付流水导入声明与对账口径）——约束层只管"流水必须可溯源"（R-BIZ-2/R-BIZ-4），导入实现属实例层，首实例（sybran）冷启动时定。
+1. 财务流水外部源接入方式（银行/支付流水导入声明与对账口径）——约束层只管"流水必须可溯源"（R-BIZ-2/R-BIZ-4），导入实现属实例层，首实例（业务实例）冷启动时定。
 2. R-BIZ-1/4 的 lint checker 落点（core_design `lint/` 还是实例侧投产检查）——投产前定。
 3. Template（appliesTo: servicedesc）出业务系统模具（五域骨架模板）的时机——v1 不做，首个实例跑通后评估。
 
@@ -74,7 +74,7 @@
 
 ## cli
 
-1. 多 profile 同机的 cored 地址文件命名（当前仅 core-system 写 `~/.dsh/cored.addr`；kube-inner/core-headless 是否需要独立文件待定）。
+1. 多 profile 同机的 cored 地址文件命名（当前仅 core-system 写 `~/.dsh/cored.addr`；接入/core-headless 是否需要独立文件待定）。
 2. CLI 审批动作（approve/reject）与会话发送命令的落点/权限口径——v1 只读账面，动作命令下一段。
 3. CLI `watch`（事件订阅流）是否复用 dsh 会话流/SSE，还是轮询 `/v1/events?since=`。
 
@@ -89,7 +89,7 @@
 
 1. 定时导出 git + push 的实现落点（`corectl export` / 独立 exporter / 部署 cron/systemd timer）与规则（频率/分支/远端/失败告警）——下一段。
 2. sqlite 逐次正文历史 `doc_history` 表与 `GET /v1/rev-content` 读面——下一段；当前 sqlite 后端 503 诚实降级，不得用周期 git 快照冒充。
-3. 多 cored 共库写竞争（core-system/kube-inner 若同 sqlite）——迁移期 kube-inner 暂显式 git，后续定单写者/写面归属。
+3. 多 cored 共库写竞争（core-system/第二实例 若同 sqlite）——迁移期第二实例暂显式 git，后续定单写者/写面归属。
 4. 跨进程 sqlite 变更通知：`Watch` 当前为进程内写直通知，多 cored 共享 docs DB 时权限热装载/缓存不跨进程；下一段用 DB 轮询代际或事件总线补齐。
 
 ## 横切

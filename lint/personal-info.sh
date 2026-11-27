@@ -23,9 +23,11 @@ targets="${*:-"$self_dir/.."}"
 IP_RE='([0-9]{1,3}\.){3}[0-9]{1,3}'
 IP_WHITELIST='127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.255|192\.0\.2\.|198\.51\.100\.|203\.0\.113\.'
 PATH_RE='/root/|/home/[a-zA-Z0-9._-]+/'
-IDENT_RE='code27\.cn|bigmodel|GLM_CODING|DEEPSEEK_API_KEY|DASHSCOPE_API_KEY|MOONSHOT_API_KEY|glm-[0-9]'
+IDENT_RE='code27\.cn|bigmodel|GLM_CODING|DEEPSEEK_API_KEY|DASHSCOPE_API_KEY|MOONSHOT_API_KEY|glm-[0-9]|sybran|agent_pool|kube-inner|公司'
+# 公司内容词（2026-11-27 用户裁定：公开仓不提公司内容——sybran 实例名/agent_pool 项目名/kube-inner profile 名/「公司」字样一律泛化为 业务实例/部署侧/私域 SCM）
 
-GREP_OPTS="-rnE --include=*.md --include=*.yaml --include=*.yml --include=*.json --include=*.ts --include=*.js --exclude-dir=.git --exclude-dir=.playwright-mcp --exclude-dir=shots --exclude-dir=lint --exclude-dir=node_modules --exclude-dir=acceptance --exclude=friddle_decision.md"
+# 豁免目录：acceptance=验收台账（既有豁免）；requirements=原始要求原话存档（口语存档不改写，2026-11-27 裁定豁免机械扫描；是否改写存档待用户裁）；tmp=R-ENG-8 永不提交
+GREP_OPTS="-rnE --include=*.md --include=*.yaml --include=*.yml --include=*.json --include=*.ts --include=*.js --exclude-dir=.git --exclude-dir=.playwright-mcp --exclude-dir=shots --exclude-dir=lint --exclude-dir=node_modules --exclude-dir=acceptance --exclude-dir=tmp --exclude-dir=requirements --exclude-dir=worktrees --exclude=friddle_decision.md --exclude=loop-next.md"
 
 hits=0
 

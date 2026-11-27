@@ -11,11 +11,11 @@
 
 ```
 System = deploy_system（ServiceDesc）
-实例 = sybran 开发实例（ServiceInstance）
+实例 = 业务域开发实例（ServiceInstance）
 WorkService = jenkins / onedev / bug-management 系统
 ```
 
-即：deploy_system 声明意图 → sybran 实例落地 → 依赖 jenkins/onedev/bug-management 三个 WorkService。WorkService 不限于 devops——**任何被纳管的外部系统**（含代码仓库，含 bug-management 这类业务系统）都是。
+即：deploy_system 声明意图 → 业务实例落地 → 依赖 jenkins/onedev/bug-management 三个 WorkService。WorkService 不限于 devops——**任何被纳管的外部系统**（含代码仓库，含 bug-management 这类业务系统）都是。
 
 ## 2. 定义（六个面）
 
@@ -53,7 +53,7 @@ spec:
  connector: # 连接面（原 ConnectorProvider）
  types: [scm, ci]
  impl: {kind: source, ref: ref/workservice-repo}
- download: "git://…/sybran_usage_connector/connectors/onedev" # 用法型驱动：部署侧仓（rule/rule_eng.md R-ENG-3）
+ download: "git://…/部署侧用法仓/connectors/onedev" # 用法型驱动：部署侧仓（rule/rule_eng.md R-ENG-3）
  scheme: {ops: [checkout, build-status, gate-status, verify, watch]}
  usage: "REST+git 双通道…"
  llmPrompt: "你可用 onedev 工具…"
@@ -111,7 +111,7 @@ status:
      - `agent`（**需要 Agent 回滚**：现场含半成品或条件分支，需唤醒 Agent 读 `description` / `docRef` 诊断残余状态后执行补偿步骤）；
      - `human`（**需要人回滚**：涉及高危生产状态或人工线下冲正，系统挂起并携带 `description` / `docRef` Runbook 通知人操作，人完成后确认恢复）；
    - **回滚文档描述（`description` / `docRef`）**：凡 `policy != never` 且 `type != irreversible` 的操作，必须写出清晰的回滚说明或指向 `ImplDoc` 回滚章节（写清何时回滚、何时不回滚、如何回滚），严禁无文档盲目回滚。
-7. **驱动代码分仓**（rule/rule_eng.md R-ENG-3）：workservice 仓 connectors/ 只放 builtin 驱动（gitfs/dsh）；用法型驱动（onedev/nas/oss 等，换部署即换）在部署侧独立仓（如 sybran_usage_connector），impl/download 指向实际所在仓，依赖方向恒为用法仓→workservice。
+7. **驱动代码分仓**（rule/rule_eng.md R-ENG-3）：workservice 仓 connectors/ 只放 builtin 驱动（gitfs/dsh）；用法型驱动（onedev/nas/oss 等，换部署即换）在部署侧独立仓（如 部署侧用法仓），impl/download 指向实际所在仓，依赖方向恒为用法仓→workservice。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 8. 可行性分析

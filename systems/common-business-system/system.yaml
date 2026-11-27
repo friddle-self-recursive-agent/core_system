@@ -16,6 +16,6 @@ spec:
     - docs/state-model.md
     - docs/finance.md
   instances:
-    - name: sybran            # 第一实例：实例侧设计落公司 OneDev 私有仓 sybran-business-system（运行面=sybran agent，不进 core_agent）
+    - name: biz-example            # 第一实例：实例侧设计落私域 SCM 私有仓 业务系统实例仓（运行面=业务侧 agent，不进 core_agent）
       agentRefs: []
 status: {}

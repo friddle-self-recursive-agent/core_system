@@ -81,7 +81,7 @@ spec:
 
 11. **Ops 双通道：cli 与 http（2026-11-27 用户裁决）**：一切 Ops（ConnectorOps/WorkService.tools）默认**同时支持 cli 与 http 两种调用模式**（`spec.mode: cli | http | both`，缺省 `both`——同一 op 语义、同一实现、两个传输通道）：
     - **cli 模式**：经本机命令行工具调用（`gh`、`dsh`、`kubectl`、`ldap-utils`…）；core_agent 默认走 cli；
-    - **http 模式**：经 web/REST（`http_ai`、GitHub API、LDAP REST 网关、k8s API…）调用；sybran 后续交给 k8s 系统承载，默认走 http；
+    - **http 模式**：经 web/REST（`http_ai`、GitHub API、LDAP REST 网关、k8s API…）调用；部署侧后续交给 k8s 系统承载，默认走 http；
     - 实现侧=同一 op 分派器 + 两个 transport（cliTransport / httpTransport），声明面只改 `mode` 一个值即切通道，**零代码耦合**（进程间有很多玩法：同机 cli、跨机 http、网格 sidecar 均 由配置决定）。
 
 12. **builtin 与外部仓分界（R-ENG-3 落地口径，2026-11-27 用户裁决）**：在 core 核心中**随引擎编译**的驱动=core 核心代码的一部分（`core_system_workservice/connectors/`：gitfs/dsh/codeaudit——这就是 builtin 的特殊性）；**其余一律 gh 建仓** `connectops-<concept>`（如 `connectops-gh`），**定义（WorkService/ConnectorOps YAML 对象）与实现代码同仓**放置（`objects/` 目录=声明、`<pkg>/`=代码），生命周期=声明 → 仓库代码 → build 生效 → 运行时；使用 github 能力的就 gh 创建 `connectops-gh`（issue 整理、release 发版、workflow dispatch 全走 gh）。

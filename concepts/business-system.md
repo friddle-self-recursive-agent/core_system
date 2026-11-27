@@ -67,7 +67,7 @@ common-bussiness-system（独立 system）    业务控制台=它的操作视角
 - **两个控制台**：系统控制台=core_system 视角；业务控制台=common-bussiness-system 视角（默认入口=业务工作台）；
 - **R-BIZ 规则族**：权威文本迁至该仓 docs/rules.md（core_design 旧 systems/common-business-system/ 声明面随迁移退役，迁移前以该仓为准）；
 - **deploy-system**：独立运行面的部署与管理方；
-- **sybran-business-system**：同样是独立业务系统，与本系统是"被导入/管理"关系（不再称"实例继承"）。
+- **业务系统实例仓**：同样是独立业务系统，与本系统是"被导入/管理"关系（不再称"实例继承"）。
 
 ## 7. 设计规则
 

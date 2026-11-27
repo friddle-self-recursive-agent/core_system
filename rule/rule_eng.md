@@ -37,7 +37,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 
 - 依赖方向恒为：deploy-system 仓 → workservice 契约层（connectors 五方法接口），反向禁止。
 - 旧口径的"用法型/通用型"分类由本模型吸收：分仓判据=是否属于**部署能力代码**，不以跨部署复用性区分。
-- 存量仓（common_connector / sybran_usage_connector）按新命名逐步迁移（迁移期双轨；新代码一律 `connectops-*`）。
+- 存量仓（common_connector / 部署侧用法仓）按新命名逐步迁移（迁移期双轨；新代码一律 `connectops-*`）。
 - **宿主工具面贡献不算 connector 驱动**（E5b 归属裁决）：agent-comm 四 op 工具是 core_system_dsh_plugin 对 dsh 宿主 `ctx.tools.register` 的贡献——进程内通道、无独立通信栈，工具宿主=plugin 仓本体，不建新仓；声明集种子（ConnectorOps/WorkService 对象）是文档库数据，非代码。
 
 ## R-ENG-4 Scheme 值修改 vs 触发代码改动的判定边界（2026-11-26 用户裁决）

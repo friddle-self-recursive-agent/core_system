@@ -5,7 +5,7 @@ scope: builtin
 labels: {domain: devtools}
 finalizers: [core/wipe-workservice-side-effects]
 ---
-# builtin-developer-system（R1.3：默认本地 build；R1.6：利用现有 onedev）
+# builtin-developer-system（本地目录+本地 git+本地 build，零外部依赖；远程 SCM/CI=workflow 节点绑定变体——2026-11-26/27 裁决）
 
 spec:
   goalRef: goal.md
@@ -13,9 +13,8 @@ spec:
   implementationRef: system://core_system_instance/impl/developer-system.md   # 设计（非实现）在 instance 仓
   docs:
     - rule: 默认本地 build（executor=dsh 本机插件），不改 Desc 不许上远端池
-  workserviceRefs:
-    - {capabilities: scm, ci}      # 命中 onedev（能力匹配，不点名）
-  connectors: [onedev-driver, dsh]   # dsh=builtin（workservice 仓）；onedev-driver=用法型（sybran_usage_connector 仓，rule.md R-ENG-3）
+  # workserviceRefs：无——builtin 零外部依赖；scm/ci 能力=部署实例的变体绑定，不进 builtin spec
+  connectors: [dsh]                  # dsh=builtin 本机执行器（workservice 仓）；onedev 等用法型驱动=workflow 节点变体绑定（部署侧用法仓，rule.md R-ENG-3），不进 builtin connectors
   instances:
     - name: local-ci
       agentRefs: [agent/dsh]       # 基础 agent 即 dsh（R1.2.1）

@@ -6,7 +6,7 @@ ownerRefs: [{kind: ServiceDesc, name: common-business-system}]
 ---
 # Rule — 企业业务五域纪律（R-BIZ，实例继承底座）
 
-> 继承语义：业务实例（sybran-business-system 等）以引用方式继承本组规则；实例可收紧、不可放宽；
+> 继承语义：业务实例（业务系统实例仓 等）以引用方式继承本组规则；实例可收紧、不可放宽；
 > 放宽=对本仓 rule 的修改（走正常提案/审批链）。type=lint 的条目必须在实例侧投产检查中机械可判（R-TYPE 同款纪律）。
 
 ## R-BIZ-1 状态闭合集（type: lint）

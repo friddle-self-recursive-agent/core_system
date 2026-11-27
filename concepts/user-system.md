@@ -106,7 +106,7 @@ Template `user-system-install`（appliesTo: system/user-system）权威 YAML 存
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 单用户 token 授权够不够 | ⚠️ 低 | core 自用+初期对外 | 现状已在 CT116 活体运行（gate token）；ldap/sso 是纯增量演进 |
+| 单用户 token 授权够不够 | ⚠️ 低 | core 自用+初期对外 | 现状已在 部署机 活体运行（gate token）；ldap/sso 是纯增量演进 |
 | 一键安装向导做不做得出来 | ⚠️ 低 | 「use-session 一路询问」无先例？ | 有：Template resolver asks（R-UX-1）+ use-session 对话基建（首页 chat 同款）+ doc apply 管线全部现成；新增面仅一个 Template 声明+前端一个按钮 |
 | 向导问到凭据泄露 | ⚠️ 中 | 对话里贴明文 | 规则 5：问题只收引用名/部署侧落 secret；会话日志脱敏（SessionLog 同款纪律） |
 | builtin 与 ldap 双权威打架 | ⚠️ 低 | 内置用户 vs IdP 投影 | 规则 7：切 IdP 后本地只读+`syncedFrom` 标注；`user-directory/v1` 契约双实现并存（interface.md 规则 4） |

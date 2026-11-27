@@ -80,7 +80,7 @@ Q4 它是类型还是实例？
 | ServiceInstance | Pod | 含实现侧 Docs 与 MetricsInfo |
 | Agent | Pod 内执行体 + controller 意识 | Agent 是全局对象，Instance 引用而非内嵌 |
 | WorkService | Node / External Provider | 声明"外部有能力的东西" |
-| WorkService（六面体）/ConnectorOps | Node+exporter / 已装工具入口 | v0.13：Provider 并入 WorkService 连接面；层级判例 deploy_system→sybran 实例→jenkins/onedev/bugmgmt |
+| WorkService（六面体）/ConnectorOps | Node+exporter / 已装工具入口 | v0.13：Provider 并入 WorkService 连接面；层级判例 deploy_system→业务实例→jenkins/onedev/bugmgmt |
 | Ref | ObjectReference/ExternalName | 增加 TTL/owner，明确"临时"语义 |
 | Event | Event + watch | 只触发不修改，消费按 P3 |
 | Apply | kubectl apply / SSA | 同时是系统间调用的唯一形态 |

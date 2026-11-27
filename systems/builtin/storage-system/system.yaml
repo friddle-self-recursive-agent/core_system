@@ -10,7 +10,7 @@ spec:
   goalRef: goal.md
   descRef: desc.md
   implementationRef: system://core_system_instance/impl/storage-system.md
-  connectors: [gitfs, localfs]   # gitfs=文档轨（builtin，workservice 仓）；localfs=files/snapshots/templates 本机目录读写。nas/oss 驱动=用法型（sybran_usage_connector 仓，rule.md R-ENG-3），部署方可选接入、不在本系统 connectors 内
+  connectors: [gitfs, localfs]   # gitfs=文档轨（builtin，workservice 仓）；localfs=files/snapshots/templates 本机目录读写。nas/oss 驱动=用法型（部署侧用法仓，rule.md R-ENG-3），部署方可选接入、不在本系统 connectors 内
   root: 本机目录（随实例配置）
   layout:
     - {dir: docs/,      desc: "文档库本体：本地文件夹 git（权威；Apply=commit）"}
