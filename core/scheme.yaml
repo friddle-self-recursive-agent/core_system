@@ -43,6 +43,8 @@ spec:
         goalRef: "!ref"
         descRef: "!ref"
         docs: "?[]ref"
+        provides: "?[]{interface: !ref, version: ?string, impl: ?builtin|ops}"   # 实现标注（2026-11-27 裁决，interface.md：本系统实现哪个 Interface 哪个版本；impl=builtin 进程内直调 | ops 外部接入用 ops 实现同一契约）
+        requires: "?[]{interface: !ref, version: ?string}"   # 依赖标注（缺失时 resolver 逐层询问：默认/安装/导入，workflow.md §9b 同款）
         externalRefs: "?[]{capabilities: []string}"     # 按能力引用 WorkService
         instances: "[]{name: string, agentRefs: []ref}"
         builtinServices: "?[]ref"                        # 仅根 core_system
@@ -112,6 +114,15 @@ spec:
         tools:                                      # 工具与调用描述面（Ops 的描述来源）
           "[]{op, params, idempotent, undo: full|partial|none, rollback: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description: string, docRef?: ref, inverseOp?: op}, cleanup: ?op}"  # rollback 区分要不要回滚+四类回滚方式+回滚文档描述；cleanup 成对
       status: {conditions: "[]Condition"}           # runtime 面探针回写
+
+    - kind: Interface                # 能力契约面（2026-11-27 用户裁决：builtin-system 内容——builtin 系统创建契约，接入 ldap/其他只需用 ops 实现；concepts/interface.md）
+      builtin: true
+      storage: "systems/builtin/<s>/interfaces/<name>.yaml"   # 契约归所属 builtin 系统所有（非全局独立注册面）
+      spec:
+        version: "string"                          # scheme 版本化：name 不变 version 递增（同 major 兼容演进，破坏性变更升 major）
+        semantics: "?string"
+        ops: "[]{op, params: map, idempotent: bool}"   # 契约 op 集（外部接入=用 ops 实现同一 op 集，可多不可少，Lint 对账）
+      status: {}                                   # 无 Status（P2）；消费对账走 Lint
 
     - kind: ConnectorOps             # 工具调用面（v0.13 收窄：描述全在 WorkService）
       builtin: true

@@ -1,0 +1,16 @@
+# Interface user-directory/v1 —— builtin-user-system 拥有的能力契约（interface.md；ldap-user-system 等外部接入=用 ops 实现本契约）
+apiVersion: core/v1
+kind: Interface
+metadata:
+  name: user-directory
+  scope: builtin/user-system
+spec:
+  version: v1
+  semantics: "用户/群组目录查询与认证校验"
+  ops:
+    - {op: user-get, params: {uid}, idempotent: true}
+    - {op: user-auth, params: {uid, password}, idempotent: true}
+    - {op: user-search, params: {filter}, idempotent: true}
+    - {op: group-get, params: {group}, idempotent: true}
+    - {op: group-members, params: {group}, idempotent: true}
+status: {}

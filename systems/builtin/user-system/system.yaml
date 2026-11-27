@@ -9,6 +9,9 @@ labels: {tier: platform}
 spec:
   goalRef: goal.md
   descRef: desc.md
-  provides: [user-directory, role-holders, contact-resolution]
-  rule: 用户增删改走人审；至少保留一名管理员；未来 IdP（authentik）接入=WorkService 纳管+本地表转投影
+  provides:                                  # 实现标注版本化（interface.md：builtin=内置直调；外部接入用 ops 实现同一契约）
+    - {interface: user-directory, version: v1, impl: builtin}   # 契约对象=interfaces/user-directory.yaml（ldap-user-system 等外部 provider 以 impl: ops 接入）
+    - {interface: role-holders, version: v1, impl: builtin}
+    - {interface: contact-resolution, version: v1, impl: builtin}
+  rule: 用户增删改走人审；至少保留一名管理员；未来 IdP（authentik）接入=WorkService 纳管+本地表转投影（同款 ops 实现路径，interface.md 规则 3）
 status: {}

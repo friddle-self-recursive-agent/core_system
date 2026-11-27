@@ -86,6 +86,8 @@ spec:
 
 12. **builtin 与外部仓分界（R-ENG-3 落地口径，2026-11-27 用户裁决）**：在 core 核心中**随引擎编译**的驱动=core 核心代码的一部分（`core_system_workservice/connectors/`：gitfs/dsh/codeaudit——这就是 builtin 的特殊性）；**其余一律 gh 建仓** `connectops-<concept>`（如 `connectops-gh`），**定义（WorkService/ConnectorOps YAML 对象）与实现代码同仓**放置（`objects/` 目录=声明、`<pkg>/`=代码），生命周期=声明 → 仓库代码 → build 生效 → 运行时；使用 github 能力的就 gh 创建 `connectops-gh`（issue 整理、release 发版、workflow dispatch 全走 gh）。
 
+13. **builtin 契约的外部接入=用 ops 实现（2026-11-27 用户裁决，concepts/interface.md）**：builtin 系统创建 Interface 契约（`systems/builtin/<s>/interfaces/`，scheme 版本化）；core_system 调用 builtin 直接调接口（进程内）；以后接入 ldap/其他，**只需用 ops 实现该契约**（ConnectorOps/WorkService.tools 的 ops 集 ⊇ 契约 op 集）+ 一条 `provides` 标注（`impl: ops`）。**系统间相互直接 ServiceWork 调用是系统间自己的事情，跟本项目无关**——相应接口授权文档在各自系统仓内写清楚，本项目不做约定不纳管。
+
 ## 7. 可行性分析
 
 | 风险 | 等级 | 说明 | 缓解 |
