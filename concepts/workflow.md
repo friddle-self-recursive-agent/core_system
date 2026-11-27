@@ -367,6 +367,8 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 这两条 workflow=**声明层配置对象**（非 builtin 代码；解释器按文档执行，主干词汇与 core-system-developer-loop 同族）：
 
+**审批判决文档（2026-11-28 用户裁定 ops_core_inner_agent）**：审批裁定环节走**小内置 agent**（只调 LLM 即可——`ops_core_inner_agent`，Provider low 档）整理 **DocumentDiff**：人审挂起即读「现值 vs 待批稿」→生成 **Diff 文档**（改了什么/为什么/影响面/风险，≤300 字）→落库（kind DocumentDiff，workflow-engine writer，同名幂等）；**run/审批视图现读判决文档展示**——「我要能在这个 workflow 实际的 run 节点中看到这个判决报告」。声明面=scheme docTypes DocumentDiff+`spec.approval.approvalDiff{enabled,agent,provider}`（scheme 配置改行为，改 scheme 零代码）。
+
 ### 9c.1 `gh-issue-trigger`（GitHub Issue 触发 → 判断 → 文档更新 → 发版 → issue 回评闭环；2026-11-27 用户指令加第 9 节点 issue-feedback=connectops issue-comment）
 
 ```
