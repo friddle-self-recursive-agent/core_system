@@ -137,14 +137,14 @@ spec:
         config: "?map"                               # 逻辑声明（endpointRef 等，A46）
         auth: "?{provider: ref}"
         ops: "[]string"                              # ⊆ WorkService.tools（Lint）
-        flow: "?{nodes: []{name: !string, phase: ?string, title: ?string, unit: session|agent|connectops|gate, op: ?string, connector: ?string, provider: ?string, model: ?string, modelTier: ?low|standard|high, globalRuleRefs: ?[]string, service: ?string, entryEvents: ?[]string}}"   # 节点流转骨架（workflow.md §1.3 执行模型）：节点执行单元=session|agent|connectops|gate，含默认 provider、按任务/算子分级模型 model/modelTier（low|standard|high）、Session Agent 引用的 globalRuleRefs、多入口 entryEvents。缺失/骨架态的 ConnectorOps 可直接拉出代码开发任务由 developer-system 实现
+        flow: "?{nodes: []{name: !string, phase: ?string, title: ?string, unit: connectops|agent|service|gate, op: ?string, connector: ?string, provider: ?string, model: ?string, modelTier: ?low|standard|high, refDocs: ?[]ref, refRules: ?[]ref, refTags: ?[]string, tagRules: ?[]ref, tools: ?[]string, service: ?string, contextPassing: ?{previousRound: ?bool, fields: ?[]string}, permissionRole: ?ref, entryEvents: ?[]string}}"   # 节点流转骨架（workflow.md §1.3 执行模型·2026-11-27 用户裁决）：执行单元三型 connectops|agent|service（gate=控制节点非执行单元；旧 session 词形退役）——agent=判断执行单元点进即配（默认 LLM provider/model/modelTier、ref 文档 refDocs、ref 规则 refRules、默认 ref tag refTags、tag 规则 tagRules、随身工具 tools），service=调用目标系统且 service 内部用自己 agent 执行（contextPassing 必传上一轮详细上下文；permissionRole 权限随文档授予 P7），多入口 entryEvents。缺失/骨架态的 ConnectorOps 可直接拉出代码开发任务由 developer-system 实现
 
     - kind: Workflow                 # v0.8 吸收 Workflow；2026-11-27 裁决：内置为 core-system-developer-loop（研发迭代主干，出厂默认不启动）+ default-task（通用任务相位机，Session Agent 可 ref globalRule），配置下沉至 Scheme Adapter 层
       builtin: true
       storage: "global/workflows/<name>.yaml | systems/<s>/workflows/<name>.yaml"
       spec:
         enabled: "?bool (=false)"                      # 规则开关：内置 core-system-developer-loop 出厂默认 false（不自动启动；core-system 实例自我迭代显式设 true，sybran 等对外项目默认关闭、按需绑定 developer-system/deploy-system 后启用）
-        immutableNodes: "?bool (=false)"               # 节点拓扑锁定（core-system-developer-loop 恒 true：不可删除、不可增删/重排主干节点，节点内部参数与环境绑定全可配置）
+        immutableNodes: "?bool (=false)"               # 节点拓扑锁定（2026-11-27 用户裁决「我要加节点或者我要去掉验收节点」：内置主干也不恒锁定——前端节点表支持加节点/删节点/改参数，改动走 draft→apply；工作流本体删除保护走 undeletable）
         undeletable: "?bool (=false)"                  # 禁止删除保护（core-system-developer-loop 与 default-task 恒 true）
         services: "{involved: []ref, mode: observe|act}"   # 涉及哪些 service、怎么涉及
         llm: "?{provider: ref (=openai-default), model: string, tier: ?low|standard|high, nodeMapping: ?map}"   # 默认 Provider（openai-default）与按节点/任务类型的模型分级映射（low 重复性任务 / standard 常规任务 / high 设计与根因评审任务）
@@ -152,11 +152,11 @@ spec:
         triggers: "{events: {types: []string, minLevel: ?debug|info|warn|error|fatal, services: ?[]string, keywordMatch: ?string}, timer: {resync: ?string, enabled: ?bool, interval: ?string, cron: ?string}}"
         logSource: "?{events: ?[]string, minLevel: ?debug|info|warn|error|fatal, services: ?[]string, keywordMatch: ?string, timer: ?{enabled: ?bool, interval: ?string, cron: ?string}, collector: ?{connector: ?string, op: ?string, query: ?string, autoDevelopOnMissing: ?bool}}"   # 节点 1（监听日志与 Event 过滤+ConnectorOps 收集指定日志；缺失时可拉出代码开发任务）
         entryPoints: "?[]{node: ?string, phase: ?string, enabled: ?bool, events: ?[]string, docTypes: ?[]string, description: ?string}"   # 多节点触发入口（如节点 1 监听日志/Event 从头走；节点 4 doc-apply 监听用户对话修改文档或发现 Bug 产出临时 BugDoc 触发 DocApplied 直接切入走 developer-system->验收->deploy-system->最后一步删 BugDoc 回写 InSync）
-        systemBindings: "?{developerSystem: ?{service: ?string, resolution: ?default|install|import, templateRef: ?string, connector: ?string, op: ?string, conventions: ?map}, deploySystem: ?{service: ?string, resolution: ?default|install|import, templateRef: ?string, connector: ?string, op: ?string, envs: ?[]string, requireProdApproval: ?bool}}"   # 绑定 developer-system 与 deploy-system（逐层询问：默认开源习惯 default / 模板安装 install / 导入外部系统 import）
+        systemBindings: "?{developerSystem: ?{service: ?string, resolution: ?default|install|import, templateRef: ?string, connector: ?string, op: ?string, permissionRole: ?ref, conventions: ?map}, deploySystem: ?{service: ?string, resolution: ?default|install|import, templateRef: ?string, connector: ?string, op: ?string, permissionRole: ?ref, envs: ?[]string, requireProdApproval: ?bool}}"   # 绑定 developer-system 与 deploy-system（逐层询问：默认开源习惯 default / 模板安装 install / 导入外部系统 import）；permissionRole=builtin developer_system/deploy_system 权限随文档授予（P7——Role.permissions {scope,actions} 条目，2026-11-27 用户裁决）
         verification: "?{mode: both|code|agent|human, connector: ?string, op: ?string, onFail: ?retry-develop|block|ask, conditions: ?[]{id: ?string, kind: ?code|test|agent|probe|custom, title: ?string, command: ?string, required: ?bool}}"   # 节点 6 验收配置（怎么验收+可自定义验收条件清单）
         ingest: "{dedup: {window}, group: {by, max}, filterLevels}"
         connector: "?ref (=<同名 ConnectorOps>)"        # 默认绑定的 ConnectorOps（缺省同名；apply 时开始实现节点流转）
-        phases: "[]Phase"                              # 声明正向主线步序（支持字符串或富节点声明：{name, phase, title, unit, entryEvents, connector, op, provider, model, modelTier, globalRuleRefs, config}）；异常终态 Failed 与挂起态 Paused 属侧轨态，禁止放在线性 phases 末尾
+        phases: "[]Phase"                              # 声明正向主线步序（支持字符串或富节点声明：{name, phase, title, unit, entryEvents, connector, op, provider, model, modelTier, refDocs, refRules, refTags, tagRules, tools, service, contextPassing, permissionRole, config}——unit 三型见 flow 注）；异常终态 Failed 与挂起态 Paused 属侧轨态，禁止放在线性 phases 末尾
         transitions: "?[]{from: Phase, on: string, to: Phase}"   # 显式迁移表（静态 FSM 规则表——严禁与运行期实际轨迹 run.history 混用）；支持条件分支（worth_fixing/ignore/retry-develop）与多入口切入
         onEscalate: "{action: pause|finish-tick|continue(默认 pause), notify: bind-role}"   # AUTO 处理不了的事件到达时的暂停策略（可配置）
         onFailed: "{backoff, maxAttempts, rollbackPolicy: ?never|auto|ask|by-step, escalate: {to: root, notify: role-holders}}"

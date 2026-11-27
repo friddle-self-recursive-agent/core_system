@@ -19,11 +19,11 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 
 > **核心裁决**：
 > 1. **双内置基座（`core-system-developer-loop` + `default-task`），删除其余冗余内置 workflow**：
->    - **`core-system-developer-loop`**：管理自我迭代与研发发布闭环的主干工作流（出厂默认不启动 `spec.enabled: false`，不可删除 `undeletable: true`，主干节点拓扑锁定 `immutableNodes: true`）。
+>    - **`core-system-developer-loop`**：管理自我迭代与研发发布闭环的主干工作流（出厂默认不启动 `spec.enabled: false`，不可删除 `undeletable: true`；2026-11-27 用户裁决：节点拓扑**可在前端加删**——`immutableNodes: false`，加节点/删验收节点走 draft→apply）。
 >    - **`default-task`**：内置通用任务相位状态机（`Idle → Analyzing → Planning → AwaitingApproval → Executing → Verifying → Reporting`），供单次任务与 Agent Session 执行，其中 `session` / `agent` 节点支持通过 `globalRuleRefs` 引用相应的 `global` 规则（如 `rule/rule_eng`、`rule/rule_doc`、`rule/rule_ux`、`rule/rule_ctx`、`rule/rule_pub`）。
 >    - 其余历史名称（`core-workflow`、`bug-lifecycle`、`bug-workflow`、`dev-delivery`、`apply-workflow`、`simple-shot`、`watch-only`）全部退入 `core/scheme.yaml` 的 `runtime.workflows.aliases` 做 Scheme Adapter 兼容映射，不再作为独立内置 workflow 存在。
 > 2. **出厂默认不启动（`spec.enabled: false`）**：`core-system-developer-loop` 在 `core_system` 自身实例中因需要自我迭代才显式开启（`enabled: true`），而在 `sybran` 等对外交付项目中**默认不启动**，需先通过 `systemBindings` 选择或配置绑定的 `developer-system` 与 `deploy-system`（`default` 默认开源习惯 / `install` 模板安装 / `import` 导入外部系统，一层层询问下去）后按需开启。
-> 3. **不可删除、不可调整主干节点拓扑，但全节点参数与环境绑定在 Scheme/文档与前端可配置**（`undeletable: true`、`immutableNodes: true`）：配置下沉到 `scheme.yaml` 的 `adapters` 与 `Workflow` 文档对象层，不再修改 Go 代码层级。
+> 3. **不可删除，但主干节点可在前端加删、全节点参数与环境绑定在 Scheme/文档与前端可配置**（`undeletable: true`、`immutableNodes: false`——2026-11-27 用户裁决「我要加节点或者我要去掉验收节点了？」）：配置下沉到 `scheme.yaml` 的 `adapters` 与 `Workflow` 文档对象层，不再修改 Go 代码层级。
 > 4. **多节点与多入口触发 + 临时 `BugDoc` 运行时闭环（不改设计也可触发，最后一步删 `BugDoc` 并回写 `InSync`）**：
 >    - 不仅可以从首节点（监听日志/Event）触发完整闭环，当**用户通过对话/控制台修改设计文档**或**发现 Bug（不修改设计文档）产出/直接提交临时 `BugDoc`** 触发 `DocApplied` 时，直接从第 4 节点 **`doc-apply`（`Planning` 相位）** 切入，走同一条后续链路（`doc-apply → developer-system → 验收 → deploy-system → report-archive`）。
 >    - 等整个流程改完并通过发版后，在 workflow 总结的最后一步 **`report-archive`（`Reporting` 相位）** 自动**删除临时 `BugDoc`**（调用 `DELETE /v1/objects/...` 发出 `DocDeleted`）并将目标 `ServiceInstance` 的状态修改回 **`InSync`**（清零 drift）。
@@ -88,14 +88,17 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
   - Workflow 定义保存（`Apply`）后，即可**直接拉出该 `ConnectorOps` 的代码开发任务**（生成 `ConnectorOps` 声明骨架并派发给 `developer-system` / `apply-workflow` agent 拉取代码仓库进行开发与编辑）；
   - 开发完成并通过 `verify` 节点（`connectops-code-audit` + 测试）验收后，由 `deploy-system` 构建生效。
 
-### 1.3 执行模型：节点=session/agent/connectops/gate，默认绑定 ConnectorOps，apply 即实现
+### 1.3 执行模型：执行单元三型 connectops/agent/service（2026-11-27 用户裁决），gate=控制节点，默认绑定 ConnectorOps，apply 即实现
 
-- **每个节点（相位/步骤）= 一个执行单元**：
-  - **session**：同服务/全局会话内执行；
-  - **agent**：跨 service 交互（agent 调用目标 service 的 agent 或派发独立 Task）；
-  - **connectops**：确定性胶水算子调用（日志收集过滤、代码审核 `connectops-code-audit`、发布触发等）；
-  - **gate**：审批闸门（支持 `human` 人工批闸、`agent` 自动判断审批、`auto` 自动通过）。
-- **默认绑定同名 ConnectorOps**：`core-system-developer-loop` 绑定 `ConnectorOps/global/core-system-developer-loop`，在 workflow apply 时自动物化 `spec.flow.nodes` 7 节点接线骨架（`execution.state = bound`）。
+- **每个节点（相位/步骤）= 一个执行单元，词形三型**（2026-11-27 用户裁决「执行单元应该是 connectOps/agent/service」；旧 `session` 词形退役——原 session 节点按语义并入 agent/service）：
+  - **connectops**：确定性胶水算子调用（日志收集过滤、代码审核 `connectops-code-audit` 等）——不可判断，按声明执行；
+  - **agent**：**判断执行单元**（「agent 是可以判断的」）——会话/独立 agent 内做判断与产出（Agent 判断、Doc Apply 规划、总结归档）。**agent 节点点进即配**（前端节点表点击该行展开配置面）：该 agent 默认 LLM（`provider`/`model`/`modelTier`）、ref 的文档 `refDocs`、ref 的规则 `refRules`（工作流级缺省仍是 `globalRuleRefs`）、默认 ref 的 tag `refTags` 与 tag 规则 `tagRules`、随身工具 `tools`；
+  - **service**：**调用目标系统**（developer_system / deploy_system…）——执行节点是 service，**service 内部用 service 自己的 agent 来执行**。调用方必须提供好上一轮详细上下文（`contextPassing`：run 历史逐字段汇聚——判断结论/方案与 diff/验收 findings/审批记录，随调用透传给 service 的 agent）；**builtin developer_system 的权限随文档授予**（P7 权限随文档走——`systemBindings.*.permissionRole` 绑 Role 文档，`Role.permissions` 以 `{scope, actions}` 条目声明，developer-system 系统文档同步标注）。
+  - **gate**（控制节点，非执行单元）：审批闸门（`human` 人工批闸 / `agent` 自动判断审批 / `auto` 自动通过）——不计入执行单元三型。
+- **验收节点 = developer-system 的 Agent 验收 session**（2026-11-27 用户裁决「验收也是 developer-system 的 Agent 的验收 session」）：verify 节点 unit=service 指向 developer-system（op=acceptance），service 内部 agent 开验收 session 逐条解释执行 `verification.conditions` 清单；**Report 节点也是 agent**（unit=agent）且随身工具（`tools`：读 findings / 写归档报告 / 打 tag）——记得提供相关工具。
+- **节点拓扑可加删**（2026-11-27 用户裁决「我要加节点或者我要去掉验收节点了？」）：`immutableNodes` 不再恒 true（内置主干缺省 false）——前端节点表支持加节点/删节点（如删验收节点）/改节点参数，改动一律 draft→apply 落账（会话没有命令，§1.2 同源）。
+- **默认绑定同名 ConnectorOps**：`core-system-developer-loop` 绑定 `ConnectorOps/global/core-system-developer-loop`，在 workflow apply 时自动物化节点接线骨架（`execution.state = bound`）。
+- **可行性**：词形收敛=前端/scheme/YAML 三处枚举同步（引擎不解析 unit，对象 spec 透传——零引擎改动）；contextPassing=run.history 已有逐相位轨迹可汇聚，service 调用端拼 payload 声明字段即可；权限=Role 对象既有 LoadObjects 判定，零新机制。
 
 ## 2. 边界
 
@@ -103,7 +106,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 
 **不是**：
 - 不是散落在 Go 代码里的硬编码列表（内置仅 `core-system-developer-loop` 一条，配置全部沉入 `scheme.yaml` 与 YAML 文档对象）；
-- 不是不可控的黑盒（`core-system-developer-loop` 锁定主干 7 节点不可删除/不可改节点拓扑，但每个节点的审批模式、日志过滤、ConnectorOps、验收方式与验收条件在前端全部以人为本可视化可配）。
+- 不是不可控的黑盒（`core-system-developer-loop` 本体不可删除，但主干节点**可在前端加删**（加节点/删验收节点），每个节点的执行单元、agent 配置（LLM/ref 文档/ref 规则/ref tag/tag 规则/工具）、审批模式、日志过滤、ConnectorOps、验收方式与验收条件在前端全部以人为本可视化可配）。
 
 ## 3. 对象结构（`global/workflows/core-system-developer-loop.yaml` 权威形态）
 
@@ -117,7 +120,7 @@ metadata:
     core/origin: builtin
 spec:
   enabled: false                    # 出厂默认不启动；core-system 实例自我迭代时显式置 true，sybran 等默认 false
-  immutableNodes: true              # 主干 7 节点拓扑锁定（不可增删改顺序，节点内参数全可配）
+  immutableNodes: false             # 2026-11-27 用户裁决：主干节点可在前端加删（我要加节点/去掉验收节点），参数全可配；改动走 draft→apply
   undeletable: true                 # 内置核心工作流不可删除
   services:
     involved: [core_system, developer-system, deploy-system]
@@ -164,6 +167,7 @@ spec:
       resolution: default           # default（默认开源习惯）| install（模板安装）| import（导入外部系统）
       connector: connectops-developer
       op: develop
+      permissionRole: role/developer-system-ops   # 2026-11-27 用户裁决：builtin developer_system 权限随文档授予（P7——Role.permissions {scope,actions} 条目）
       conventions:
         branchPrefix: "agent/"
         worktreeDir: "worktrees/<repo>/<slug>"
@@ -174,6 +178,7 @@ spec:
       resolution: default           # default | install | import
       connector: connectops-deploy
       op: release
+      permissionRole: role/deploy-system-ops      # 同上：权限随文档授予
       envs: [staging, prod]
       requireProdApproval: false
   verification:                     # 节点 6：验收方式与验收条件配置（前端可自由编辑增删）
@@ -188,13 +193,13 @@ spec:
       - {id: bugdoc-clean, kind: agent, title: "临时 BugDoc 验证通过后清理 (R-DOC-10)", command: "doc-clean-check", required: false}
   phases:
     - {name: log-event,        phase: Idle,             title: "1. 监听日志与 Event",        unit: connectops, connector: connectops-log-collector, op: collect-logs, provider: openai-default, modelTier: low,      entryEvents: [BugReport, MetricThreshold, ExternalChanged, ReconcileTick, LoopRequested]}
-    - {name: agent-judge,      phase: Analyzing,        title: "2. Agent 判断（或产出 BugDoc）", unit: agent,      op: judge-issue,  provider: openai-default, modelTier: high,     globalRuleRefs: [rule/rule_eng, rule/rule_doc]}
+    - {name: agent-judge,      phase: Analyzing,        title: "2. Agent 判断（或产出 BugDoc）", unit: agent,      op: judge-issue,  provider: openai-default, modelTier: high,     refRules: [rule/rule_eng, rule/rule_doc]}
     - {name: approval-gate,    phase: AwaitingApproval, title: "3. 审批 / 自动判断审批",     unit: gate,       op: approval-check}
-    - {name: doc-apply,        phase: Planning,         title: "4. Doc Apply（设计/BugDoc 切入点）", unit: session, op: apply-doc,    provider: openai-default, modelTier: standard, globalRuleRefs: [rule/rule_doc, rule/rule_eng], entryEvents: [DocApplied]}
-    - {name: developer-system, phase: Executing,        title: "5. developer-system 开发",   unit: agent,      connector: connectops-developer, op: develop, provider: openai-default, modelTier: high, globalRuleRefs: [rule/rule_eng, rule/rule_ux, rule/rule_pub], service: developer-system}
-    - {name: verify,           phase: Verifying,        title: "6. 验收（Verify）",          unit: connectops, connector: connectops-code-audit, op: audit,  provider: openai-default, modelTier: low}
-    - {name: deploy-system,    phase: Deploying,        title: "7. deploy-system 发版",      unit: connectops, connector: connectops-deploy, op: release, provider: openai-default, modelTier: low, service: deploy-system}
-    - {name: report-archive,   phase: Reporting,        title: "8. 总结删 BugDoc + 回写 InSync", unit: session, op: archive-report, provider: openai-default, modelTier: low}
+    - {name: doc-apply,        phase: Planning,         title: "4. Doc Apply（设计/BugDoc 切入点）", unit: agent, op: apply-doc,    provider: openai-default, modelTier: standard, refDocs: [goal], refRules: [rule/rule_doc, rule/rule_eng], refTags: [audit, fix], tagRules: [rule/tag_default], entryEvents: [DocApplied]}
+    - {name: developer-system, phase: Executing,        title: "5. developer-system 研发（service 内部 agent 执行）", unit: service, connector: connectops-developer, op: develop, service: developer-system, contextPassing: {previousRound: true, fields: [judge, plan, diff, approval]}, permissionRole: role/developer-system-ops}
+    - {name: verify,           phase: Verifying,        title: "6. 验收（developer-system Agent 验收 session）", unit: service, service: developer-system, op: acceptance, contextPassing: {previousRound: true, fields: [diff, verifyConditions]}}
+    - {name: deploy-system,    phase: Deploying,        title: "7. deploy-system 发版（service 内部 agent 执行）", unit: service, connector: connectops-deploy, op: release, service: deploy-system, contextPassing: {previousRound: true, fields: [verifyReport, release]}, permissionRole: role/deploy-system-ops}
+    - {name: report-archive,   phase: Reporting,        title: "8. 总结删 BugDoc + 回写 InSync", unit: agent, op: archive-report, provider: openai-default, modelTier: low, tools: [findings-read, doc-draft, tag-write]}
   transitions:
     - {from: Idle,             on: advance,          to: Analyzing}
     - {from: Idle,             on: "entry:DocApplied", to: Planning}
