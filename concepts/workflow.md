@@ -242,6 +242,7 @@ spec:
 
 - ConnectorOps 必绑 Workflow（缺省 default-task）——op 调用的相位约束。
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
+- **执行载体只可能是后台执行（headless）agent（2026-11-27 用户裁决）**：Workflow run 不落对话 agent（对话 agent=与人交互面，两者模式与询问不一致）——触发**通知**与**审批**作为 headless agent 的默认工具随 run 注入（通知=Notification 面；审批=`ApprovalNeeded`→`AwaitingApproval` 闸锚挂起→role 持有者批）。agent.md §1/§4 同账。
 - Escalate 出口：默认上溯 root agent；有 role 挂载时 role 持有者经 Notification 同达。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
 - **展示**（console）：workflow 详情=同一对象工作台——默认**关注报告**（发生了什么/值得关注/下一步）+常驻对话；流程图/事件/流转/数据流/运行/配置为次级 tab；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。（R-UX-7；acceptance/console/console-ui.md §14.6）

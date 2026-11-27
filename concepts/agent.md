@@ -13,6 +13,14 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 
 **默认实现**：Agent = 现有 agent + 程序中调用 LLM 来处理，模拟实现需求功能。默认运行时是 **DSH**——系统把自己做到 DSH 里：每个 Agent 就是一个 dsh 进程会话。**派发子 agent 时，子 agent 是机器 instance 级的独立进程（不是运行时内部的 subagent）**——不共享进程状态、不省内存（明确接受资源开销，换取隔离与直控）。**子 agent 的运行时不限于 dsh**：自写 agent、opencode 等任何 agent 运行时都可以——用什么运行时、什么工具、什么通道账号，一律在其引用的 **ConnectorOps 中描述或调用**（connector.md：Agent 引用 ops，ops 声明环境与工具；spawn 子 agent 本身也是一次 ConnectorOps 调用，与调外部工具同一语义）。简单任务派发走 simple-shot Workflow。
 
+**两类形态（2026-11-27 用户裁决）：对话 agent 与后台执行（headless）agent，内置都用 DSH 实现**：
+
+- **对话 agent**：与人对话的交互面——dsh 会话挂人（控制台对话面），多轮问答、可直接在会话内问人（挂起等人回话）；
+- **后台执行 agent（headless）**：无人值守执行体——loop 自循环、Task 派发、Workflow run 的落地执行都由它承担（宿主 core-headless 拉起的 dsh 进程）；
+- **两者的模式与询问不一致**：headless 没有在场的人——对话 agent「会话内直接问人」的词形在 headless 不成立（无人回话=死等）；headless 的询问一律走**两个默认工具**：**通知**（该让人知道的事送达，Notification 面）与**审批**（`ApprovalNeeded` 提升→`AwaitingApproval` 挂起→role 持有者批）——两工具**默认加入 headless agent 的 tools**（与「默认 Skill」同一 builtin 注入位）；
+- **默认 Workflow 只可能是后台执行（headless）agent**：Workflow run 不落对话 agent（§4；workflow.md §5）；
+- 与既有「两类」（builtinRoot/ServiceAgent）正交：那是 scope 分类，这是执行形态分类——每个 scope 类都可落 chat 或 headless 形态。
+
 **三段式 Session 与上下文按需装配（R-CTX-4）**：一个逻辑意图/任务由**三段式 Session** 完成（统一原按需加载、Catalog 预插与 Tag-RAG）：
 1. **第一段·获取上下文 Session（侦察段）**：预插**基础命令使用规范（默认查询 Skill）+ 顶层目录 Index（Service Catalog 货架摘要）**；先按任务 Tag 细粒度触发 `TagCtxShard` 缓存分片（可动态调整拿到的 `takeBudget`），仅对未命中/stale 的差量 Tag 自主调用检索命令拉取完整 Tag/TagRule、四族对象（Rule/Doc、Scheme、Provider、ServiceDesc）、近期关联 Event、**近期相关 Session** 及各对象 `importance (0-100)` 与 `Relevance(A,B) (0-100)`，产出 `ContextPack`；
 2. **第二段·任务执行 Session（执行段）**：以 `ContextPack` 起步执行；**多轮对话与连续推进始终复用当前 Session 本身（保 Prefix KV Cache）**，按需触发任务缓存并支持中途动态增量更新（JIT 调用上下文工具补拉），记录每个引用块的真实归因轨迹（`used_effective / queried_irrelevant / missed_in_phase1`）；
@@ -54,8 +62,9 @@ metadata:
  scope: global
  labels: {tier: exec, domain: ci}
  ownerRefs: [{kind: Agent, name: dev-ops-root}] # ParentAgent
-spec:
+ spec:
  runtime: dsh # rootAgent 默认=dsh 的 plugin；子 agent 看实现：可自写 go agent、直接调 opencode、或继续 dsh（经 ConnectorOps 描述）
+ mode: headless # chat（与人对话）| headless（后台执行，缺省）——询问词形随 mode 分轨：chat 可会话内直接问人；headless 只走默认工具 通知+审批（默认 tools 注入）；默认 workflow 拒绑 chat agent
  autoLevel: auto # AUTOLEVEL：ask | auto | all（§3.1）
  connectorOps: # 默认挂 ConnectorOps（不是 Provider 类型）
  - {ops: onedev-ci, as: onedev} # 子 agent 用什么在这里描述（ops 声明工具与环境）
@@ -102,6 +111,8 @@ status: # 由 Workflow 引擎回写
 
 任务态机即 builtin Workflow（concepts/workflow.md §1），Agent 不自定义态机，只引用：
 
+**执行载体=后台执行（headless）agent（2026-11-27 用户裁决）**：default-task 与一切 Workflow run 只落 `mode: headless` 的 agent；对话 agent（chat）不承载 Workflow——它是人的交互面。run 内的「问人」由 headless 默认工具承接：通知=Notification 送达面；审批=`AwaitingApproval` 闸锚挂起→role 持有者批（workflow.md 规则 13）。引擎派发时校验 `spec.mode`，默认 workflow 拒绑 chat agent。
+
 ```
 Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingApproval→人批/驳回]
  → Executing → Verifying → Reporting → Idle
@@ -138,6 +149,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 | Session 记录被省略 | ⚠️ 中 | "看实现"的粒度容易松 | PlanDoc/SessionLog 为 Instance 必备 docType；缺记录=drift（Workflow 对账） |
 | 机器级子进程开销 | ⚠️ 低（已接受） | 每 agent 一进程，内存翻倍 | 已明确接受（架构决议）；换取崩溃隔离+直控+无共享状态 |
 | 按需加载读漏关键约束 | ⚠️ 中 | 会话自主决定读什么可能漏 Rule | L0 最低必载由 Workflow 注入（规则 2）；SessionLog 记录 docsLoaded 可审计"读了什么" |
+| 对话/headless 询问词形混用 | ⚠️ 中 | headless 误用会话内提问词形=无人应答死等 | 询问词形随 `spec.mode` 分轨：headless tools 无会话提问词形，只有**通知+审批**两个默认工具（builtin 注入）；Workflow 引擎派发校验 mode，默认 workflow 拒绑 chat agent |
 | Provider/ops 引用膨胀 | ⚠️ 低 | 权限面变大 | 并集+权限系统裁剪不变；无引用 Provider 告警 |
 
 **结论：可行。本设计放松了写路径管制、换上"记录+分级"治理——与 AUTOLEVEL 一样，都是 P8（机制不假设模型能力）的落地。**
