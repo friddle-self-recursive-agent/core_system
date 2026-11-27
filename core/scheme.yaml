@@ -289,6 +289,17 @@ spec:
         asks: "[]{field, question, kind: ?provider-ref|resource-ref|enum|string, options: ?[]string, default: ?}"   # resolver 解析不了的才问（必带缺省/示例；R-UX-1）
         chain: "?[]workservice|servicedesc|serviceinstance|workspace|workflow"   # 实例化下探层序（一层层问下去；每层 resolver→asks→确认卡）
 
+    - kind: DocumentDiff             # 审批判决文档（2026-11-28 用户裁定 ops_core_inner_agent——审批裁定走小内置 agent[调 LLM]整理 DocumentDiff 生成 Diff 文档；run/审批视图现读展示判决报告）
+      builtin: true
+      storage: "global/docdiffs/<name>.yaml"
+      spec:
+        target: "!string"                                  # 审批对象键 kind/scope/name
+        run: "?int"                                        # 触发 run 序号
+        agent: "?string (=ops_core_inner_agent)"           # 判决小 agent 词形
+        provider: "?string (=openai-default)"              # LLM 账号包（low 档模型）
+        changed: "?string"                                 # 变更概量（行数对比/新对象）
+        verdict: "?string"                                 # 判决正文（人话：改了什么/为什么/影响面/风险）
+      status: {}
     - kind: Skill                    # 工具使用缓存
       builtin: true
       storage: systems/<s>/instances/<i>/skills/<name>.yaml
