@@ -18,7 +18,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 - **对话 agent**：与人对话的交互面——dsh 会话挂人（控制台对话面），多轮问答、可直接在会话内问人（挂起等人回话）；
 - **后台执行 agent（headless）**：无人值守执行体——loop 自循环、Task 派发、Workflow run 的落地执行都由它承担（宿主 core-headless 拉起的 dsh 进程）；
 - **两者的模式与询问不一致**：headless 没有在场的人——对话 agent「会话内直接问人」的词形在 headless 不成立（无人回话=死等）；headless 的询问一律走**两个默认工具**：**通知**（该让人知道的事送达，Notification 面）与**审批**（`ApprovalNeeded` 提升→`AwaitingApproval` 挂起→role 持有者批）——两工具**默认加入 headless agent 的 tools**（与「默认 Skill」同一 builtin 注入位）；
-- **默认 Workflow 只可能是后台执行（headless）agent**：Workflow run 不落对话 agent（§4；workflow.md §5）；
+- **默认 Workflow 只可能是后台执行（headless）agent**：Workflow run 不落对话 agent（§4；workflow.md §5）；**边界（2026-11-27 session 裁决「builtin 的 service 的 agent 可以用 session 来解决。突破下限制」）**：拒绑 chat / headless 词形只约束 workflow **直接挂载**的 agent 节点（引擎派发校验 `spec.mode` 的对象面）——service 节点的内部 agent 挂 `ServiceDesc.instances.agentRefs`（ServiceDesc 文档面，非 workflow spec 直挂），由 service 以 **session** 驱动执行（workflow.md §1.3）：session 是完整执行形态（多轮/工具/三段式机制层），其「询问」仍走 headless 双默认工具（通知+审批）——形态突破的是「workflow 直挂」限制，不是询问词形分轨；
 - 与既有「两类」（builtinRoot/ServiceAgent）正交：那是 scope 分类，这是执行形态分类——每个 scope 类都可落 chat 或 headless 形态。
 
 **三段式 Session 与上下文按需装配（R-CTX-4，2026-11-27 落地定稿——权威见 [session.md](session.md)）**：一个逻辑意图/任务由**三段式 Session** 完成：**第一段·背景装配**（LLM 描述命令→tag 分析先查 CtxCache→三路注入（工具使用/service 描述及 tag/global index 及 tag）→builtin RAG→类似 session→developer_system 定位仓库→层层整理→背景 ≤5k 字逐块溯源可点击）；**第二段·预更新执行**（反复 ask 询问；**会话没有命令**——能做的永远是文档预更新 draft，**命令都到 workflow 的 agent 节点执行的 agent**（headless，§1 两类形态）；用户 apply 后进第三段）；**第三段·属性回整**（apply 触发：LLM 判断哪些文档的 ref/tag/重要程度/metainfo 要改，**默认自动更新**——Judge 闸收窄为只闸内容类 Proposal）。机制层（Relevance 0-100/CtxCache/Importance 防刷分/KV 前缀稳定）不变，见 concepts/context.md。

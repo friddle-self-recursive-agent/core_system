@@ -93,6 +93,7 @@
 ## 7. 与其他概念的关系
 
 - **Agent（两类形态）**：会话挂 chat agent（人的交互面）；执行走 workflow 的 headless agent 节点——本设计是两类形态裁决的彻底贯彻；
+- **Workflow service 节点（2026-11-27 session 裁决「builtin 的 service 的 agent 可以用 session 来解决」）**：service 内部 agent 的执行载体=**本文档同一 session 机制层**（workflow.md §1.3）——run 落 unit=service 节点 → 引擎为 service 的 agent（`ServiceDesc.instances.agentRefs`）开一个执行 session，`contextPassing` 上一轮上下文（判断结论/plan 与 diff/验收 findings/审批记录）作为**首轮输入注入**，run 挂起在该节点等 session 心跳终结 → 沿表续行且 `history.sessionId` 回填真实会话锚。与三段式的关系：三段式=「人与文档」的会话形态（第二段只产 draft），service 执行 session=「引擎与系统」的会话形态（工具面=该系统 ops，产出=op 执行结果）——机制层（背景装配/CtxCache/回整）共用，第二段「会话没有命令」铁律对它不适用（它是执行体不是咨询面）；
 - **Workflow**：会话预更新 apply → DocApplied → workflow 引擎（developer-loop 主干或 default-task）接管执行；
 - **developer_system**：第一段⑦仓库发现的通路（ServiceInstance impl/docs 引用链）；
 - **Draft 管线**：第二段的唯一产出通道（design-docs/draft→apply）；

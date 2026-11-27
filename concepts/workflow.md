@@ -93,12 +93,12 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 - **每个节点（相位/步骤）= 一个执行单元，词形三型**（2026-11-27 用户裁决「执行单元应该是 connectOps/agent/service」；旧 `session` 词形退役——原 session 节点按语义并入 agent/service）：
   - **connectops**：确定性胶水算子调用（日志收集过滤、代码审核 `connectops-code-audit` 等）——不可判断，按声明执行；
   - **agent**：**判断执行单元**（「agent 是可以判断的」）——会话/独立 agent 内做判断与产出（Agent 判断、Doc Apply 规划、总结归档）。**agent 节点点进即配**（前端节点表点击该行展开配置面）：该 agent 默认 LLM（`provider`/`model`/`modelTier`）、ref 的文档 `refDocs`、ref 的规则 `refRules`（工作流级缺省仍是 `globalRuleRefs`）、默认 ref 的 tag `refTags` 与 tag 规则 `tagRules`、随身工具 `tools`；
-  - **service**：**调用目标系统**（developer_system / deploy_system…）——执行节点是 service，**service 内部用 service 自己的 agent 来执行**。调用方必须提供好上一轮详细上下文（`contextPassing`：run 历史逐字段汇聚——判断结论/方案与 diff/验收 findings/审批记录，随调用透传给 service 的 agent）；**builtin developer_system 的权限随文档授予**（P7 权限随文档走——`systemBindings.*.permissionRole` 绑 Role 文档，`Role.permissions` 以 `{scope, actions}` 条目声明，developer-system 系统文档同步标注）。
+  - **service**：**调用目标系统**（developer_system / deploy_system…）——执行节点是 service，**service 内部用 service 自己的 agent 来执行**。**service 内部 agent 的执行载体=session**（2026-11-27 用户裁决「builtin 的 service 的 agent 可以用 session 来解决。突破下限制」）：run 推进落到 unit=service 节点时，引擎为 service 的 agent（`ServiceDesc.instances.agentRefs`）**开一个 session**（同 wake 桥/task-spawn 桥族的 session 拉起通路），`contextPassing` 上一轮详细上下文（run 历史逐字段汇聚——判断结论/方案与 diff/验收 findings/审批记录）作为**首轮输入注入该 session**；session 是完整执行形态（多轮/工具/三段式机制层，session.md），run **挂起在该节点**等 session 完成（session 心跳终结 → run 沿表续行，`history.sessionId` 回填真实会话锚）——**突破两条既有限制**：①service 节点执行从 declared-deferred 变真实通路；②「workflow 直挂 agent 必须 headless」只约束 workflow **直接挂载**的 agent 节点，service 内部 agent 挂在 `ServiceDesc.instances.agentRefs` 下、由 service 以 session 驱动，不受该条限制（agent.md 两类形态边界注记同账）。**builtin developer_system 的权限随文档授予**（P7 权限随文档走——`systemBindings.*.permissionRole` 绑 Role 文档，`Role.permissions` 以 `{scope, actions}` 条目声明，developer-system 系统文档同步标注）。
   - **gate**（控制节点，非执行单元）：审批闸门（`human` 人工批闸 / `agent` 自动判断审批 / `auto` 自动通过）——不计入执行单元三型。
 - **验收节点 = developer-system 的 Agent 验收 session**（2026-11-27 用户裁决「验收也是 developer-system 的 Agent 的验收 session」）：verify 节点 unit=service 指向 developer-system（op=acceptance），service 内部 agent 开验收 session 逐条解释执行 `verification.conditions` 清单；**Report 节点也是 agent**（unit=agent）且随身工具（`tools`：读 findings / 写归档报告 / 打 tag）——记得提供相关工具。
 - **节点拓扑可加删**（2026-11-27 用户裁决「我要加节点或者我要去掉验收节点了？」）：`immutableNodes` 不再恒 true（内置主干缺省 false）——前端节点表支持加节点/删节点（如删验收节点）/改节点参数，改动一律 draft→apply 落账（会话没有命令，§1.2 同源）。
 - **默认绑定同名 ConnectorOps**：`core-system-developer-loop` 绑定 `ConnectorOps/global/core-system-developer-loop`，在 workflow apply 时自动物化节点接线骨架（`execution.state = bound`）。
-- **可行性**：词形收敛=前端/scheme/YAML 三处枚举同步（引擎不解析 unit，对象 spec 透传——零引擎改动）；contextPassing=run.history 已有逐相位轨迹可汇聚，service 调用端拼 payload 声明字段即可；权限=Role 对象既有 LoadObjects 判定，零新机制。
+- **可行性**：词形收敛=前端/scheme/YAML 三处枚举同步；**service 执行通路（2026-11-27 session 裁决落地）=引擎解析 unit=service**（对象 spec 透传加一投影：`SpecView.Nodes`——unit/service/op/agent 字段）+ session 拉起投影（ServiceSpawnSink 可选能力接口，与 WakeSink 同范式）+ 桥接拉起（plugin service-spawn 桥，与 task-spawn 桥同族：固定命令、载荷经 stdin、单飞锁）+ 完成续行（session 心跳终结 → run 沿表 advance）；contextPassing=run.history 已有逐相位轨迹可汇聚，引擎拼 payload 声明字段即可；权限=Role 对象既有 LoadObjects 判定，零新机制。
 
 ## 2. 边界
 
@@ -247,7 +247,7 @@ spec:
 
 - ConnectorOps 必绑 Workflow（缺省 default-task）——op 调用的相位约束。
 - Agent 的任务态机=引用 default-task；Workflow 引擎（core plugin 内）统一调度所有 Workflow 实例。
-- **执行载体只可能是后台执行（headless）agent（2026-11-27 用户裁决）**：Workflow run 不落对话 agent（对话 agent=与人交互面，两者模式与询问不一致）——触发**通知**与**审批**作为 headless agent 的默认工具随 run 注入（通知=Notification 面；审批=`ApprovalNeeded`→`AwaitingApproval` 闸锚挂起→role 持有者批）。agent.md §1/§4 同账。
+- **执行载体只可能是后台执行（headless）agent（2026-11-27 用户裁决）**：Workflow run 不落对话 agent（对话 agent=与人交互面，两者模式与询问不一致）——触发**通知**与**审批**作为 headless agent 的默认工具随 run 注入（通知=Notification 面；审批=`ApprovalNeeded`→`AwaitingApproval` 闸锚挂起→role 持有者批）。agent.md §1/§4 同账。**边界（2026-11-27 session 裁决）**：拒绑 chat / headless 词形只约束 workflow **直接挂载**的 agent 节点；service 节点的内部 agent 挂 `ServiceDesc.instances.agentRefs`，由 service 以 **session** 驱动执行（§1.3）——session 是完整执行形态，不受该条约束。
 - Escalate 出口：默认上溯 root agent；有 role 挂载时 role 持有者经 Notification 同达。
 - TaskScheme 在 Executing 相位内跑；Skill 缓存服务 Agent 层。
 - **展示**（console）：workflow 详情=同一对象工作台——默认**关注报告**（发生了什么/值得关注/下一步）+常驻对话；流程图/事件/流转/数据流/运行/配置为次级 tab；操作（启用/停用/编辑/克隆/导入）全部=Apply。渲染数据全部来自 Scheme+ops DB。**成本观测归 metrics**，不占 workflow 详情页。（R-UX-7；acceptance/console/console-ui.md §14.6）
