@@ -356,6 +356,62 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 - Workflow 模板=**Template 概念在 workflow 层的应用**（`appliesTo: workflow`）：基于 `core-system-developer-loop` 标准主干提供可实例化的业务模具（如跨服务 Bug 监控修复发版模具）。
 - 实例化或在新项目（如 `sybran`）启用 `core-system-developer-loop` 时，首先 `requires/select` 对应的 `developer-system` 与 `deploy-system`，按 Template `resolver -> asks` 一层层问下去（**默认 `default` / 安装 `install` / 导入 `import`**）。
 
+## 9c. 平台级声明 workflow：`gh-issue-triage` 与 `sybran-agent-release`（2026-11-27 用户裁决）
+
+> 用户原话要点：「core_agent 的 workflow 可以添加一个 gh_issue_event，即定时整理 github_issue，然后 agent 判断，然后自动更新文档→更新发版→github release（build 到时候做成使用 gh）。其中按规则，使用 github 的就 gh 创建 gh connector 的代码，放定义和代码。然后再加一个 workflow，用来更新代码编译后更新 sybran 的 agent。sybran-agent 在未来自己的运行的时候报错，默认就开始走 github 提 issue。」
+
+这两条 workflow=**声明层配置对象**（非 builtin 代码；解释器按文档执行，主干词汇与 core-system-developer-loop 同族）：
+
+### 9c.1 `gh-issue-triage`（GitHub Issue 定时整理 → 判断 → 文档更新 → 发版 → github release）
+
+```
+入口 1：定时（timer 每 1h 整理）｜入口 2：GhIssueEvent（connectops-gh watch 桥自产，新开/重开 Issue）
+ ① gh-issue-fetch (Idle：connectops-gh issue-list 拉取未整理 Issue——cli 模式走 gh CLI)
+  ↓
+ ② agent-judge (Analyzing：Agent 按 globalRuleRefs 判断 Issue 类型——bug/文档缺口/需求/噪声；产修复方案)
+  ↓
+ ③ approval-gate (AwaitingApproval：默认 agent 自动判断审批，human 可切)
+  ↓
+ ④ doc-apply (Planning：结论落临时 BugDoc/文档修订草稿)
+  ↓
+ ⑤ developer-system (Executing：文档更新/代码修复走 developer-system；build 用 gh workflow-dispatch)
+  ↓
+ ⑥ verify (Verifying：CI 绿 + 规则审核)
+  ↓
+ ⑦ gh-release (Deploying：connectops-gh release-create 发 github release)
+  ↓
+ ⑧ report-archive (Reporting：回评 Issue + 收尾 postActions——临时 BugDoc 默认 invalidate 可改 delete/keep)
+```
+
+- 绑定 `ConnectorOps/global/connectops-gh`（`mode: cli`——core_agent 默认 cli；sybran 侧同名对象声明 `mode: http` 走 GitHub REST），代码与定义同仓 `connectops-gh`（connector.md 规则 12）。
+- sybran-agent 运行报错默认走 github 提 issue：其运行面把错误经 `connectops-gh` 提交 Issue（`issue-comment/issue-create` 语义），自动回流本 workflow 入口 2。
+
+### 9c.2 `sybran-agent-release`（代码编译后更新 sybran agent）
+
+```
+入口 1：DocApplied（sybran-agent 相关代码合并/构建完成）
+  ↓
+ ① build-check (Idle：connectops-gh 检查构建产物 digest——build 走 gh)
+  ↓
+ ② release-judge (Analyzing：Agent 判断影响面与升级窗口)
+  ↓
+ ③ approval-gate (AwaitingApproval：默认 agent 自动；prod 类升级可切 human)
+  ↓
+ ④ plan (Planning：升级批次与回滚预案声明)
+  ↓
+ ⑤ build (Executing：编译+产物 digest 入账)
+  ↓
+ ⑥ verify (Verifying：冒烟探针+规则审核)
+  ↓
+ ⑦ rollout (Deploying：connectops-deploy mode=http 推 sybran/k8s 滚动更新)
+  ↓
+ ⑧ report-archive (Reporting：归档+github release 同步)
+```
+
+- 与 `gh-issue-triage` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（sybran/k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
+
+**声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-triage.yaml`、`sybran-agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
+
 ## 10. 审阅标注区
 
 | 标记 | 位置 | 说明 |
