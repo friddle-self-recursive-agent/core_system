@@ -361,13 +361,13 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 - Workflow 模板=**Template 概念在 workflow 层的应用**（`appliesTo: workflow`）：基于 `core-system-developer-loop` 标准主干提供可实例化的业务模具（如跨服务 Bug 监控修复发版模具）。
 - 实例化或在新项目（如 `业务实例`）启用 `core-system-developer-loop` 时，首先 `requires/select` 对应的 `developer-system` 与 `deploy-system`，按 Template `resolver -> asks` 一层层问下去（**默认 `default` / 安装 `install` / 导入 `import`**）。
 
-## 9c. 平台级声明 workflow：`gh-issue-triage` 与 `agent-release`（2026-11-27 用户裁决）
+## 9c. 平台级声明 workflow：`gh-issue-trigger` 与 `agent-release`（2026-11-27 用户裁决；同日裁定 triage 更名 trigger——语义=触发修复闭环非仅整理）
 
 > 用户原话要点：「core_agent 的 workflow 可以添加一个 gh_issue_event，即定时整理 github_issue，然后 agent 判断，然后自动更新文档→更新发版→github release（build 到时候做成使用 gh）。其中按规则，使用 github 的就 gh 创建 gh connector 的代码，放定义和代码。然后再加一个 workflow，用来更新代码编译后更新业务 agent。业务 agent 在未来自己的运行的时候报错，默认就开始走 github 提 issue。」
 
 这两条 workflow=**声明层配置对象**（非 builtin 代码；解释器按文档执行，主干词汇与 core-system-developer-loop 同族）：
 
-### 9c.1 `gh-issue-triage`（GitHub Issue 定时整理 → 判断 → 文档更新 → 发版 → github release）
+### 9c.1 `gh-issue-trigger`（GitHub Issue 触发 → 判断 → 文档更新 → 发版 → issue 回评闭环；2026-11-27 用户指令加第 9 节点 issue-feedback=connectops issue-comment）
 
 ```
 入口 1：定时（timer 每 1h 整理）｜入口 2：GhIssueEvent（connectops-gh watch 桥自产，新开/重开 Issue）
@@ -413,9 +413,10 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
  ⑧ report-archive (Reporting：归档+github release 同步)
 ```
 
-- 与 `gh-issue-triage` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（部署侧 k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
+- 与 `gh-issue-trigger` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（部署侧 k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
 
-**声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-triage.yaml`、`agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
+**声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-trigger.yaml`、`agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
+**现状勘误（2026-11-27 提交文档更新）**：①运行时 BugDoc 对象当前借 `kind: Agent`+`docType: BugDoc` 落库（如 `Agent/global/bug-workflow-agent-502-20261127`）——scheme 未注册 `BugDoc` kind，属过渡载体，待 scheme 注册 BugDoc kind 后迁正；②`gh-issue-trigger` 权威 YAML 的 doc-apply/report-archive 节点已随执行单元三型把旧 `unit: session` 词形退役为 `agent`（2026-11-27 用户指令顺手修正）。
 
 ## 10. 审阅标注区
 

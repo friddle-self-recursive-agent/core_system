@@ -373,7 +373,7 @@ spec:
     - {type: SessionHealed,    source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "session-heal:<id>",   route: dead-letter}   # 注入「继续」后心跳恢复——底层恢复事实默认不展示（tier=infra, default-hidden）
     - {type: LongTaskRunning,  source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "longtask:<id>",       route: dead-letter}   # 长任务显式化（有进展心跳=不判停滞，tier=infra 默认折叠/不混入异常流）
     - {type: BugReport,        source: "core|agent", defaultLevel: error, tier: attention, visibility: default-visible, dedup: "bug:<sess>:<sig>", route: workflows/core-system-developer-loop}   # 运行期 bug 上报（workflow.md §1/§9a）：统一进 core-system-developer-loop 首节点（监听日志event→agent判断→审批→doc apply→developer-system→验收→deploy-system）
-    - {type: GhIssueEvent,     source: connector, defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "gh-issue:<repo>:<num>", route: workflows/gh-issue-triage}   # GitHub Issue 事件（新开/重开/被标注，connectops-gh watch 桥自产，workflow.md §9c）：进 gh-issue-triage（agent 判断→文档更新→发版→github release）
+    - {type: GhIssueEvent,     source: connector, defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "gh-issue:<repo>:<num>", route: workflows/gh-issue-trigger}   # GitHub Issue 事件（新开/重开/被标注，connectops-gh watch 桥自产，workflow.md §9c）：进 gh-issue-trigger（agent 判断→文档更新→发版→issue 回评闭环）
 
   # ============================================================
   # 四、事件路由（穷举缺省 + 死信兜底）
@@ -402,7 +402,7 @@ spec:
     - {on: SessionHealed,    for: "any",            dispatch: dead-letter}   # 恢复=活性事实非处置触发（自愈动作在 watchdog 侧已执行）——dead-letter 观测兜底可见
     - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
     - {on: BugReport,        for: "any",            dispatch: workflows/core-system-developer-loop, cc: root-agent}   # 运行期异常统一进 core-system-developer-loop
-    - {on: GhIssueEvent,     for: "any",            dispatch: workflows/gh-issue-triage, cc: root-agent}   # GitHub Issue 事件进 gh-issue-triage（workflow.md §9c——定时整理+事件即时双入口）
+    - {on: GhIssueEvent,     for: "any",            dispatch: workflows/gh-issue-trigger, cc: root-agent}   # GitHub Issue 事件进 gh-issue-trigger（workflow.md §9c——定时整理+事件即时双入口）
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: dead-letter}   # 死信必须可见（词汇=hub 合成死信/eventbus routed_to 同一词）
 
