@@ -375,6 +375,8 @@ spec:
     - {type: LongTaskRunning,  source: core,      defaultLevel: info,  tier: infra,     visibility: default-hidden,  dedup: "longtask:<id>",       route: dead-letter}   # 长任务显式化（有进展心跳=不判停滞，tier=infra 默认折叠/不混入异常流）
     - {type: BugReport,        source: "core|agent", defaultLevel: error, tier: attention, visibility: default-visible, dedup: "bug:<sess>:<sig>", route: workflows/core-system-developer-loop}   # 运行期 bug 上报（workflow.md §1/§9a）：统一进 core-system-developer-loop 首节点（监听日志event→agent判断→审批→doc apply→developer-system→验收→deploy-system）
     - {type: GhIssueEvent,     source: connector, defaultLevel: info,  tier: domain,    visibility: default-visible, dedup: "gh-issue:<repo>:<num>", route: workflows/gh-issue-trigger}   # GitHub Issue 事件（新开/重开/被标注，connectops-gh watch 桥自产，workflow.md §9c）：进 gh-issue-trigger（agent 判断→文档更新→发版→issue 回评闭环）
+    # ServiceSessionCompleted（workflow.md §1.3·2026-11-27 session 裁决「builtin 的 service 的 agent 可以用 session 来解决。突破下限制」）：service 节点执行 session 完成信号——部署侧 session 退出后经事件注入面发布（involved=Workflow/<scope>/<name> 寻径；level=error|fatal=失败退出不续行）；run 域迁移事件不是新对账触发（dispatch 无目标；workservice serviceexec.go：service 挂起 run 沿表续行+会话锚随续行行回填）。
+    - {type: ServiceSessionCompleted, source: "core|agent", defaultLevel: info, tier: domain, visibility: default-visible, dedup: "service-session:<workflow>:<run>:<node>", route: dead-letter}
 
   # ============================================================
   # 四、事件路由（穷举缺省 + 死信兜底）
@@ -388,6 +390,7 @@ spec:
     - {on: ApprovalNeeded,   for: "any",            dispatch: notification/*}
     - {on: ApprovalGranted,  for: "any",            dispatch: dead-letter}   # 审批信号族：run 域迁移事件（workflow.md 规则 13）——dispatch 派发面无目标，不另起新 run
     - {on: ApprovalRejected, for: "any",            dispatch: dead-letter}   # 同上
+    - {on: ServiceSessionCompleted, for: "any",      dispatch: dead-letter}   # service 完成信号族（2026-11-27 session 裁决）：run 域迁移事件（workflow.md §1.3 service 节点挂起-续行）——dispatch 派发面无目标，不另起新 run
     - {on: Escalate,         for: "any",            dispatch: root-agent, cc: notification/*}
     - {on: Heartbeat,        for: "any",            dispatch: dead-letter}   # 底层正常心跳默认不展示（tier=infra, visibility=default-hidden），归档/活性账面备查
     - {on: HeartbeatLost,    for: "owner:agent",    dispatch: parent-agent, cc: notification/*}
