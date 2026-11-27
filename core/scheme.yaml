@@ -534,7 +534,9 @@ spec:
       index: "SQLite docs DB + 声明面(Scheme/Provider/ServiceDesc) + 事件 + 近期相关 Session 的结构化投影（doc/chunk/TagCtxShard；构建与失效归 connectops-context）"
       tagModel: "tag∈唯一 tagType；四族+Event+Session 同池打标；词表无全局上限——数量限制只在会话装配面（pack：每 tagType≤5、总计≤20，可配）"
       metadatainfo: "<doc>.md.metadatainfo 侧车：tags[]{tag,tag_type,relevance?}+importance 0-100+human_score? 0-100+trace?{requires,implements,verifies,implemented_by,verified_by}；系统内部元数据在定时导出 Git 时的快照载体；R-DOC-6/7/9"
-      sessionStages: "三段式 Session：①获取上下文侦察段（预插命令规范+目录 Index，按 Tag 触发 TagCtxShard，仅对未命中 Tag 差量侦察 Tag/TagRule/四族/Event/近期 Session）→ ②任务执行段（会话自复用保 Prefix KV Cache + 触发任务缓存 + JIT 增量更新）→ ③异步总结与演化段（SessionClosed 异步触发：提 Proposal(Relevance≥85 查重) + 正向归因裁剪补缓存(used_effective/queried_irrelevant/missed_in_phase1) + 防刷分 Rerank，必须经另一独立审核 Agent 裁决 + 界面人类评论因子通过后 Apply）"
+      sessionStages: "三段式 Session（2026-11-27 彻底改造，权威=concepts/session.md）：①背景装配（LLM 描述命令→tag 分析先查 CtxCache→三路注入[工具使用/service 描述及 tag/global index 及 tag]→builtin RAG 查询[核心约束:尽量使用系统查找上下文]→类似 session 导入描述→developer_system 定位代码仓库→层层整理→产出背景）→ ②预更新执行（反复 ask 询问；会话没有命令——能做的永远是文档预更新 draft，命令都到 workflow 的 agent 节点执行的 agent；用户 apply 后进③）→ ③属性回整（apply 触发：LLM 判断哪些文档 ref/tag/重要程度/metainfo 属性要改，默认自动更新；内容类 Proposal 仍查重+人审）"
+      sessionBackground: {maxChars: 5000, blockAttribution: true}   # 背景预算（默认最多 5k 字可配）+逐块溯源（每块标识资源/文件，点击可对应上下文）
+      sessionMeta: {autoUpdate: true, scope: [ref, tag, importance, metainfo]}   # 第三段属性回整默认自动（越界即回滚记账；内容类永不自动）
       factors: {tagCoverage: 0.45, affinity: 0.20, keyword: 0.25, scopePrior: 0.10}
       rankWeights: {relevance: 0.70, importance: 0.20, recency: 0.10}
       recency: {halfLifeDays: 30}

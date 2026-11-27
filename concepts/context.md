@@ -5,7 +5,7 @@
 | K8s 对照 | —（无直接对照；类比 informer 的本地分片缓存 + 调度器的 predicate/priority 打分） |
 | 形态 | 机制概念（不新增存储对象）；派生产物 DocIndex / TagCtxShard / ContextPack / ContextNotes / CtxCache 可丢弃可重建 |
 | 作用域 | 全局（检索面按 scope 过滤） |
-| 状态 | 设计定稿（2026-11-26 用户裁决：**tag 是 RAG 核心**；**全系统分数统一 0–100** 与全局相关性公式 `Relevance(A,B) ∈ [0,100]`；**三段式 Session**（侦察段→执行段自复用→**异步**总结演化段+独立 Agent 审校）；**按 Tag 细粒度触发 CtxCache**（容量与提取大小均可调）；**人类评论因子 + 跨任务多样性防刷分 Rerank**；**按相关性阈值抑制文档重建写放大**） |
+| 状态 | 设计定稿（2026-11-26 用户裁决：**tag 是 RAG 核心**；**全系统分数统一 0–100** 与全局相关性公式 `Relevance(A,B) ∈ [0,100]`；**按 Tag 细粒度触发 CtxCache**（容量与提取大小均可调）；**人类评论因子 + 跨任务多样性防刷分 Rerank**；**按相关性阈值抑制文档重建写放大**）。**2026-11-27 用户裁决：三段式 Session 彻底改造**——新三段=**背景装配→预更新执行→属性回整**（会话零执行/属性默认自动），权威见 [session.md](session.md)；本文档只保留机制层（Relevance/CtxCache/Importance 算法不变） |
 
 ## 1. 定义
 
@@ -14,7 +14,7 @@
 1. **索引（DocIndex）**：全部文档 + 事件 + 近期 Session + 声明面的结构化投影（级别 / 模块 / tag / 章节 / 摘要 / 内容指纹），是先决条件——**没有索引就没有检索**；
 2. **全局相关性与打分（`Relevance(A, B) ∈ [0, 100]`）**：全系统一切分数（`importance`、`tagRelevance`、`affinity`、`humanScore`、事件 `importance`）统一为 **`0–100` 标度**；任意两实体（任务、文档、chunk、缓存分片、事件、提案、会话）的相关性由同一全局公式 `Relevance(A, B) ∈ [0, 100]` 计算；
 3. **按 Tag 细粒度分片缓存（`CtxCache`：`TagCtxShard` + `ComboCache`）**：替代粗粒度整包 Cosine 匹配，**按单 Tag（`tagType:tag`）细粒度切分缓存分片**（命中任一 Tag 即触发对应分片缓存），辅以非对称加权覆盖率（`TagCoverage ≥ 90`）组合复用；**`CtxCache` 的存储总容量/分片大小与每次会话提取的预算（`takeBudget`）均可动态调整**；
-4. **三段式 Session（获取上下文段 → 任务执行段 → 异步总结与演化段）**：第一段只做差量侦察（预插基础命令与目录 Index + 拉取四族/Event/近期 Session）；第二段**始终复用会话本身（保 Prefix KV Prompt Cache）**并支持中途动态增量更新（JIT）；第三段**天然异步执行**（提 Proposal / 正向归因补缓存 / 防刷分 Rerank），产出必须经**另一独立审核 Agent（Judge Agent）+ 界面人类评论因子**判定后方可生效；
+4. **三段式 Session（2026-11-27 彻底改造，权威见 [session.md](session.md)）**：**第一段·背景装配**（LLM 描述命令→tag 分析与缓存命中→三路注入→builtin RAG→类似 session→developer_system 仓库发现→层层整理→产出背景 ≤5k 字逐块溯源可点击）；**第二段·预更新执行**（反复 ask 询问；**会话没有命令**——能做的永远是文档预更新 draft，命令执行都到 workflow 的 agent 节点；用户 apply 后进第三段）；**第三段·属性回整**（apply 触发：LLM 判断哪些文档的 ref/tag/重要程度/metainfo 要改，**默认自动更新**）；旧「会话自复用执行段/异步总结演化段+Judge 闸」定义作废——机制层（KV 前缀稳定/缓存/公式）全部保留；
 5. **按相关性阈值抑制重建（防写放大雪崩）**：`DocApplied` 仅对满足 $\text{Relevance}(D_{\text{updated}}, B) \ge \theta_{\text{rebuild}}$ 的高相关文档/缓存触发重算与失效，靠调整相关度算法与阈值降低级联重建。
 
 ### 1.1 Tag 模型与 0–100 统一标度（RAG 核心）
@@ -185,34 +185,9 @@ spec:
 
 ## 4. 生命周期（三段式 Session 闭环）
 
-1. **第一段·获取上下文 Session（侦察段：最小底座预插 + 按 Tag 触发缓存 + 差量侦察）**：
-   - **① 最小底座预插**：仅注入基础命令使用规范（查本系统的 CLI/Skill 工具说明）+ 顶层目录 Index（Catalog 一句话货架）；
-   - **② 按 Tag 细粒度触发 CtxCache**：根据任务意图提取目标 Tag 集（带权重 `0–100`）：
-     - 若存在组合缓存满足非对称覆盖率 $\text{TagCoverage}(\text{Task}, \text{Cache}) \ge 90$，直接按所需 Tag 切片并按本次 `takeBudget` 调整拿到大小；
-     - 否则**按单 Tag 逐一触发 `TagCtxShard[tagType:tag]`**——凡已缓存且未 stale 的 Tag 分片直接命中提取（按规范字典序拼装以保护 Prefix KV Cache）；
-   - **③ 差量侦察**：Agent **仅针对未命中缓存（或 stale）的差量 Tag** 调用检索命令，拉取：
-     - 完整 Tag 词表与 TagRule（tagType 约束、亲和关系）；
-     - 四族对象（Rule/Doc、Scheme、Provider、ServiceDesc）；
-     - 当前活跃/近期关联 Event；
-     - **近期相关 Session（`SessionLog` / `ContextNotes`）**；
-     - 各对象的 `importance (0-100)` 与 `Relevance(A, B) (0-100)`；
-     最终整理产出本次任务的 `ContextPack`（并把新侦察到的 Tag 分片写入 `TagCtxShard`）。
-2. **第二段·任务执行 Session（执行段：会话自复用保 KV Cache + JIT 增量更新）**：
-   - **会话自复用**：在多轮对话与连续任务推进中，**始终复用当前 Session 本身**（保持头部系统提示词与已注入 `CtxCache` 分片前缀完全稳定，最大化命中 LLM Prefix KV Prompt Caching）；
-   - **触发任务缓存 & 动态调大小**：对话中途触发新子任务或切换焦点时，按新 Tag 触发拉取对应 `TagCtxShard` 增量追加（拿到的 `takeBudget` 可按剩余窗口或用户配置动态调整）；
-   - **JIT 动态更新与轨迹记录**：背景不足时随时在会话内调 `context.find / expand` 增量补充，并记录每个 chunk 的真实归因状态（`used_effective` / `queried_irrelevant` / `missed_in_phase1`）。
-3. **第三段·总结与演化 Session（异步后台段 + 独立审核 Agent 裁决 + 人类评论因子）**：
-   - **天然异步（零主链路延迟）**：第二段完成即返回结果并触发 `SessionClosed` 事件，后台异步拉起第三段总结 Session；
-   - **总结 Agent 产出三类演化草案**：
-     1. **不合理处提 Proposal（带门槛与查重）**：仅在遇到真实阻塞 / 规则冲突 / 文档与代码实测不一致（附 `ref+hash` 证据）时起草 Proposal；提单前必跑 `Relevance(DraftProposal, ExistingProposals & Docs)`，$\ge 85$ 自动合并至已有单据；
-     2. **正向归因裁剪（Attribution Pruning）生成/补充记忆缓存**：
-        - `used_effective`（最终方案/代码/结论实际引用）→ 提权（`+5~+15`）并保留/补充进 `TagCtxShard` 与会话缓存；
-        - `queried_irrelevant`（中途试错拉取但证实无关）→ 从缓存包剔除，并降低其对该任务 Tag 的 `tagRelevance`（`-5~-10`）；
-        - `missed_in_phase1`（第一段漏召回、靠第二段中途补拉救场的有效文档）→ **最高价值信号**！不仅补进记忆缓存，还为该文档补打当前任务 Tag（或大幅上调 `tagRelevance`），确保下次第一段直接命中；
-     3. **防同质刷分的 Importance / TagRelevance Rerank**：局部高频更迭 `tagRelevance(doc, tag)`；全局 `importance(doc)` 按跨任务多样性折扣 $w_{\text{div}}(T_i) = 1 - \max_{j<i}\text{Relevance}(T_i,T_j)/100$ 计算经验增量；
-   - **独立审核 Agent（Judge Agent）+ 界面人类评论因子双闸门**：
-     - 总结 Agent 的产出**绝不直接自动 Apply**；必须提交给**另一独立审核 Agent（Judge Agent）**复核证据链、归因真实性与同质任务刷分风险；
-     - 同时在 Console 界面审核/工作台提供**人类评论/评分因子（`humanScore` 0–100）**；Judge Agent 审核通过（且未违背人类钉住分与 L0 保底线）后，才正式写入 `CtxCache` / `DocIndex` / `Proposal`。
+1. **第一段·背景装配（2026-11-27 彻底改造，权威见 [session.md](session.md) §3）**：LLM 描述命令 → tag 分析并**先查 CtxCache**（`TagCtxShard`/`ComboCache` 命中直接切片取用，非对称覆盖率复用与 `takeBudget` 不变；未命中差量走检索）→ 三路注入（工具使用规范 / service 描述及 tag / global index 及 tag）→ **builtin RAG 查询相关文档**（核心约束：尽量使用系统查找上下文）→ 类似 session 导入描述 → 经 developer_system 定位代码仓库 → 层层整理产出**背景**：默认最多 5k 字、每一块明确标识哪个资源哪个文件、点击可对应上下文；
+2. **第二段·预更新执行（会话零执行）**：会话内反复 ask 询问（同一会话保 Prefix KV Cache、JIT 补拉 `context.find/expand`、归因轨迹记录不变）；**会话没有命令**——能做的永远是**文档预更新（draft）**，命令执行都到 workflow 的 agent 节点（headless，agent.md 两类形态）；用户查看 draft diff → apply 后进第三段；
+3. **第三段·属性回整（apply 触发，默认自动）**：LLM 判断过程中哪些文档的 **ref / tag / 重要程度(importance) / metainfo** 属性要改，**默认自动更新**（写 metadatainfo 侧车+索引投影）；缓存归因裁剪（`used_effective`/`queried_irrelevant`/`missed_in_phase1` 补偿进 `TagCtxShard`）随回整自动；**内容级 Proposal 仍查重+人审**；旧「Judge Agent 裁决一切第三段产出」收窄为只闸内容类（session.md §5 闸门收窄裁决）；防刷分 Importance/TagRelevance Rerank 算法（多样性折扣 $w_{\text{div}}$ 与 `humanScore` 因子）在回整中照常使用；
 4. **文档更新 → 相关性阈值过滤 → 局部提示与重建**：
    - `DocApplied` 发生时，计算 $\text{Relevance}(D_{\text{updated}}, B) \in [0, 100]$；
    - **仅对 $\text{Relevance}(D_{\text{updated}}, B) \ge \theta_{\text{rebuild}}$（缺省 75，可调）的关联文档与 `TagCtxShard` / `ContextPack` 标 `stale:true` 并触发重建**；靠调整相关度算法得出的值降低无关/弱相关文档重建，阻断写放大雪崩。
