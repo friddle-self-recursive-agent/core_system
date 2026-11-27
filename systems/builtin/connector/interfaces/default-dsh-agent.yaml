@@ -8,7 +8,7 @@ metadata:
   scope: builtin/connector
 spec:
   version: v1
-  semantics: "调用本机 dsh agent（headless 任务执行/会话派生）——权限档、审批策略与执行载体由此契约声明"
+  semantics: "调用本机 dsh agent（headless 任务执行/会话派生）——权限档、审批策略与执行载体由此契约声明；运行时缺省值=scheme.yaml runtime.dshAgent（2026-11-27 用户裁定：scheme 作为配置修改 dsh-agent 行为，改 scheme 零代码），Task.spec.permissionMode 为 per-task 覆写口，优先级=Task 覆写 > scheme 缺省 > 本契约声明"
   ops:
     - op: spawn-agent
       params:

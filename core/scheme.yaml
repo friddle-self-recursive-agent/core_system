@@ -436,6 +436,11 @@ spec:
       maxAttempts: 2
       spawn: "host:/task/spawn"     # 宿主 agent spawn 桥（每任务一个 dsh session）
       observability: "Task.status + TaskStateChanged + console #/tasks"
+    dshAgent:                       # default-dsh-agent/v1 契约行为配置（2026-11-27 用户裁定：scheme 作为配置修改 dsh-agent 行为——改这里零代码；systems/builtin/connector/interfaces/default-dsh-agent.yaml）
+      profile: core-headless        # spawn-agent 缺省 profile（Task.spec.agent 可指定其他）
+      permissionMode: danger-full-access   # 权限档全局缺省（与权限双态默认直给态一致；Task.spec.permissionMode 为 per-task 覆写口）
+      approvalPolicy: never         # headless 无人值守缺省
+      allowedModes: [danger-full-access, accept-edits, workspace-write, plan]   # 权限档白名单（宿主 spawn 桥校验同源；白名单外回落缺省）
     permission:                     # 权限双态（2026-11-27 用户裁决，concepts/permission.md 规则 6）
       defaultPosture: allow-all     # 默认直给：所有权限直接给（日常动作零审批摩擦）
       escalationGate: popup         # 唯一强制闸：显式越权请求默认弹窗授权（内建默认不依赖配置）

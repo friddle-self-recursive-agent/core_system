@@ -90,7 +90,7 @@ spec:
    - **默认直给态**：权限默认不需要控制——**所有权限直接给**（agent 日常动作零审批摩擦，不逐条拦）；
    - **越权弹窗态**：显式越权/升级请求**默认触发弹窗授权**（内建默认，不依赖配置开启）——工具调用声明升级权限级别（如 `sandbox_permissions: danger-full-access`）并附 `justification` 理由时，走 ApprovalNeeded→控制台**授权弹窗**（人批=放行，拒=记录），复用既有审批闸锚（headless 询问同款通路），全程留痕；
    - 两态并存不矛盾：直给是日常默认，弹窗是**升险动作的强制闸**——请求方自己声明要越界，就必须当面拿到授权；`justification` 随审计账留存。
-   - **spawn 侧同口径**（2026-11-27 用户裁定）：调用 dsh agent 的权限档=**显式配置**（`default-dsh-agent/v1` 契约 spawn-agent 参数 `permissionMode`，builtin-connector interfaces/；Task.spec.permissionMode 为 per-task 覆写口），不是宿主脚本隐式全权——缺省 danger-full-access 与默认直给态一致，覆写降档/升级声明都走契约参数显式传递。
+   - **spawn 侧同口径**（2026-11-27 用户裁定）：调用 dsh agent 的权限档=**显式配置**（`default-dsh-agent/v1` 契约 spawn-agent 参数 `permissionMode`，builtin-connector interfaces/），不是宿主脚本隐式全权——缺省 danger-full-access 与默认直给态一致，覆写降档/升级声明都走契约参数显式传递。**配置源=scheme**（`runtime.dshAgent.permissionMode/allowedModes`，2026-11-27 用户裁定：scheme 作为配置修改 dsh-agent 行为，改 scheme 零代码）；优先级=Task.spec.permissionMode 覆写 > scheme 缺省 > 契约声明；白名单外回落缺省。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
