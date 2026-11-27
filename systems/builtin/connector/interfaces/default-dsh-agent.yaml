@@ -1,0 +1,23 @@
+# Interface default-dsh-agent/v1 —— builtin-connector 拥有的 dsh agent 调用契约（interface.md）
+# 2026-11-27 用户裁定：dsh 默认调用即完全权限是隐式行为，权限档必须成为调用 dsh agent 的显式配置——
+# 配置面收敛在本契约（宿主 spawn 桥/调度器/Task 覆写都只是契约参数的传递口，不自造机制）。
+apiVersion: core/v1
+kind: Interface
+metadata:
+  name: default-dsh-agent
+  scope: builtin/connector
+spec:
+  version: v1
+  semantics: "调用本机 dsh agent（headless 任务执行/会话派生）——权限档、审批策略与执行载体由此契约声明"
+  ops:
+    - op: spawn-agent
+      params:
+        taskFile: "!string"          # 任务文件路径（stdin 传 dsh）
+        profile: "?string (=core-headless)"   # dsh profile
+        permissionMode: "?string (=danger-full-access)"  # 权限档声明（显式配置非隐式默认；可覆写降档，越权升级仍走权限双态弹窗）
+        approvalPolicy: "?string (=never)"   # headless 无人值守缺省 never；有人在场形态可覆写
+      idempotent: false
+    - op: exec
+      params: {command: "!string", permissionMode: "?string (=danger-full-access)"}
+      idempotent: false
+status: {}

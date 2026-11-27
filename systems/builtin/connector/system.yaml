@@ -10,6 +10,7 @@ spec:
   goalRef: goal.md
   descRef: desc.md
   provides:
+    - {interface: default-dsh-agent, version: v1, impl: builtin}   # dsh agent 调用契约（interfaces/default-dsh-agent.yaml——permissionMode 显式配置，2026-11-27 裁定；workservice connectors/dsh 即其 builtin 实现）
     - {ops: gitfs,  provider: gitfs,  workflow: simple-shot, note: "文档轨操作"}
     - {ops: dsh,    provider: dsh,    workflow: simple-shot, note: "本机命令（白名单+人审）"}
     - {ops: http,   provider: http,   workflow: simple-shot, note: "通用 HTTP 出站"}

@@ -181,6 +181,7 @@ spec:
         priority: "low|normal|high|critical"
         agent: "?ref"                                     # 可选：指定执行 agent
         workspace: "?{mode: worktree|inplace, base: ?string, branch: ?string}"  # 代码任务隔离
+        permissionMode: "?string"                         # 调用 dsh agent 权限档覆写口（default-dsh-agent/v1 契约 spawn-agent 参数，systems/builtin/connector/interfaces/；2026-11-27 裁定：显式配置非隐式全权；空=契约缺省 danger-full-access）
         limits: "?{maxConcurrent: ?int, timeout: ?duration}"  # 单任务覆写（只收紧）
       status:
         phase: "queued|ready|blocked|running|verifying|done|failed|canceled"
