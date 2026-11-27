@@ -96,20 +96,24 @@ spec:
 
 # ③ serviceinstance 层 / ④ workspace 层同理（agentRefs/docs 骨架 / project 组织骨架），asks 走同一机制
 
-# ⑤ workflow 层（WorkflowTemplate；workflow.md §9b——真实入库对象，禁止前端硬编码假模板卡）
+# ⑤ workflow 层（WorkflowTemplate；workflow.md §9b——基于 core-system-developer-loop 标准 7 节点主干的实例化模具）
 apiVersion: core/v1
 kind: Template
-metadata: {name: wf-bug-lifecycle, scope: global}
+metadata: {name: wf-developer-loop, scope: global}
 spec:
  appliesTo: workflow
+ requires:
+  systems: [ref/developer-system, ref/deploy-system]   # 依赖研发与发布系统（未绑定则逐层询问 default|install|import）
  mold:
   workflow:
-   triggers: {events: {types: [BugReport], minLevel: error}}
-   phases: [Idle, Analyzing, Planning, Executing, Verifying, Deploying, Reporting]
-   approval: {mode: human}
+   triggers: {events: {types: [BugReport, DocApplied], minLevel: warn}}
+   phases: [Idle, Analyzing, AwaitingApproval, Planning, Executing, Verifying, Deploying, Reporting]
+   approval: {mode: agent}
  asks:
- - {field: services.involved, kind: resource-ref, question: "该工作流作用在哪个系统？"}
- - {field: approval.mode, kind: enum, options: [human, auto], default: human, question: "审批闸门策略？"}
+ - {field: services.involved, kind: resource-ref, question: "该工作流监控并作用在哪个业务系统（如 bi-system）？"}
+ - {field: systemBindings.developerSystem.resolution, kind: enum, options: [default, install, import], default: default, question: "developer-system 获取方式（默认开源习惯 / 模板安装 / 导入已有系统）？"}
+ - {field: systemBindings.deploySystem.resolution, kind: enum, options: [default, install, import], default: default, question: "deploy-system 获取方式（默认发布通路 / 模板安装 / 导入已有系统）？"}
+ - {field: approval.mode, kind: enum, options: [human, agent, auto], default: agent, question: "审批闸门策略（人工审批 / Agent 自动判断审批 / 全自动）？"}
 ```
 
 ## 4. 生命周期与 resolver

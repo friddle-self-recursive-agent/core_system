@@ -15,149 +15,223 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
 
 **Workflow 是平台对象，不只是内部机制**：可编辑（spec=文档，Apply 修改，每一步可调整）、可展示（流程图/事件/流转/数据流，见 console）、可被第三方编辑与管理（导入/克隆/触发设置，同走 Apply+权限系统）、可启停（spec.enabled）。**developer_system 就是一种 workflow 实例**；不存在独立的循环 Kind。
 
-### 内置最核心 workflow：`core-workflow`
+### 核心内置 workflow 基座：`core-system-developer-loop` 与 `default-task`（2026-11-27 用户裁决）
+
+> **核心裁决**：
+> 1. **双内置基座（`core-system-developer-loop` + `default-task`），删除其余冗余内置 workflow**：
+>    - **`core-system-developer-loop`**：管理自我迭代与研发发布闭环的主干工作流（出厂默认不启动 `spec.enabled: false`，不可删除 `undeletable: true`，主干节点拓扑锁定 `immutableNodes: true`）。
+>    - **`default-task`**：内置通用任务相位状态机（`Idle → Analyzing → Planning → AwaitingApproval → Executing → Verifying → Reporting`），供单次任务与 Agent Session 执行，其中 `session` / `agent` 节点支持通过 `globalRuleRefs` 引用相应的 `global` 规则（如 `rule/rule_eng`、`rule/rule_doc`、`rule/rule_ux`、`rule/rule_ctx`、`rule/rule_pub`）。
+>    - 其余历史名称（`core-workflow`、`bug-lifecycle`、`bug-workflow`、`dev-delivery`、`apply-workflow`、`simple-shot`、`watch-only`）全部退入 `core/scheme.yaml` 的 `runtime.workflows.aliases` 做 Scheme Adapter 兼容映射，不再作为独立内置 workflow 存在。
+> 2. **出厂默认不启动（`spec.enabled: false`）**：`core-system-developer-loop` 在 `core_system` 自身实例中因需要自我迭代才显式开启（`enabled: true`），而在 `sybran` 等对外交付项目中**默认不启动**，需先通过 `systemBindings` 选择或配置绑定的 `developer-system` 与 `deploy-system`（`default` 默认开源习惯 / `install` 模板安装 / `import` 导入外部系统，一层层询问下去）后按需开启。
+> 3. **不可删除、不可调整主干节点拓扑，但全节点参数与环境绑定在 Scheme/文档与前端可配置**（`undeletable: true`、`immutableNodes: true`）：配置下沉到 `scheme.yaml` 的 `adapters` 与 `Workflow` 文档对象层，不再修改 Go 代码层级。
+> 4. **多节点与多入口触发 + 临时 `BugDoc` 运行时闭环（不改设计也可触发，最后一步删 `BugDoc` 并回写 `InSync`）**：
+>    - 不仅可以从首节点（监听日志/Event）触发完整闭环，当**用户通过对话/控制台修改设计文档**或**发现 Bug（不修改设计文档）产出/直接提交临时 `BugDoc`** 触发 `DocApplied` 时，直接从第 4 节点 **`doc-apply`（`Planning` 相位）** 切入，走同一条后续链路（`doc-apply → developer-system → 验收 → deploy-system → report-archive`）。
+>    - 等整个流程改完并通过发版后，在 workflow 总结的最后一步 **`report-archive`（`Reporting` 相位）** 自动**删除临时 `BugDoc`**（调用 `DELETE /v1/objects/...` 发出 `DocDeleted`）并将目标 `ServiceInstance` 的状态修改回 **`InSync`**（清零 drift）。
+>    - **`BugDoc` 属于运行时文档（`category: runtime, exportDefault: false`），默认不导出**：文档导出是一个**单独的数据库配置项目**（`docs_export_config` 表 + `GET/PUT /v1/docs-export/config`，种子初值由 `scheme.yaml` 的 `docTypes[].exportDefault` 决定，绝不在 Go 代码中写死类型判断）。
+> 5. **默认 `OpenAIProvider` 点击即配 + 不同任务/不同 `ConnectorOps` 模型智商分级映射**：
+>    - 所有 `session`、`connectOps`、`workflow` 均关联默认 Provider（`openai-default`）；在控制台点击任意 Provider 徽章即可弹出 **`OpenAIProvider` 配置抽屉**（配置账号/密钥引用、Base 地址 `baseUrl`、可用模型清单与任务模型映射）。
+>    - 支持按任务类型与不同 `ConnectorOps`/节点配置不同模型档位：**重复性任务/日志清洗采集用低智商轻量模型（`tier: low`）**，常规研发任务用标准模型（`tier: standard`），**设计性任务/复杂根因诊断/Agent 评审用高智商推理模型（`tier: high`）**，可在界面自由修改映射。
 
 ```
-event（触发规则命中）
- → analysis（分析：读文档 L0/L1，对比现实）
- → 【自己处理 | 上报】（AUTOLEVEL/权限系统 决定：auto 直接处理；ask/高危 → 上报走审批或上溯 root）
- → plan / auto（计划；或 auto 直执行 TaskScheme）
- → 直接调用 developer_system / agent / 系统（经 ConnectorOps；派发子 agent 也是 ConnectorOps 调用，子 agent 运行时不限于 dsh）
- → 更新服务状态（Status 回写）
- → 满足现有系统在文档上描述的需求（文档回归：DriftReport/SessionLog 归档）
+【入口 1：运行期日志 / Event 触发 / 定时收集】
+  ① log-event (Idle：监听日志 Event + 日志过滤 + ConnectorOps 收集指定日志；若 ConnectorOps 缺失可拉出代码开发任务)
+   ↓
+  ② agent-judge (Analyzing：Agent 判断是否值得修复 / 产出修复方案或临时 BugDoc；噪声则忽略直达 Reporting)
+   ↓
+  ③ approval-gate (AwaitingApproval：审批 / Agent 自动判断审批 —— human 人工 | agent 规则自动判断 | auto 全自动)
+   ↓
+【入口 2：用户对话或编辑器修改文档 → 触发 DocApplied 直接切入本节点】
+  ④ doc-apply (Planning：文档落库 Apply / 汇聚点 —— 文档已修改即跳过前 3 步直奔研发实现)
+   ↓
+  ⑤ developer-system (Executing：调用绑定的 developer-system 落代码；缺失的 ConnectorOps 也在此拉出代码开发编辑)
+   ↓
+  ⑥ verify (Verifying：验收 —— 可配置怎么验收 code|agent|human|both 与自定义验收条件清单)
+   ↓
+  ⑦ deploy-system (Deploying → Reporting：调用绑定的 deploy-system 发版上线 → 清理临时 BugDoc + 文档/记忆回归收束 converged)
 ```
 
-builtin 集合：`core-workflow`（上述全流程）、`default-task`（单任务态机，Agent 引用）、`simple-shot`（简单派发）、`watch-only`（只观察不执行）、`dev-delivery`（默认研发交付 workflow，§1.1）、`apply-workflow`（workflow 落地 agent 的任务态机，§1.2）、`bug-lifecycle`（运行期 bug 生命周期闭环，§9a）。
+**`core-system-developer-loop` 标准 7 节点与引擎相位词汇映射表**（`global/workflows/core-system-developer-loop.yaml` 文档对象与 `scheme.yaml` 同源）：
 
-**builtin 七项正向相位词汇映射**（引擎投影面同源——运行时注册表按此表构造声明相位序列；相位语义只加不改，§4）：
-
-| builtin | 声明正向相位序列（引擎词汇） | 设计依据 |
-|---|---|---|
-| core-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | 系统级循环（§1 流程图；到达 Reporting 完成即正常收束 `converged`） |
-| default-task | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | 单任务态机（Agent 引用，与 core-workflow 同族词汇） |
-| simple-shot | Idle→Executing→Reporting | 简单派发（无分析/计划段） |
-| watch-only | Idle→Analyzing→Reporting | 只观察不执行（无执行/验证段） |
-| dev-delivery | Idle→Analyzing（Analyze）→AwaitingApproval（Gate）→Planning（Plan）→Executing（Execute）→Verifying（Verify）→**Deploying**（Deploy）→Reporting（Report） | §1.1 步锚映射；**Deploying=相位词汇只加不改的新锚**（Deploy 步=deploy-system 按 DeployDesign.envs 升序发布、prod 人批——交付段独立于通用 Executing） |
-| apply-workflow | Idle→Analyzing→Planning→AwaitingApproval→Executing→Verifying→Reporting | §1.2 落地 agent 任务态机=**default-task 词汇全量复用**（不另立词汇——语义差异在触发接线与 agent 角色，不在相位词汇） |
-| bug-lifecycle | Idle→Analyzing（评审）→Planning（写临时 BugDoc）→Executing（修复）→Verifying（验证）→Deploying（发版）→Reporting（删 BugDoc+整理文档/记忆） | §9a 运行期 bug 生命周期闭环（`BugReport` 事件触发） |
+| 序号 | 节点 ID (`name`) | 引擎相位 (`phase`) | 节点名称 (`title`) | 触发入口 (`entryEvents`) | Scheme Adapter 与可配置能力 |
+|---|---|---|---|---|---|
+| 1 | `log-event` | `Idle` | 监听日志与 Event | `BugReport`, `MetricThreshold`, `ExternalChanged`, `ReconcileTick`, `LoopRequested` + `timer` | **`logSource` Adapter**：配置监听事件类型、最低级别（`minLevel`）、服务/关键词过滤、定时巡检周期，以及**收集指定日志的 `ConnectorOps`**（若该 `ConnectorOps` 缺失或处于 `skeleton` 骨架态，定好 workflow 后直接拉出代码开发任务去实现/编辑） |
+| 2 | `agent-judge` | `Analyzing` | Agent 判断 | —（由节点 1 推进） | **`agentJudge` Adapter**：配置判断准则（`criteria`，如判断运行 Bug 是否值得修复）、LLM 模型与分支输出（`worth_fixing` 进入审批；`ignore` 直达 `Reporting`） |
+| 3 | `approval-gate` | `AwaitingApproval` | 审批 / 自动审批 | —（由节点 2 推进） | **`approvalGate` Adapter**：前端与文档可直接编辑切换 `mode: human | agent | auto`；`agent` 模式按 `autoCriteria` 与 `maxRiskLevel` 自动判断审批，高风险回退人工审批 |
+| 4 | `doc-apply` | `Planning` | Doc Apply（文档修改汇聚点） | **`DocApplied`（第二入口：对话/手动改文档直接切入）** | **`docApplyEntry` Adapter**：既承接前序审批通过后的文档落库，又作为**多入口切入点**——用户对话修改文档触发 `DocApplied` 时跳过前 3 步直接从本节点进入 `developer-system` |
+| 5 | `developer-system` | `Executing` | developer-system（代码开发） | —（由节点 4 推进） | **`systemBinding` Adapter (`developerSystem`)**：首先 `requires/select` 绑定 `developer-system`，按 `default`（默认开源习惯：`agent/<name>` 分支、`worktrees/<repo>/<slug>`、`tmp/`、单文件≤800行）/ `install`（模板安装）/ `import`（导入已有系统）逐层询问；支持拉出缺失 `ConnectorOps` 的代码开发与编辑 |
+| 6 | `verify` | `Verifying` | 验收（Verify） | —（由节点 5 推进） | **`verification` Adapter**：可配置怎么验收（`mode: both | code | agent | human`）、绑定 `connectops-code-audit`、自由增删改验收条件清单（`conditions[]`）与失败策略（`onFail: retry-develop | block | ask`） |
+| 7 | `deploy-system` | `Deploying` → `Reporting` | deploy-system（发版与回归） | —（由节点 6 推进） | **`systemBinding` Adapter (`deploySystem`)**：`requires/select` 绑定 `deploy-system`（`default | install | import` 逐层询问）、目标环境 `envs`、生产确认闸，完成后进入 `Reporting` 删临时 `BugDoc` 并归档 `DriftReport`/`SessionLog` |
 
 > **正向相位序列与侧轨态严格分轨（修正 `Reporting --advance--> Failed` 缺陷）**：
 > - `spec.phases` **只声明正向业务步序**；异常终态 **`Failed`** 与挂起态 **`Paused`** 属**侧轨态**，禁止列在 `spec.phases` 线性末尾。默认物化相邻 `advance` 边止于正向序列末步（`Reporting` 完成后单次 run 落正常收束态 **`converged`**，Workflow 本体按 P5 持续监听下一触发——绝不允许从 `Reporting` 经 `advance` 自动落入 `Failed`）。
 > - `Failed` / `Paused` 仅由显式侧轨边到达（如 `ApprovalRejected → Failed`、`StepFailed → Failed`、`Escalate → Paused`）。
 > - **单次 run 状态闭合集**：`triggered | running | suspended | converged | failed | canceled`；**静态迁移规则表（`transitions`）与运行期实际轨迹（`history: [{from, to, on, at, sessionId?, actor?}]`）必须分离**——UI 节点图按 `history` 标绿已走过的真实节点，不得按数组下标误把失败前未执行节点全标绿，也不得把静态 `transitions` 当事件时间线展示。
-> - Gate→AwaitingApproval 锚位：dev-delivery 的人批闸在 Analyze 之后 Plan 之前（§1.1 流程序），与 core-workflow 的 Planning→AwaitingApproval 序各按各自声明——相位机=标准 FSM，序即声明。
 
-builtin workflow 可被 **override**：在系统/Instance 层以同名覆盖 spec（builtin 本体不动，生效层用覆盖后的定义；origin 标 `override-of-builtin`；恢复默认=删 override）。例：default workflow 末尾追加通知节点（Event 报告默认通知 → 邮件）：
+### 1.1 跨项目复用与逐层询问绑定（`core-system` vs `sybran` 等对外项目）
 
-```yaml
-# systems/<s>/workflows/dev-delivery.yaml —— override 对象（global/workflows/dev-delivery.yaml=builtin 本体不动）
-apiVersion: core/v1
-kind: Workflow
-metadata:
- name: dev-delivery # 同名覆盖
- scope: <s> # 系统层生效
- labels: {core/origin: override-of-builtin} # origin 标注（builtin.md label 惯例）
-spec:
- # ……继承 builtin spec 其余字段（override 只写差异面，本例只动 phases）：
- phases:
- - {name: report, title: Report} # builtin 原尾相位（Status 追平+归档+Event）
- - name: notify-report # 追加的邮件尾节点（Report 之后）
-   title: Notify Report
-   op: notify/send-email # 通知 ConnectorOps 的 send-email 操作（connector.md）
-   connector: notify-send-email # global/connector-ops/notify-send-email.yaml
-   provider: provider/email-notify # 通道账号包（secret 引用式取值，provider.md 规则 6）
-   input: {subject: "loop 验收报告摘要", body: "验收报告摘要段"}
-```
+`core-system-developer-loop` 同时服务两类场景，全部通过 **Scheme Adapter + 文档配置** 区分，零代码分支：
 
-每轮 loop 的验收报告摘要即经此节点发到配置面收件人清单（收件人可配置；Event 报告默认通知 → 邮件）。
+1. **`core-system` 自身实例**：
+   - 在 `global/workflows/core-system-developer-loop.yaml` 中显式设置 `enabled: true`，直接管控 `core-system` 的自我迭代；
+   - `systemBindings.developerSystem.resolution = default`（默认遵循本项目开源习惯：`agent/<name>` 分支、`worktrees/<repo>/<slug>` 隔离、单文件 ≤ 800 行、临时文件入 `tmp/`）；
+   - `systemBindings.deploySystem.resolution = default`（默认发布至宿主与子模块链）。
+2. **`sybran` 等对外项目实例或业务自定义 Workflow（如监控 `bi-system` 运行 Bug 自动修复发版）**：
+   - 出厂默认 `enabled: false`（不自动启动 core 自我迭代）；
+   - 启用或配置时，首先由 workflow `requires` 或 `select` 相应的 `developer-system` 与 `deploy-system`，系统按 Template `resolver -> asks` 机制**一层层询问下去**：
+     - **`default`（默认）**：使用系统内置的默认研发/部署通道与开源仓库规约；
+     - **`install`（安装）**：若目标环境尚未安装 `developer-system`（如 OneDev）或 `deploy-system`，自动下探对应 `Template`（`appliesTo: servicedesc / workservice`）询问端口、存储、凭据并执行安装纳管；
+     - **`import`（导入）**：将外部已有的代码仓/CI/CD/部署服务导入为 `WorkService` + `ConnectorOps` 并绑定到本 workflow 节点。
 
-### 1.1 默认研发 workflow：`dev-delivery`（默认文档，每步可调整）
+### 1.2 Workflow 落地与缺失 `ConnectorOps` 拉出代码开发（`apply-workflow`）
 
-系统自带的完整研发闭环，入口 event（错误日志 ≥error / 新需求 / 用户请求）触发**全自动**流转：
+- 当用户在 `core-system-developer-loop`（或自定义业务 workflow）中配置了某个日志收集/过滤或业务交互 `ConnectorOps`（如 `connectops-bi-log-collector`），而该 `ConnectorOps` 尚不存在或仅处于 `workflow-bind` 骨架态（`skeleton: true`）时：
+  - Workflow 定义保存（`Apply`）后，即可**直接拉出该 `ConnectorOps` 的代码开发任务**（生成 `ConnectorOps` 声明骨架并派发给 `developer-system` / `apply-workflow` agent 拉取代码仓库进行开发与编辑）；
+  - 开发完成并通过 `verify` 节点（`connectops-code-audit` + 测试）验收后，由 `deploy-system` 构建生效。
 
-```
-触发(event) → Analyze（定位错误/拆解需求） → Gate（高危人批，auto 白名单直过）
- → Plan（选 TaskScheme 模板） → Execute（developer-system pull → 本地 build+test
-   红线全绿 → 产物 digest） → Verify（探针复测 + **代码规则审核 connectops-code-audit** + **agent 规则验证**） → Deploy（deploy-system 按
-   DeployDesign.envs 升序发布，prod 人批） → Report（Status 追平+归档+Event）
-```
+### 1.3 执行模型：节点=session/agent/connectops/gate，默认绑定 ConnectorOps，apply 即实现
 
-每一步=声明的相位与 TaskScheme 引用，调整=改 spec/模板参数后 Apply；整条可 `enabled: false` 一键停用。步锚→引擎相位词汇映射见 §1 映射表（Analyze→Analyzing、Gate→AwaitingApproval、Deploy→Deploying 交付锚，其余同名同族）。
-
-**Verify 是硬 gate（R-TYPE-3 / rule-verification.md）**：code 规则→`connectops-code-audit`（ruleChecks 注册表）审核；agent 规则→把规则原文（ref+hash）+diff 丢给 agent 验证。`error` finding / `fail` verdict 阻断 Deploy；缺 checker/agent=`unbound`/`degraded` 显式不通过，不得静默跳过。
-
-### 1.2 Workflow 落地 = 专用 agent（`apply-workflow`）
-
-把一份 Workflow 声明落到真实系统，本身也是 workflow 干的活——专用 agent 承担：解析 spec 接线触发源（注册 Connector watch）→ 缺的连接层调 **developer-system**（pull/写**自定义 connector** 代码/build，每层调用代码化）→ 落地后注册一条 `watch-only` 监控新 workflow 的成功率/死信/成本（自监控闭环，异常回 Event 走修复循环）。即：**流程实现=代码；写代码=调研发系统；监控 workflow 的=内置 workflow（自举）**。运行时细节见 instance 仓 runtime/workflow-runtime.md。任务态机=default-task 相位词汇全量复用（§1 映射表——不另立词汇，解耦口径）。
-
-### 1.3 执行模型：节点=session/agent，默认绑定 ConnectorOps，apply 即实现
-
-- **每个节点（相位/步骤）= 一个执行单元**，形态二选一：
-  - **session**：global scope 的 workflow 节点一律 session；service 内部 workflow 的节点也是 session（在该 service 内运行）；
-  - **agent**：跨 service（service 外部）的交互=**agent 调用 agent**——由本 service 的 agent 调起目标 service 的 agent，不直连外部服务内部实现。
-- **默认绑定一个 ConnectorOps**：每条 workflow 缺省绑定**同名** ConnectorOps（`default-work` → `default-work` ConnectorOps；`spec.connector` 可覆写）。绑定是声明（docs），实现是代码（connector-ops 对象 + 实现仓）。
-- **apply 即开始实现**：workflow apply（创建/变更）时，apply-workflow agent 立即开始写该 workflow 的 ConnectorOps 实现（骨架+节点接线），**不是运行时即兴**；spec 再变 → apply 后实现随之更新（diff 可查）。实现落在 **deploy-system 的 git 仓库**（`connectops-<concept>` 小概念仓，R-ENG-3），**build 生效后**才进运行时；每次变更必定提交（override 亦同）。
-- **调用链三层同源**：`docs（workflow spec） → connectDef（scheme 声明面 / ConnectorOps 对象） → connectOps 代码`——声明驱动实现，实现不反向污染声明。
-- **流转在 ConnectorOps 内**：引擎相位机只负责相位推进/刹车/记账；绑定的 ConnectorOps 实现按声明序列流转各节点——**Service 调用节点**（ops）、**Agent 节点**（唤醒/派子任务）、**另外的 ConnectorOps**（嵌套调用）。引擎不感知通道与服务内部细节。
-
-**落地形态二分（2026-11-26，R-7）**：「骨架+节点接线」是**确定性机械面**——workflow 对象 apply（创建/变更）时由 cored 绑定物化器直接写入/更新同名（或 `spec.connector` 覆写）的 ConnectorOps 对象（`spec.flow.nodes` 骨架：节点名/标题/unit/op/connector 投影；`metadata.labels[core/origin]=workflow-bind` 标注物化器所有面，非该标注的对象不盲写）；「实现代码」是 **apply-workflow agent 面**（连 developer-system 写 connectOps 实现）——两步同走 apply 闸门（三步准入+rv 乐观锁+DocApplied），均落 apply_log 可 diff。绑定未落地（同名 ConnectorOps 对象缺席）→ 决策面 `execution=unbound` 可见（缺口不静默，connector.md 规则 6）。**两步交棒=派单受理投影（2026-11-26，R-8 注记）**：骨架物化动作（created/updated）即一条对 `apply-workflow` 锚（builtin 专用 agent，§1.2，AUTOLEVEL=ask 默认）的派单受理——`GET /v1/agents/dispatches` 可查（rv=骨架 diff 基线）；受理≠会话已拉起（真实拉起=dsh 会话挂载，declared-deferred，运行时细节=instance 仓 workflow-runtime.md §11.2）。
+- **每个节点（相位/步骤）= 一个执行单元**：
+  - **session**：同服务/全局会话内执行；
+  - **agent**：跨 service 交互（agent 调用目标 service 的 agent 或派发独立 Task）；
+  - **connectops**：确定性胶水算子调用（日志收集过滤、代码审核 `connectops-code-audit`、发布触发等）；
+  - **gate**：审批闸门（支持 `human` 人工批闸、`agent` 自动判断审批、`auto` 自动通过）。
+- **默认绑定同名 ConnectorOps**：`core-system-developer-loop` 绑定 `ConnectorOps/global/core-system-developer-loop`，在 workflow apply 时自动物化 `spec.flow.nodes` 7 节点接线骨架（`execution.state = bound`）。
 
 ## 2. 边界
 
-**是**：触发规则 + 事件整理规则 + 相位态机 + 数据流声明 + 刹车 + 文档回归——一个可编辑、可展示、可启停的平台对象。
+**是**：触发规则（含多入口节点触发與定时条件）+ 日志/事件过滤（含 `ConnectorOps` 收集）+ 相位态机 + 系统绑定（`developer-system`/`deploy-system`）+ 验收条件 + 刹车 + 文档回归——一个可配置、可编辑、可展示、可启停的平台文档对象。
 
 **不是**：
-- 不是自由脚本编排（无业务 if-else；迁移条件只有事件与策略；"可编辑"指声明式 spec 的编辑，一切修改过 Apply+权限系统——反模式不变）；
-- 不是 TaskScheme（TaskScheme 是 Executing 相位内的步骤图；Workflow 是包着它的整个循环）；
-- 不是 WorkflowDesign 文档（那是给人看的功能流设计）。
+- 不是散落在 Go 代码里的硬编码列表（内置仅 `core-system-developer-loop` 一条，配置全部沉入 `scheme.yaml` 与 YAML 文档对象）；
+- 不是不可控的黑盒（`core-system-developer-loop` 锁定主干 7 节点不可删除/不可改节点拓扑，但每个节点的审批模式、日志过滤、ConnectorOps、验收方式与验收条件在前端全部以人为本可视化可配）。
 
-## 3. 对象结构
+## 3. 对象结构（`global/workflows/core-system-developer-loop.yaml` 权威形态）
 
 ```yaml
 apiVersion: core/v1
 kind: Workflow
 metadata:
- name: developer-system-workflow # "developer_system 是一种 workflow" 的落地形态
- scope: builtin-developer-system
+  name: core-system-developer-loop
+  scope: global
+  labels:
+    core/origin: builtin
 spec:
- enabled: true # 规则开关：false=停用（不触发不消耗；回归记录保留）
- services: # 涉及哪些 service、怎么涉及（规则的数据面）
- involved: [developer-system, deploy-system] # 圈定的 service（空=随 scope）
- mode: observe|act # 怎么涉及：只读观察 / 可执行动作
- llm: {provider: llm-main, model: flash-tier} # 该 workflow 用的 LLM（Agent/生成相位取此配置；具体选型不入公开仓，R-PUB）
- dataflow: # 数据流声明（展示层拼系统级数据流图的依据）
-   inputs: [{events: [MetricThreshold], docs: "systems/developer-system/*"}]
-   outputs: [{status: self, notify: [bind-role], artifacts: "oss://builds"}]
- triggers: # ① 触发规则（原 Workflow.watch）
- events: {types: [ExternalChanged, MetricThreshold], minLevel: warn} # 按类型+owner 路由
- timer: {resync: 10m} # 巡检兜底（level-triggered 保险丝）
- ingest: # ② 事件整理规则
- dedup: {window: 5m}
- group: {by: dedupKey, max: 100}
- filterLevels: [info, warn, error, fatal]
- phases: [Idle, Analyzing, Planning, AwaitingApproval, Executing, Verifying, Reporting] # 仅声明正向主线步序；Failed/Paused 为侧轨态，不入线性 phases 末尾
- onEscalate: {action: pause, notify: bind-role} # AUTO 处理不了的 Escalate 到达时的暂停策略（可配置）：
-                                                #   pause=立即挂起（相位冻结，现场+断点保留，SessionLog 可续）
-                                                #   finish-tick=跑完本轮再停（防半成品，Execute 中途不打断）
-                                                #   continue=只通知不暂停（低危域可配）
-                                                # 恢复=人处理后在 console 批准 Resume（=Apply）；不自动恢复
- onFailed:
-   backoff: 30s*2^n
-   maxAttempts: 3
-   rollbackPolicy: by-step # never | auto | ask | by-step（遵循步骤/工具声明的 rollback.policy 与 rollback.type: irreversible|code|agent|human + 回滚文档描述）
-   escalate: {to: root, notify: bind-role}
- trustGate: # 外部不可信内容检验门（针对 trustLevel=external 的 ConnectorOps/Provider，Workflow 级可配置）
-   enabled: true
-   mode: code # code | agent | both（由代码规则或审查 Agent 判断一遍外部返回内容是否 OK）
-   verifierRef: "connectops-code-audit/verify-external"
-   onReject: ask # block | ask | sanitize
- brakes: # ③ 刹车（强制默认：可收紧不可关闭）
- cooldown: 2m # 成功后最小间隔（防震荡）
- maxMutationsPerTick: 10 # 单轮最大变更数
- avoidRepeatFix: true # DriftReport 记录"改过什么"，避免重复同类修复
- regression: # ④ 文档回归
- statusWriteback: true # Status/Conditions/observedGeneration
- reports: [DriftReport, SessionLog]
+  enabled: false                    # 出厂默认不启动；core-system 实例自我迭代时显式置 true，sybran 等默认 false
+  immutableNodes: true              # 主干 7 节点拓扑锁定（不可增删改顺序，节点内参数全可配）
+  undeletable: true                 # 内置核心工作流不可删除
+  services:
+    involved: [core_system, developer-system, deploy-system]
+    mode: act
+  llm: {provider: llm-main, model: default}
+  triggers:
+    events:
+      types: [BugReport, MetricThreshold, ExternalChanged, ReconcileTick, LoopRequested, DocApplied]
+      minLevel: info
+    timer:
+      enabled: true
+      interval: 10m
+      resync: 10m
+  logSource:                        # 节点 1：监听日志 Event + ConnectorOps 收集过滤配置
+    events: [BugReport, MetricThreshold, ExternalChanged, ReconcileTick, LoopRequested]
+    minLevel: warn
+    services: [core_system]
+    keywordMatch: ""
+    timer: {enabled: true, interval: 10m}
+    collector:
+      connector: connectops-log-collector
+      op: collect-logs
+      query: "level>=error"
+      autoDevelopOnMissing: true    # 若该 ConnectorOps 缺失/未实现，可一键拉出代码开发任务
+  entryPoints:                      # 多节点入口配置
+    - node: log-event
+      phase: Idle
+      enabled: true
+      events: [BugReport, MetricThreshold, ExternalChanged, ReconcileTick, LoopRequested]
+      description: "入口 1：运行期日志/异常事件/定时巡检触发，从头走 Agent 判断与审批"
+    - node: doc-apply
+      phase: Planning
+      enabled: true
+      events: [DocApplied]
+      docTypes: [Goal, Desc, Rule, WorkflowDesign, CodeDesign, DeployDesign, BugDoc, Workflow]
+      description: "入口 2：用户对话或控制台修改文档触发 DocApplied，直接从 doc-apply 节点切入走 developer-system → 验收 → deploy-system"
+  approval:                         # 节点 3：审批 / Agent 自动判断审批配置（前端可直接编辑）
+    mode: agent                     # human（人工审批）| agent（Agent 规则自动判断审批）| auto（全自动放行）
+    autoCriteria: "单模块非破坏性代码或文档修改、不涉及高敏权限与生产数据删除时自动批准；其余转人工审批"
+    maxRiskLevel: low
+  systemBindings:                   # 节点 5 & 节点 7：研发与发布系统绑定（默认 | 安装 | 导入 逐层询问）
+    developerSystem:
+      service: developer-system
+      resolution: default           # default（默认开源习惯）| install（模板安装）| import（导入外部系统）
+      connector: connectops-developer
+      op: develop
+      conventions:
+        branchPrefix: "agent/"
+        worktreeDir: "worktrees/<repo>/<slug>"
+        tmpDir: "tmp/"
+        maxFileLines: 800
+    deploySystem:
+      service: deploy-system
+      resolution: default           # default | install | import
+      connector: connectops-deploy
+      op: release
+      envs: [staging, prod]
+      requireProdApproval: false
+  verification:                     # 节点 6：验收方式与验收条件配置（前端可自由编辑增删）
+    mode: both                      # both（代码+Agent）| code（仅代码审核）| agent（仅Agent规则）| human（人工验收）
+    connector: connectops-code-audit
+    op: audit
+    onFail: retry-develop           # retry-develop（打回 developer-system 重修）| block（阻断上报）| ask（人工裁决）
+    conditions:
+      - {id: lint-rules, kind: code, title: "代码 Lint 与规则审核 (R-PUB-1 / R-DOC-6 / R-ENG-7 ≤800行)", command: "connectops-code-audit/audit", required: true}
+      - {id: unit-tests, kind: test, title: "后端与前端单元/集成测试全绿 (go test ./... & npm test)", command: "go test ./... && npm test", required: true}
+      - {id: live-probe, kind: agent, title: "活体探针与页面无假数据/无报错验证", command: "agent-verify", required: true}
+      - {id: bugdoc-clean, kind: agent, title: "临时 BugDoc 验证通过后清理 (R-DOC-10)", command: "doc-clean-check", required: false}
+  phases:
+    - {name: log-event,        phase: Idle,             title: "1. 监听日志与 Event",        unit: connectops, connector: connectops-log-collector, op: collect-logs, provider: openai-default, modelTier: low,      entryEvents: [BugReport, MetricThreshold, ExternalChanged, ReconcileTick, LoopRequested]}
+    - {name: agent-judge,      phase: Analyzing,        title: "2. Agent 判断（或产出 BugDoc）", unit: agent,      op: judge-issue,  provider: openai-default, modelTier: high,     globalRuleRefs: [rule/rule_eng, rule/rule_doc]}
+    - {name: approval-gate,    phase: AwaitingApproval, title: "3. 审批 / 自动判断审批",     unit: gate,       op: approval-check}
+    - {name: doc-apply,        phase: Planning,         title: "4. Doc Apply（设计/BugDoc 切入点）", unit: session, op: apply-doc,    provider: openai-default, modelTier: standard, globalRuleRefs: [rule/rule_doc, rule/rule_eng], entryEvents: [DocApplied]}
+    - {name: developer-system, phase: Executing,        title: "5. developer-system 开发",   unit: agent,      connector: connectops-developer, op: develop, provider: openai-default, modelTier: high, globalRuleRefs: [rule/rule_eng, rule/rule_ux, rule/rule_pub], service: developer-system}
+    - {name: verify,           phase: Verifying,        title: "6. 验收（Verify）",          unit: connectops, connector: connectops-code-audit, op: audit,  provider: openai-default, modelTier: low}
+    - {name: deploy-system,    phase: Deploying,        title: "7. deploy-system 发版",      unit: connectops, connector: connectops-deploy, op: release, provider: openai-default, modelTier: low, service: deploy-system}
+    - {name: report-archive,   phase: Reporting,        title: "8. 总结删 BugDoc + 回写 InSync", unit: session, op: archive-report, provider: openai-default, modelTier: low}
+  transitions:
+    - {from: Idle,             on: advance,          to: Analyzing}
+    - {from: Idle,             on: "entry:DocApplied", to: Planning}
+    - {from: Analyzing,        on: advance,          to: AwaitingApproval}
+    - {from: Analyzing,        on: worth_fixing,     to: AwaitingApproval}
+    - {from: Analyzing,        on: ignore,           to: Reporting}
+    - {from: AwaitingApproval, on: advance,          to: Planning}
+    - {from: AwaitingApproval, on: ApprovalGranted,  to: Planning}
+    - {from: AwaitingApproval, on: ApprovalRejected, to: Failed}
+    - {from: Planning,         on: advance,          to: Executing}
+    - {from: Executing,        on: advance,          to: Verifying}
+    - {from: Verifying,        on: advance,          to: Deploying}
+    - {from: Verifying,        on: retry-develop,    to: Executing}
+    - {from: Deploying,        on: advance,          to: Reporting}
+  onEscalate: {action: pause, notify: bind-role}
+  onFailed:
+    backoff: 30s*2^n
+    maxAttempts: 3
+    rollbackPolicy: by-step
+    escalate: {to: root, notify: bind-role}
+  trustGate:
+    enabled: true
+    mode: code
+    verifierRef: "connectops-code-audit/verify-external"
+    onReject: ask
+  brakes:
+    cooldown: 2m
+    maxMutationsPerTick: 10
+    avoidRepeatFix: true
+  regression:
+    statusWriteback: true
+    bugDocPolicy: invalidate        # delete（删除）| invalidate（标记失效归档）| keep（保留不删除）——可配置、可增删动作项
+    cleanTempBugDoc: false          # 兼容简写开关（true 等价于 bugDocPolicy=delete；默认走可增删 postActions 声明）
+    postActions:                    # 解释器通用收尾动作列表（前端/文档可自由添加、删除或启停任一条目）
+      - {id: bugdoc-lifecycle, kind: doc-lifecycle, targetDocType: BugDoc, action: invalidate, enabled: true, title: "临时 BugDoc 收尾处理（可选：标记失效 invalidate / 删除 delete / 保留 keep，或直接删去此项）"}
+      - {id: status-insync,    kind: status-writeback, targetPhase: InSync, enabled: true, title: "回写 ServiceInstance.status.phase = InSync"}
+    reports: [DriftReport, SessionLog]
 ```
 
 ## 4. 生命周期
@@ -259,32 +333,27 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 见 open-questions.md#workflow
 
-## 9a. 内置默认 workflow：bug 生命周期闭环（2026-11-26 用户裁决：要跑起来）
+## 9a. 「Workflow + Scheme = 声明层、代码 = 通用解释器」与原临时 BugDoc 闭环失效收敛（2026-11-27 用户裁决）
 
-> 用户原话：「运行时候的 bug 应该开始进入 event 了。默认的 workflow 中有 bug 触发 agent 评审 → 触发临时性 bug 文档 → 修复代码 → 发版本 → bug 文档删除 → 整理更新部分文档/记忆。这也是一个 workflow，要跑起来。」
+> 用户原话：「完整的内置的应该是改成这个 `core-system-developer-loop` 默认在出厂不启动。因为我这个 core-system 要自我迭代才启动。sybran 就不会启动这个。`core-system-developer-loop` 是管理 core-system 自我迭代的，不可删除，不可调整节点，可以进行一些基于基础环境的配置，默认就是我基于这个项目的开源习惯……这个就是标准的 监听日志event->agent判断->[审批/自动审批]->doc apply->developer-system->验收->deploy-system……还有 workflow 可以多节点、多节点配置，比如用户对话修改了文档，触发 doc apply，也走下面逻辑这一条。临时 BugDoc 闭环应该是失效。本质 workflow+scheme 代码是解释器。这个删除 bugdoc 默认是可以添加删除以及选择不删除的。」
 
-**声明链（事件→workflow→各步落点）**：
+1. **代码只做通用解释器（Interpreter）**：
+   - `workservice` 引擎不硬编码任何业务专用闭环；原先单独设立的「临时 BugDoc 闭环（`bug-lifecycle`）」失效作废。
+   - 节点怎么触发、过滤什么日志、调哪个 `ConnectorOps`、按什么条件验收、收尾对临时 `BugDoc` 做「标记失效（`invalidate`）/ 删除（`delete`）/ 保留不删除（`keep`）」乃至直接增删这条收尾动作，全部在 **Workflow 文档 + Scheme Adapter** 中声明，由解释器按声明执行。
+2. **两条入口汇聚于同一套标准主干**：
 
-| 步 | 触发/动作 | 落点 |
+| 入口 | 起点节点 | 流转路径 |
 |---|---|---|
-| 1 | 运行期异常进事件（BugReport 事件，dedup=`bug:<sess>:<sig>`，route=root-agent） | eventbus 归档 |
-| 2 | agent 评审（root-agent 会话：判定复现/影响面/归属模块） | 结论写**临时性 bug 文档**（kind=BugDoc，scope=systems/<s>，ttl 语义=修完即删） |
-| 3 | 修复代码（agent 工作分支→worktree→合并队列） | Task/DocApplied 留痕 |
-| 4 | 发版本（build 生效+部署） | deploy 通路（ConnectorOps/发布事件） |
-| 5 | bug 文档删除（修复验证后） | Apply delete → 事件归档留痕 |
-| 6 | 整理更新部分文档/记忆（loop-next.md 记忆面+相关概念文档增量更新） | R-DOC 面收敛 |
+| **入口 1：运行期日志/Bug/巡检事件**（`BugReport` / `MetricThreshold` / `ExternalChanged` / `ReconcileTick` / 定时日志收集） | 节点 1 `log-event`（`Idle`） | `1. 监听日志与 Event`（含过滤与 `ConnectorOps` 收集）→ `2. Agent 判断`（是否值得修复、可产出方案/临时 `BugDoc`）→ `3. 审批/自动审批`（`human \| agent \| auto`）→ `4. Doc Apply` → `5. developer-system` → `6. 验收`（可自由增删验收条件）→ `7. deploy-system`（→ `8. Reporting` 按可增删的 `postActions` 执行 `BugDoc` 标记失效/删除/保留不删 + 状态回归） |
+| **入口 2：用户对话或控制台修改文档**（触发 `DocApplied`） | 节点 4 `doc-apply`（`Planning`） | 直接从 `4. Doc Apply` 切入（跳过前 3 步）→ `5. developer-system` → `6. 验收` → `7. deploy-system`（→ `8. Reporting` 按 `postActions` 回归） |
 
-- 与 R-TYPE-3 验证链同族：BugDoc 的 apply/删除均走权限+预检；步骤 3-4 属代码任务（R-ENG-5 调度；串行=同 repo）。
-- scheme 增量：eventType `BugReport`（source=`core|agent`，tier=attention，default-visible，route=`workflows/bug-lifecycle`）；docType `BugDoc`（临时文档类，sections=`[repro, impact, fix]`，修完经 `DocDeleted` 删除）；builtin 集纳入 `bug-lifecycle`（均已同步入 `core/scheme.yaml`）。
+- 原 `bug-lifecycle`、`dev-delivery`、`core-workflow` 等历史名称仅在 `core/scheme.yaml` 的 `runtime.workflows.aliases` 中做 Scheme Adapter 兼容映射，默认注册表与列表不再保留冗余内置 workflow。
+- 当业务上针对特定服务（如 `bi-system`）新增监控修 Bug 发版 workflow 时，同样由解释器执行该服务的 Workflow 文档配置（绑定 `bi-system`、配置日志过滤与收集 `ConnectorOps`、配置 Agent 判断与自动审批、绑定 `developer-system` 与 `deploy-system`、按需增删 `BugDoc` 失效/删除动作）。
 
-## 9b. Workflow 模板（2026-11-26 用户裁决）
+## 9b. Workflow 模板与依赖系统逐层询问（2026-11-27 更新）
 
-> 用户原话：「workflow 感觉也要有 workflow 模版了。」
-
-- Workflow 模板=**Template 概念在 workflow 层的应用**（`core/scheme.yaml` 与 `concepts/template.md` 已扩为**五层 `appliesTo`**，含 `workflow` 层——非新概念）：预置正向相位序列/侧轨迁移/闸门/回滚声明的可实例化模具。
-- 实例化=读取 `Template(appliesTo=workflow)` 真实在册对象→改参数（phases/闸/绑定 agent）→Apply 落为具体 Workflow 对象；模板本身入 `global/templates/`（要求集语义不变）。**禁止在前端硬编码静态假模板卡**——未入库前诚实显示空态，入库后直读真对象并允许实例化。
-- 首批内置模板：①**bug 生命周期**（9a 全链）②**dev-delivery**（现有研发交付骨架提炼）③**文档收敛**（对账→修订→评审→同步）。
-- **可行性分析**：改动面低（`Template.spec.appliesTo` 扩枚举 + 3 份种子 YAML 入 `global/templates/`）；风险=模板与 builtin 漂移，缓解=实例化只复制声明快照并在 `metadata.labels` 标注来源模板与 rv。
+- Workflow 模板=**Template 概念在 workflow 层的应用**（`appliesTo: workflow`）：基于 `core-system-developer-loop` 标准主干提供可实例化的业务模具（如跨服务 Bug 监控修复发版模具）。
+- 实例化或在新项目（如 `sybran`）启用 `core-system-developer-loop` 时，首先 `requires/select` 对应的 `developer-system` 与 `deploy-system`，按 Template `resolver -> asks` 一层层问下去（**默认 `default` / 安装 `install` / 导入 `import`**）。
 
 ## 10. 审阅标注区
 
