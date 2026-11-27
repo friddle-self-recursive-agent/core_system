@@ -4,14 +4,18 @@ docType: ServiceDesc
 scope: builtin
 labels: {tier: platform}
 ---
-# builtin-user-system —— 用户系统（builtin 默认，A34）
+# builtin-user-system —— 用户系统（2026-11-27 裁决：builtin=单用户+token 授权；ldap/sso 演进带完整用户结构与缓存）
 
 spec:
   goalRef: goal.md
   descRef: desc.md
+  builtinUser: {name: builtin-user, authMode: token}   # 内置单用户（User.builtinSet 同款不可删）；授权=现有 token 授权机制（user-system.md §1）
   provides:                                  # 实现标注版本化（interface.md：builtin=内置直调；外部接入用 ops 实现同一契约）
     - {interface: user-directory, version: v1, impl: builtin}   # 契约对象=interfaces/user-directory.yaml（ldap-user-system 等外部 provider 以 impl: ops 接入）
     - {interface: role-holders, version: v1, impl: builtin}
     - {interface: contact-resolution, version: v1, impl: builtin}
-  rule: 用户增删改走人审；至少保留一名管理员；未来 IdP（authentik）接入=WorkService 纳管+本地表转投影（同款 ops 实现路径，interface.md 规则 3）
+  install:                                   # 一键安装向导（user-system.md §6：use-session 一路询问搭建用户体系）
+    template: user-system-install            # 权威 YAML=core_system_instance/examples/templates/user-system-install.yaml
+    entry: console-users-panel               # 控制台用户体系面板「一键安装」按钮 → 创建 use-session
+  rule: builtin 阶段不开放用户增删改面（就一个用户）；ldap/sso 落地轮才有完整用户结构/用户缓存/人审增删改；切 IdP 后本地只读（syncedFrom 标注）
 status: {}

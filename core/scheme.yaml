@@ -226,15 +226,17 @@ spec:
         template: "?{ref}"                       # 文案模板=引用包装对象（{ref: <ref>}——notification.md §3 例与存量对象同形态；v0.48 净入 lint 对账修正：?ref 标量声明与概念例/存量对象劈叉，声明面单点修正收口)
       status: {delivered: "{last24h, failed}"}
 
-    - kind: User                     # 用户系统 builtin
+    - kind: User                     # 用户系统 builtin（2026-11-27 用户裁决：builtin=单用户+token 授权，concepts/user-system.md）
       builtin: true
       storage: global/users/<name>.yaml
       spec:
         display: "!string"
-        contact: "{im: {provider, userId}, email}"
+        auth: "{mode: token|idp (=token)}"               # v0 唯一授权方式=现有 token 授权（gate/dsh token 机制声明引用现状）；idp 取值=ldap/sso 落地轮启用
+        contact: "{im: {provider, userId}, email}"       # 完整用户结构=ldap/sso 阶段才有（builtin 阶段休眠不预埋）
         roles: "[]ref"
-        groups: "[]ref"
+        groups: "[]ref"                                  # builtin 阶段恒空
       status: {lastSeen: timestamp}
+      builtinSet: [builtin-user]     # 内置单用户不可删（role/global/admin 同款防锁死）
 
     - kind: Group                    # 组只绑 role
       builtin: true

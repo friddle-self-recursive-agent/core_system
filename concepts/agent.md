@@ -65,6 +65,7 @@ metadata:
  spec:
  runtime: dsh # rootAgent 默认=dsh 的 plugin；子 agent 看实现：可自写 go agent、直接调 opencode、或继续 dsh（经 ConnectorOps 描述）
  mode: headless # chat（与人对话）| headless（后台执行，缺省）——询问词形随 mode 分轨：chat 可会话内直接问人；headless 只走默认工具 通知+审批（默认 tools 注入）；默认 workflow 拒绑 chat agent
+ subject: {user: builtin-user} # 执行主体身份 bind（2026-11-27 用户裁决：默认 agent 节点 bind 都 bind 内置的这个用户——user-system.md builtin 单用户+token 授权；缺省恒 builtin-user，ldap/sso 阶段才显式覆写）
  autoLevel: auto # AUTOLEVEL：ask | auto | all（§3.1）
  connectorOps: # 默认挂 ConnectorOps（不是 Provider 类型）
  - {ops: onedev-ci, as: onedev} # 子 agent 用什么在这里描述（ops 声明工具与环境）
