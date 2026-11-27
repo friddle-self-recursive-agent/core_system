@@ -41,6 +41,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 - 改设计=**两仓同步提交并 push**（触发 loop 下轮 pull 对账收录）；只改一侧=未完成。
 - 概念文档与 runtime/acceptance 文档头部互相回链（概念→落地口径；落地→概念依据）。
 - **目录按用途分层**（可多文件夹区分）：`runtime/`=机制与接口；`acceptance/<主题>/`=设计/验收基线（入库）；`acceptance/` 根=运行时验收报告（loop-*.md，不入库，见 R-PUB-3）。
+- **实现面文档一律放 core_system_instance，不入 core_design**（2026-11-27 用户裁定）：实现设计/界面与验收基线/实现状态台账（如 console-ui.md、chat/style/审计批→`acceptance/console/`，runtime 流程判据→`runtime/`）；core_design 只保留概念、规则、scheme 声明面与 R-DOC-10 临时对账文档（bug.md 类，终态即删）。判定问一句：**这篇讲"系统是什么/该是什么"（core_design）还是"具体怎么做/做到没有"（core_system_instance）**。
 
 ## R-DOC-6 元数据侧车与 0–100 全局统一标度（2026-11-26 用户裁决）
 
