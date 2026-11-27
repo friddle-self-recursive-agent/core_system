@@ -21,7 +21,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 - **默认 Workflow 只可能是后台执行（headless）agent**：Workflow run 不落对话 agent（§4；workflow.md §5）；
 - 与既有「两类」（builtinRoot/ServiceAgent）正交：那是 scope 分类，这是执行形态分类——每个 scope 类都可落 chat 或 headless 形态。
 
-**三段式 Session 与上下文按需装配（R-CTX-4，2026-11-27 彻底改造——权威见 [session.md](session.md)）**：一个逻辑意图/任务由**新三段式 Session** 完成：**第一段·背景装配**（LLM 描述命令→tag 分析先查 CtxCache→三路注入（工具使用/service 描述及 tag/global index 及 tag）→builtin RAG→类似 session→developer_system 定位仓库→层层整理→背景 ≤5k 字逐块溯源可点击）；**第二段·预更新执行**（反复 ask 询问；**会话没有命令**——能做的永远是文档预更新 draft，**命令都到 workflow 的 agent 节点执行的 agent**（headless，§1 两类形态）；用户 apply 后进第三段）；**第三段·属性回整**（apply 触发：LLM 判断哪些文档的 ref/tag/重要程度/metainfo 要改，**默认自动更新**——Judge 闸收窄为只闸内容类 Proposal）。机制层（Relevance 0-100/CtxCache/Importance 防刷分/KV 前缀稳定）不变，见 concepts/context.md。
+**三段式 Session 与上下文按需装配（R-CTX-4，2026-11-27 落地定稿——权威见 [session.md](session.md)）**：一个逻辑意图/任务由**三段式 Session** 完成：**第一段·背景装配**（LLM 描述命令→tag 分析先查 CtxCache→三路注入（工具使用/service 描述及 tag/global index 及 tag）→builtin RAG→类似 session→developer_system 定位仓库→层层整理→背景 ≤5k 字逐块溯源可点击）；**第二段·预更新执行**（反复 ask 询问；**会话没有命令**——能做的永远是文档预更新 draft，**命令都到 workflow 的 agent 节点执行的 agent**（headless，§1 两类形态）；用户 apply 后进第三段）；**第三段·属性回整**（apply 触发：LLM 判断哪些文档的 ref/tag/重要程度/metainfo 要改，**默认自动更新**——Judge 闸收窄为只闸内容类 Proposal）。机制层（Relevance 0-100/CtxCache/Importance 防刷分/KV 前缀稳定）不变，见 concepts/context.md。
 
 **一个 Service 一个 Agent**：每个 Service（系统）一个负责 Agent（ServiceAgent）；**Agent↔Service 沟通协议的完整设计见 instance 仓 runtime/agent-service-protocol.md**。要点：
 - **第一段最小底座预插入**：Agent 处理意图时，第一段先注入基础命令规范与 Service 资源目录 Index（catalog 货架标签），优先触发 `TagCtxShard` 缓存分片，并对差量 Tag 自行拉取全文；
