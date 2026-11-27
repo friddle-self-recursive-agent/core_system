@@ -80,10 +80,13 @@ spec:
         roles: "?[]ref"                           
         docsPolicy: "{read: []scopePattern, onDemand: bool}"
         eventScopes: "[]scopePattern"             # 明确该 Agent 可消费/处理的 Event scope 范围（event.md 规则 19）
-        subAgents: "[]{name, spawn: machine-instance}"   
-        retry: "{maxAttempts, backoff, escalateTo: root}" 
+        subAgents: "[]{name, spawn: machine-instance}"
+        retry: "{maxAttempts, backoff, escalateTo: root}"
+        control: "?{mode: run|pause|drain (=run)}"    # 运行时控制意图（2026-11-27 用户裁决，agent.md §4a：核心对 agent 控制=收敛不是命令——动词写意图，控制器 reconcile 到 status.controlState；bind 类调整走 Apply 不走运行时）
       status:
         phase: "Idle|Analyzing|Planning|AwaitingApproval|Executing|Verifying|Reporting|Failed"
+        controlState: "?running|paused|stopping|stopped|draining"   # 控制收敛实相（≠意图时持续收敛不静默）
+        lastControl: "?{verb, by, at, result}"         # 控制审计投影（全量账=control log）
         workflow: "?string"
         currentSession: "{id, startedAt, docsLoaded}"
         conditions: "[]Condition"

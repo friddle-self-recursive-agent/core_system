@@ -122,6 +122,49 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 
 简单派发走 `simple-shot`（Idle→Executing→Reporting）。任务幂等可重入：任务带 taskId 与断点，Agent 崩溃后由 Workflow 重新派发续跑。
 
+## 4a. 控制面（core 对 agent 的运行时控制，2026-11-27 用户裁决）
+
+**核心要对 agent 控制**：Agent 对象是被控对象（意图=`spec`，实相=`status`，P2 分离）——核心控制=让 agent **运行实体**的实际状态向 spec 声明**收敛**（P4 幂等/P5 收敛而非成功），不是一次性命令。
+
+### 控制动词集（对运行实体）
+
+| 动词 | 语义 | 对象面（两类形态分轨） |
+|---|---|---|
+| `spawn` | 派发拉起 | headless=进程/Task run（**已实现**：scheduler spawn 桥）；chat=会话开启 |
+| `stop` | 意图停止：等当前步收敛点→记账→退出；不丢账 | headless=杀 run/进程；chat=会话 cancel（真通路） |
+| `pause` | 暂停：不再接新派单+当前执行挂起闸锚（`.loop-hold` 语义对象化） | 两形态同义 |
+| `resume` | 恢复接单+续跑挂起项 | 两形态同义 |
+| `drain` | 停接新单，跑完手头再停（下线前置） | headless 为主 |
+| `restart` | stop→spawn（重派续跑，带 taskId 断点） | 两形态同义 |
+| `bind` | 绑定调整（subject/roles/connectorOps）——走 Apply 不走运行时 | 文档面 |
+
+### 控制通道（同一动词集多通道，interface 裁决同款）
+
+- **API（builtin 直调）**：`POST /v1/agents/{name}/spawn|stop|pause|resume|drain|restart`——核心内置能力直接调接口；
+- **cli**：`corectl agent stop/pause/... <name>`（core_agent 默认通道）；
+- **控制台**：agent 详情页控制按钮（以人为本，同一 API）；
+- **workflow 节点**：流转中控制 agent 经同一动词集（ConnectorOps 内部调用 Service 操作同语义）。
+
+### 控制语义
+
+1. **收敛不是命令**：动词写意图（`spec.control.mode: run|pause|drain`），控制器 reconcile 到 `status.controlState`（running/paused/stopping/stopped/draining）——实际≠意图时持续收敛，不静默。
+2. **两类形态分轨**：headless 控制=进程/Task run 生命周期；chat 控制=会话 interrupt/cancel（真通路，chat.md C 批同账）。
+3. **停机不丢账**：stop/drain 在收敛点落 SessionLog/Task 断点再退；恢复=断点续跑（任务幂等可重入同款）。
+4. **控制是敏感动作**：走 P7 权限；可配人审（ApprovalNeeded，headless 询问同款工具）；控制动作全量审计（control log，对象级 status.lastControl+审计账）。
+5. **builtin 直调**：控制 agent 的能力随核心编译（dsh connector builtin，connector.md 规则 12）——core 调用直接调接口，零 connectOps 转接。
+
+### 现状账（诚实：代码未实现的部分不冒充）
+
+| 通路 | 状态 |
+|---|---|
+| `spawn` 派发桥（scheduler→宿主 task-spawn.sh→core-headless） | **已实现活体** |
+| workflow 引擎 wake 桥/审批闸锚（AwaitingApproval→ResumeSignal） | **已实现活体** |
+| Agent scope 事件消费闸（规则 8） | **已实现活体** |
+| `GET /v1/agents/wakes` 唤醒面只读投影 | **已实现活体** |
+| `stop/pause/resume/drain/restart` 控制动词 API+收敛控制器 | **未实现（declared-deferred）** |
+| chat 会话 cancel 真通路 | **未实现（chat.md C 批已记账）** |
+| 控制审计账（control log 全量落账） | **未实现（declared-deferred）** |
+
 ## 5. 与其他概念的关系
 
 - 被 ServiceInstance **引用**（agentRefs），被 Workflow 引擎派发任务。
@@ -140,6 +183,7 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 7. builtinRoot 不可删（硬规则不变）。
 8. **Agent 处理 Event 的 `scope` 范围强制约束（event.md 规则 19）**：每个 Agent 必须通过 `spec.eventScopes` 明确其允许处理的事件 `scope` 范围（ServiceAgent 缺省锁定为其所属 `systems/<s>` 及 `systems/<s>/instances/*`，子 Agent `eventScopes` 必须 $\subseteq$ ParentAgent 的 `eventScopes`；仅 `builtinRoot` 可持 `["*"]`）；派发路由与拉取消费双侧强制校验 `event.metadata.scope ∈ agent.spec.eventScopes`，严禁跨 scope 越界消费事件，且第一段侦察拉取「近期关联事件」时默认只检索本 Agent `eventScopes` 内的非隐藏事件（自动过滤 `Heartbeat` 等 `visibility: default-hidden` 的底层事件）。
 9. **进程与会话活性靠 `Heartbeat`（`pingheart`）盯着恢复，本层级不考虑高可用（2026-11-26 用户裁决）**：本层级明确不设计多副本高可用（Non-HA）或复杂级联进程租约；Agent 与机器级子 Agent 活性统一由 `Heartbeat`（`pingheart`）看门狗盯着恢复——失活触发 `SessionStalled` / `HeartbeatLost` 自愈链（先注入「继续」唤醒 → 诊断重启/重派 → 上报）。
+10. **运行时控制收敛语义（2026-11-27 用户裁决，§4a）**：核心对 agent 的控制动词（stop/pause/resume/drain/restart）一律**写意图进 spec、控制器收敛到 status**（幂等、可重入、停机不丢账）；控制动作走 P7 权限+全量审计；`bind` 类身份/权限调整走 Apply 不走运行时。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
@@ -151,6 +195,8 @@ Idle → (派发) Analyzing → Planning → [权限系统命中→AwaitingAppro
 | 机器级子进程开销 | ⚠️ 低（已接受） | 每 agent 一进程，内存翻倍 | 已明确接受（架构决议）；换取崩溃隔离+直控+无共享状态 |
 | 按需加载读漏关键约束 | ⚠️ 中 | 会话自主决定读什么可能漏 Rule | L0 最低必载由 Workflow 注入（规则 2）；SessionLog 记录 docsLoaded 可审计"读了什么" |
 | 对话/headless 询问词形混用 | ⚠️ 中 | headless 误用会话内提问词形=无人应答死等 | 询问词形随 `spec.mode` 分轨：headless tools 无会话提问词形，只有**通知+审批**两个默认工具（builtin 注入）；Workflow 引擎派发校验 mode，默认 workflow 拒绑 chat agent |
+| 控制动词误伤在跑任务 | ⚠️ 中 | stop/restart 打断执行丢上下文 | §4a 语义 3：收敛点落账再退+断点续跑；drain 用于下线前置 |
+| 控制权滥用 | ⚠️ 中 | 谁都能停 agent=失控 | §4a 语义 4：P7 权限+可配人审+全量审计 |
 | Provider/ops 引用膨胀 | ⚠️ 低 | 权限面变大 | 并集+权限系统裁剪不变；无引用 Provider 告警 |
 
 **结论：可行。本设计放松了写路径管制、换上"记录+分级"治理——与 AUTOLEVEL 一样，都是 P8（机制不假设模型能力）的落地。**
