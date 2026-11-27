@@ -105,6 +105,8 @@ status: # 由 Workflow 引擎回写
 
 `all` 永远需要显式声明 + 权限系统 放行（P8：模型越强，级别可上调，机制不变）。
 
+**权限双态缺省（2026-11-27 用户裁决，permission.md 规则 6）**：权限默认不需要控制——**所有权限直接给**（日常动作零审批摩擦，AUTOLEVEL 不再逐条拦默认态）；唯一强制闸=**显式越权请求默认弹窗授权**：工具调用声明升级权限级别（如 `sandbox_permissions: danger-full-access`）并附 `justification` 时，必走 ApprovalNeeded→控制台**授权弹窗**（人批放行/拒则记录），内建默认不依赖配置。
+
 ## 4. 生命周期（= Workflow `default-task`）
 
 任务态机即 builtin Workflow（concepts/workflow.md §1），Agent 不自定义态机，只引用：

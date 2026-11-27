@@ -435,6 +435,10 @@ spec:
       maxAttempts: 2
       spawn: "host:/task/spawn"     # 宿主 agent spawn 桥（每任务一个 dsh session）
       observability: "Task.status + TaskStateChanged + console #/tasks"
+    permission:                     # 权限双态（2026-11-27 用户裁决，concepts/permission.md 规则 6）
+      defaultPosture: allow-all     # 默认直给：所有权限直接给（日常动作零审批摩擦）
+      escalationGate: popup         # 唯一强制闸：显式越权请求默认弹窗授权（内建默认不依赖配置）
+      escalationRequest: "{sandbox_permissions: string, justification: string}"   # 升级声明格式（danger-full-access 等）；justification 随审计账留存
     workflows:
       default: core-system-developer-loop
       builtin: [core-system-developer-loop, default-task]
