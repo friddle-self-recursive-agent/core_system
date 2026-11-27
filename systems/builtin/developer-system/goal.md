@@ -14,6 +14,6 @@ ownerRefs: [{kind: ServiceDesc, name: builtin-developer-system}]
 
 - A1. push → 构建启动 p95 < 3min（本地 build，无队列远端）。
 - A2. 主分支红线（测试+lint）100% 执行，无旁路合并。
-- A3. 构建产物 100% 入库 storage-system（NAS 为主、OSS 归档），带 digest 可回溯到 commit。
+- A3. 构建产物 100% 入库 storage-system 本地 files/（digest 命名），可回溯到 commit。
 - A4. 任一阶段失败 → Event(critical) → Bind oncall 5min 内可达（审计可查）。
 - A5. 满足"开始的循环"：本地 git commit → Event → Agent → TaskScheme(build) → dsh 本地执行 → verify → Status（零外部依赖首圈；详见 instance 仓设计 §首圈走查）。

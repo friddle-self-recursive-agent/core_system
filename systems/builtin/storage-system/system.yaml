@@ -4,14 +4,16 @@ docType: ServiceDesc
 scope: builtin
 labels: {domain: storage}
 ---
-# builtin-storage-system（R1.3：文档默认本地文件夹 git；R1.6：有 nas 和 oss）
+# builtin-storage-system（2026-11-27 裁定：builtin=本机目录存储，零外部依赖；NAS/OSS=部署方可选外接 connector，非内置）
 
 spec:
   goalRef: goal.md
   descRef: desc.md
   implementationRef: system://core_system_instance/impl/storage-system.md
-  connectors: [gitfs, nas-driver, oss-driver]   # gitfs=builtin（workservice 仓）；nas/oss-driver=用法型（sybran_usage_connector 仓，rule.md R-ENG-3）
-  tiers:
-    - {tier: primary,  kind: local-git, desc: "文档权威副本：本地文件夹 git"}
-    - {tier: backup,   kind: nas,       desc: "git remote 备份 + 大文件/LFS"}
-    - {tier: archive,  kind: oss,       desc: "镜像文件地址 / 产物归档 / 冷备"}
+  connectors: [gitfs, localfs]   # gitfs=文档轨（builtin，workservice 仓）；localfs=files/snapshots/templates 本机目录读写。nas/oss 驱动=用法型（sybran_usage_connector 仓，rule.md R-ENG-3），部署方可选接入、不在本系统 connectors 内
+  root: 本机目录（随实例配置）
+  layout:
+    - {dir: docs/,      desc: "文档库本体：本地文件夹 git（权威；Apply=commit）"}
+    - {dir: files/,     desc: "产物/大文件：digest 命名，不进 git"}
+    - {dir: snapshots/, desc: "ops DB 每日快照：sqlite 文件级"}
+    - {dir: templates/, desc: "模板镜像：install 取件，digest 校验"}

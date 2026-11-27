@@ -35,4 +35,4 @@ core_system 是自递归（self-recursive）控制面的根声明：一套用文
 | self-recursive-core | 核心进程（workservice 仓） | 控制面：Apply/Event/Workflow 引擎/Scheme/权限系统（R1.1） |
 | builtin-developer-system | 本地 build + onedev | 开发流水线（R1.3, R1.6） |
 | builtin-deploy-system | 当前机器 | 安装执行器：WorkServiceTemplate 的落地者（R1.3, R1.4） |
-| builtin-storage-system | 本地文件夹 git + NAS + OSS | 文档存储与备份、镜像/产物对象存储（R1.3, R1.6） |
+| builtin-storage-system | 本机目录（docs/files/snapshots/templates） | 文档存储与备份、产物/镜像归档（builtin 无 NAS/OSS，2026-11-27 裁定；远端=可选外接） |
