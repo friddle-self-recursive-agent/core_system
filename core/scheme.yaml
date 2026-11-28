@@ -8,6 +8,7 @@ kind: Scheme
 metadata:
   name: default
   scope: builtin
+  tags: ["domain:scheme"]   # 检索元数据（P2 顶层 metadata.tags——type:value 词形，conventions.context.tagModel）
 spec:
   version: core/v1
 
@@ -23,7 +24,17 @@ spec:
       storage: "core/scheme.yaml | core/schemes/<name>.yaml"
       spec: {version: "!string", aspect: "?string", imports: "?[]ref", kinds: "[]KindReg", docTypes: "[]DocTypeReg",
              eventTypes: "[]EventTypeReg", dispatch: "[]DispatchRule", runtime: "?RuntimeReg",
-             conventions: "?{status, cascade}"}
+             conventions: "?{status, cascade}",
+             # tag 词表注册（V-16：/v1/scheme/kinds 直出 spec.metadata.tagTypes——前端
+             # tagVocabFromKinds 现读，#/tags 分组唯一真源；零假词表=词表只住 scheme）。
+             # 两式并存：前缀域键（type:value 词形前缀→显示名）+ 存量裸 tag 精确映射
+             # （2026-11-28 前旧打标的裸词形——词形迁移完成前由词表兜住分组）。
+             metadata: {tagTypes: {domain: domain, mech: mech, surface: surface, lifecycle: lifecycle, doc: doc,
+                                   workflow: domain, scheme: domain, connectops-gh: domain, deepseek: domain,
+                                   acceptance: lifecycle, bug: lifecycle, delivery: lifecycle,
+                                   audit: mech, fix: mech, issue-feedback: mech,
+                                   console: surface, ux: surface, session-page: surface, chat: surface, style: surface,
+                                   doc-alignment: doc, docs: doc}}}
       rules: [禁止多Scheme在一个文件(导入除外,落库必拆单文件,R-DOC-8), 改已支持Scheme值免改代码/值不支持或改Scheme契约必触发代码改动(R-ENG-4)]
 
     - kind: DocType                   # 文档类型注册（本系统的 CRD 机制）
