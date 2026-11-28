@@ -136,6 +136,7 @@ Task(queued) → 调度器（依赖/写集/上限）
     - **三态判定（以账目为真相源）**：对 `phase∈{running,verifying}` 的任务逐个判定——`alive`（agentSession 会话账推进/心跳在）｜`stalled`（超 `leaseTtl` 无心跳但账目存在）｜`orphan`（spawn 进程已死 ∧ 账目停更——**spawn pid 退出≠任务死**，pid 是拉起器不是执行体；以会话账闭合为准）。活性投影（sessions）缺席不参与判死（event.md 规则 14c② 扫描基口径）。
     - **启动遍历**：服务启动后第一拍全量遍历未结束 Task（queued/ready/blocked/running/verifying）重建现势与租约（防重启丢账），逐项落三态判定；orphan/stalled 直接入处置链。
     - **自动保活链**：orphan/stalled → `maxAttempts` 内**幂等重拉 headless**（单飞锁防双拉，lastAction 留痕「第 N/3 次拉起」）→ 重拉成功=保活（不产 error 事件）；重拉耗尽 → `phase=failed` + `TaskStalled`（error 级，event.md 规则 14c④ 诊断载荷：lastAction/判定证据/状态查询锚）+Escalate——**人只在这一拍介入**，watchdog 不自行绕过审批链。
+    - **agent 侧落点=LLM 保活提示（2026-11-28 用户裁定「理论上落地应该是 workflow 的节点的 agent 的 scheme，其中 llm 提示」）**：保活是两半——引擎半（本条扫描/判定/重拉兜底）+ **agent 半=节点 agent scheme 的 `keepalivePrompt`**（workflow.md §1.3 agent 点进即配项；spawn 桥载荷同带此段）：拉起时随 system prompt 注入，agent 会话内自主参与保活——周期心跳、收到「继续」注入即恢复推进、特殊状态主动按 ERROR 流程上报、确认无法解决明确声明升级而非空转假装在干。
     - **终态唯一口径**：任务死亡只能由 watchdog 依据账目闭合判定落 `failed`；任何通路（含恢复重启）不得把 `running` 直接改写 `done`——done 必须来自执行体 Verify 通过的回写。
 
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
