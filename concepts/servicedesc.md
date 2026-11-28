@@ -22,7 +22,8 @@ ServiceDesc 是"一个系统应该长成什么样"的全部意图：一组按 Do
 - 不含实现说明（"我用 gitlab CI 实现了它" 属于 Instance 侧 ImplDoc）；
 - **紧急情况不打折**：需要紧急变更时，**ServiceInstance 与代码一起更新**（意图与实现同批落地）——不存在"能力声明不绑实现所以紧急只改一半"；声明与实现的一致性由 Workflow 对账追平；
 - 不含外部系统本体（gitlab 是 WorkService，Desc 里只有对它的引用）；
-- 不是文件夹里随便加文件：未注册 DocType 的文档 权限系统 拒收（Scheme 闸门）。
+- 不是文件夹里随便加文件：未注册 DocType 的文档 权限系统 拒收（Scheme 闸门）；
+- 不含管理分组结构：`service_group` 是 metadata 上的**纯分类属性**（管理与分类、展示按组展开），不是新 Kind、不构成层级、不改变系统的平级结构（见 §3.1）。
 
 ## 3. 对象结构
 
@@ -34,6 +35,7 @@ kind: ServiceDesc
  name: developer-system
  scope: global
  labels: {domain: devtools}
+ serviceGroup: devtools # service_group：管理分类属性（纯展示分组，见 §3.1）
 spec:
  goalRef: goal.md # 必须
  descRef: desc.md # 必须
@@ -49,6 +51,20 @@ spec:
  agentRefs: [agent/ci-repair-agent]
 status: {} # 空。Desc 无 Status，Status 长在 Instance
 ```
+
+### 3.1 service_group（服务分组）
+
+service_group 是 ServiceDesc `metadata.serviceGroup` 上的一个**纯管理分类属性**：给平级的系统贴一个组名，唯一用途是**管理与分类、展示面按组展开折叠**（控制台系统列表、跨系统对账视图等按组聚合展示）。
+
+| 项 | 值 |
+|---|---|
+| 形态 | metadata 属性（字符串组名），**不是新 Kind、不是对象** |
+| 结构影响 | 零。系统仍然全局平级；组是展示层的虚分组，不进 spec、不进存储结构 |
+| 缺省 | 未设置=「未分组」桶（展示面归拢，不隐身） |
+| 唯一性 | 组名自由字符串，多系统可同组；v1 不注册词表（需要收口时再挂 tagType 词表） |
+| 生命周期 | 改组=改 metadata 属性，非 spec 变更：不触发 `generation+1`、不触发 reconcile、无任何级联 |
+
+**边界**：组不嵌套组（一层）；组不参与调度/权限/触发等任何运行语义——任何实现面不得读该字段做路由或过滤决策；系统间引用（workserviceRefs/instances）与组无关，跨组引用合法。与 `metadata.labels` 的分工：labels 是通用打标（多值、检索），service_group 是单一展示分组（单值、组展开），语义上不混用。
 
 ## 4. 生命周期
 
@@ -75,6 +91,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 5. **设计文档与实现文档的 1:N `[metadata 关联]` 追踪（R-DOC-9）**：`ServiceDesc` 下的 1 篇设计文档（`Goal`、`Desc`、`Rule`、`CodeDesign`、`DataDesign`、`WorkflowDesign` 等）在现实中往往对应 **N 篇** `ServiceInstance` 侧的实现文档（`ImplDoc`）或验证文档（`VerifyDoc`）（跨多实例或同一实例内跨多模块/多代码仓）。系统通过文档 frontmatter `metadata.trace` 与侧车 `<doc>.md.metadatainfo` 的 `trace` 字段建立**双向 1:N 可追踪关联**：
    - **设计文档侧（1 侧）**：可声明 `trace.requires: [ImplDoc, VerifyDoc]`（要求必须有下游实现/验证覆盖），由 `DocIndex` 与定时导出器自动反向聚合填充 `trace.implemented_by: [{doc, instance, sections?, designRev, status: synced|stale}]` 与 `trace.verified_by: [...]`（1 对 N 映射表）；
    - **过期与孤儿检测**：当 1 侧设计文档更新（`resourceVersion` / `blobSha` 推进）时，沿 `trace.implemented_by` 关联的全部 N 篇 `ImplDoc` / `VerifyDoc` 自动标为 `stale`（并在全局相关性 `Relevance(DesignDoc, ImplDoc)` 中赋予结构耦合先验满分 `100`），驱动 Workflow 对账产出 `DriftReport`；无任何 `ImplDoc` 关联的设计条款将被检出为「孤儿设计（Orphaned Design）」。
+6. **service_group 只做管理与分类展示（§3.1）**：组是平级系统的虚分组，缺省「未分组」；改组不动 spec/`generation`、不触发 reconcile；实现面禁止读该字段做调度/权限/路由决策。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
 ## 7. 可行性分析
@@ -84,6 +101,7 @@ status: {} # 空。Desc 无 Status，Status 长在 Instance
 | 自然语言 Goal 不可判定 | ⚠️ 中 | "系统要好用"没法验收 | Goal 模板强制含可验证的验收条款（verify 段）；Verifying 阶段以此为判据 |
 | 文档互相矛盾 | ⚠️ 中 | Rule 与 WorkflowDesign 冲突 | 权限系统 的 Lint 级校验（交叉引用检查）+ Workflow 分析阶段显式报告矛盾 |
 | 能力抽象过度 | ⚠️ 低 | "不绑实现"抽象到没人懂 | v1 允许注释性提及实现，仅规范性字段禁止 |
+| service_group 被误当层级/结构 | ⚠️ 低 | 组被当成组织结构，进而想挂权限/调度语义 | 概念层锁死「纯属性+仅展示」+设计规则 6 禁实现面读它做路由；真要层级时另立概念评审 |
 
 **结论：可行。核心风险是自然语言的可判定性，用模板+验证段压住。**
 
