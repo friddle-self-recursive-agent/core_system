@@ -132,6 +132,11 @@ Task(queued) → 调度器（依赖/写集/上限）
 9. **不绕过验证**：任务完成前必须过 Verify（code/agent/human，R-TYPE-3）；验证失败不得 done。
 10. **预算与背压**：并发受 LLM/机器/配额约束；超限排队，不刷额度；队列积压可见。
 11. **并发冲突任务在 Apply 关口拦截并直接询问「暂停第一个还是放弃当前任务」（2026-11-26 用户裁决）**：即便两个并发任务在调度期未声明重叠 `touches`，在落地 `Apply`（或合并队列）这一关也会被乐观锁拦截。当第一个任务 Apply 后，第二个任务到达 Apply 关口时先判断有没有实质冲突；一旦判定有冲突，**直接挂起并询问上级 Agent 或人类：「暂停第一个任务（`pause-first`）还是放弃当前任务（`abort-current`）？」**，绝不允许两个任务后台循环互踩。
+12. **Task watchdog：启动遍历+悬挂回收+自动保活（2026-11-28 用户裁定「服务启动后应该有一个 watchdog，遍历没有结束的 agent，自动保活；有问题走 ERROR 流程；理论上不能解决的必须人来介入」——收口 issue #1「spawn 桥 headless 异常退出后 Task 悬挂 running 无 watchdog 回收」）**：
+    - **三态判定（以账目为真相源）**：对 `phase∈{running,verifying}` 的任务逐个判定——`alive`（agentSession 会话账推进/心跳在）｜`stalled`（超 `leaseTtl` 无心跳但账目存在）｜`orphan`（spawn 进程已死 ∧ 账目停更——**spawn pid 退出≠任务死**，pid 是拉起器不是执行体；以会话账闭合为准）。活性投影（sessions）缺席不参与判死（event.md 规则 14c② 扫描基口径）。
+    - **启动遍历**：服务启动后第一拍全量遍历未结束 Task（queued/ready/blocked/running/verifying）重建现势与租约（防重启丢账），逐项落三态判定；orphan/stalled 直接入处置链。
+    - **自动保活链**：orphan/stalled → `maxAttempts` 内**幂等重拉 headless**（单飞锁防双拉，lastAction 留痕「第 N/3 次拉起」）→ 重拉成功=保活（不产 error 事件）；重拉耗尽 → `phase=failed` + `TaskStalled`（error 级，event.md 规则 14c④ 诊断载荷：lastAction/判定证据/状态查询锚）+Escalate——**人只在这一拍介入**，watchdog 不自行绕过审批链。
+    - **终态唯一口径**：任务死亡只能由 watchdog 依据账目闭合判定落 `failed`；任何通路（含恢复重启）不得把 `running` 直接改写 `done`——done 必须来自执行体 Verify 通过的回写。
 
 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
