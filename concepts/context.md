@@ -222,7 +222,7 @@ spec:
 
 | 风险 | 等级 | 说明 | 缓解 |
 |---|---|---|---|
-| 文档更新写放大雪崩 | ⚠️ 中→低 | 频繁 Apply 若全量重建会拖垮索引与缓存 | 按 `Relevance(UpdatedDoc, B) ≥ rebuildThreshold` 局部失效重建；侧车仅在定时导出 Git 时刷新 |
+| 文档更新写放大雪崩 | ⚠️ 中→低 | 频繁 Apply 若全量重建会拖垮索引与缓存 | 按 `Relevance(UpdatedDoc, B) ≥ rebuildThreshold` 局部失效重建；侧车仅在 release 节点导出 Git 时刷新（R-DOC-7 2026-11-28 修订——导出=workflow 节点执行面） |
 | 每轮新建侦察破环 Prefix KV Cache | ⚠️ 高→低 | 每轮重排头部或重开会话导致 Prefill 成本飙升 | 会话本身跨轮自复用 + `TagCtxShard` 规范字典序定序拼装 + 第一段仅差量侦察未命中 Tag |
 | 离散 Cosine ≥ 0.9 漏判与误判 | ⚠️ 中→低 | 整包 Cosine 命中率极低 | 改为按单 Tag 细粒度触发 `TagCtxShard` + 非对称覆盖率 `TagCoverage(Task, Cache) ≥ 90` |
 | 同质任务刷分导致 Importance 通胀 | ⚠️ 高→低 | 连续 5 个同类任务把边缘文档刷到 100 | 跨任务多样性折扣 $w_{\text{div}}$ + 局部/全局解耦 + L0 刚性保底 95 + 独立审核 Agent + 人类评论因子 |

@@ -89,7 +89,7 @@ service_group 是 ServiceDesc `metadata.serviceGroup` 上的一个**纯管理分
 3. 文档间引用用相对路径或 `system://<name>/<doc>` URI，不用裸文件路径（为将来换存储留缝）。
 4. 一个系统一个目录，目录名=对象名（instance 仓 layout.md）。
 5. **设计文档与实现文档的 1:N `[metadata 关联]` 追踪（R-DOC-9）**：`ServiceDesc` 下的 1 篇设计文档（`Goal`、`Desc`、`Rule`、`CodeDesign`、`DataDesign`、`WorkflowDesign` 等）在现实中往往对应 **N 篇** `ServiceInstance` 侧的实现文档（`ImplDoc`）或验证文档（`VerifyDoc`）（跨多实例或同一实例内跨多模块/多代码仓）。系统通过文档 frontmatter `metadata.trace` 与侧车 `<doc>.md.metadatainfo` 的 `trace` 字段建立**双向 1:N 可追踪关联**：
-   - **设计文档侧（1 侧）**：可声明 `trace.requires: [ImplDoc, VerifyDoc]`（要求必须有下游实现/验证覆盖），由 `DocIndex` 与定时导出器自动反向聚合填充 `trace.implemented_by: [{doc, instance, sections?, designRev, status: synced|stale}]` 与 `trace.verified_by: [...]`（1 对 N 映射表）；
+   - **设计文档侧（1 侧）**：可声明 `trace.requires: [ImplDoc, VerifyDoc]`（要求必须有下游实现/验证覆盖），由 `DocIndex` 自动反向聚合填充（原定时导出器联动已随 2026-11-28 R-DOC-7 修订退役——导出=release 节点执行面） `trace.implemented_by: [{doc, instance, sections?, designRev, status: synced|stale}]` 与 `trace.verified_by: [...]`（1 对 N 映射表）；
    - **过期与孤儿检测**：当 1 侧设计文档更新（`resourceVersion` / `blobSha` 推进）时，沿 `trace.implemented_by` 关联的全部 N 篇 `ImplDoc` / `VerifyDoc` 自动标为 `stale`（并在全局相关性 `Relevance(DesignDoc, ImplDoc)` 中赋予结构耦合先验满分 `100`），驱动 Workflow 对账产出 `DriftReport`；无任何 `ImplDoc` 关联的设计条款将被检出为「孤儿设计（Orphaned Design）」。
 6. **service_group 只做管理与分类展示（§3.1）**：组是平级系统的虚分组，缺省「未分组」；改组不动 spec/`generation`、不触发 reconcile；实现面禁止读该字段做调度/权限/路由决策。
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。

@@ -28,7 +28,7 @@ Agent 是干活的最小自治单元：领任务 → 按需加载文档 → 分�
 - **Service 内 Agent 信息不隔离**：不做 SubAgent 级信息隔离——ServiceAgent 自己判断读什么、给谁看；
 - **一个意图 = 一个三段式逻辑 Session**（侦察段→执行段自复用→异步总结演化段）；
 - Service 可在运行或第三段异步总结中**提议更新文档**（Proposal，先查重后提单），也可**在运行时提交 Ref 类型**记录（解析到的资源随手入册）；
-- **默认记忆系统就在 Service 的文档管理与 CtxCache 中**：持久经验以文档形式存 Service 文档域（Memory DocType，SQLite `docs DB` 权威 + 定时导出 Git），会话热记忆落按 Tag 分片的 `CtxCache`（容量与提取大小均可调）。
+- **默认记忆系统就在 Service 的文档管理与 CtxCache 中**：持久经验以文档形式存 Service 文档域（Memory DocType，SQLite `docs DB` 权威 + release 节点导出 Git——R-DOC-7 2026-11-28 修订），会话热记忆落按 Tag 分片的 `CtxCache`（容量与提取大小均可调）。
 
 **默认 Skill（系统文档与上下文查询）**：agent 被调用（root/上游派任务）时，默认把"查本系统与上下文"作为 skill 喂给它（第一段预插底座）——一组命令式工具（`context.find / pack / expand`、按 scope/name/DocType 取文档、读 Status/最近事件/近期相关 Session），agent 靠调用命令获取上下文，不靠记忆猜。该 skill 属 builtin 基础循环调用代码（concepts/builtin.md），随代码自带、自动生效。
 
