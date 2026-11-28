@@ -433,6 +433,7 @@ spec:
     - {on: LongTaskRunning,  for: "any",            dispatch: dead-letter}   # 长任务显式汇报=进展事实（有进展心跳=不判停滞）；dead-letter 观测兜底可见
     - {on: BugReport,        for: "any",            dispatch: workflows/core-system-developer-loop, cc: root-agent}   # 运行期异常统一进 core-system-developer-loop
     - {on: GhIssueEvent,     for: "any",            dispatch: workflows/gh-issue-trigger, cc: root-agent}   # GitHub Issue 事件进 gh-issue-trigger（workflow.md §9c——定时整理+事件即时双入口）
+    - {on: GhReleaseEvent,   for: "any",            dispatch: workflows/sybran-release-update, cc: root-agent}   # GitHub Release 到货进 sybran-release-update（2026-11-28 用户自有 workflow——发布→更新派发闭环）
     - {on: "*",              for: "scope:builtin/*", dispatch: workflows/builtin-root}
     - {on: "*",              for: "any",            dispatch: dead-letter}   # 死信必须可见（词汇=hub 合成死信/eventbus routed_to 同一词）
 
