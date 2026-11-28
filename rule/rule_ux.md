@@ -128,7 +128,7 @@ ownerRefs: [{kind: ServiceDesc, name: core_system}]
 1. **一切展示面优先描述内容**：首屏=核心业务内容描述（markdown 正文/YAML 纯文本全文）+周边信息（相关任务、会话、工作流、标签、规则），不是纯格式/纯 scheme。
 2. **scheme 默认=弹窗按需**：人不主动看 scheme，只有需要修改时才看——所有 kind 定义/对象 scheme 收进「scheme」按钮的弹窗（modal，内容=YAML 纯文本），不再占固定面板。
 3. **相关上下文直达**：对象页相关任务与会话卡（人话状态+可点看 session）；会话页可见对应任务背景（任务 title/summary/来源 workflow 节点描述）；双向可点、零编造（不在册=诚实空态）。
-4. **修改主通路=对话**（R-UX-1 同口径重申）：scheme 弹窗只为看；改=sed 对话（docFix/draft+人审 Apply），表单为降级。
+4. **修改主通路=对话（2026-11-28 二次收紧）**：一切修改默认=LLM 对话改文档→Apply（改文档/改 scheme 同判）——**不是人填表**；「详情页面配置」（workflow studio 类配置表单）**默认不展示，点击弹窗才见**；只有确实需要手改才手改（YAML/原文 textarea=手改最后手段），正常没人自己填。修改文档的 session=默认三段式对话模式，只是上下文确定、LLM 优先带上该文档具体信息与 ref；记忆系统缓存同基于此。
 5. **对 R-UX-4 的迭代**（2026-11-28 两连裁）：YAML 对象看态=纯文本 textarea 全文（信息密度优先，「结构化看的信息密度太低」）——R-UX-4「scheme 次级视图须结构化字段卡」退役；结构化只在编辑器编辑态显式切换时出现。
 
 判据（机械）：对象工作台首屏=内容卡+相关任务与会话卡，scheme 无固定面板（grep `data-panel-scheme` 首屏零直出）；scheme 经按钮弹窗可达；会话页任务背景卡含 title/summary/来源；markdown 页正文先于一切 frontmatter 词形；npm test 含 relatedWorkOf/背景卡纯函数断言。
