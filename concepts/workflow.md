@@ -95,6 +95,7 @@ Workflow 是**完整的循环流程**：**触发规则 → 事件整理 → 事�
   - **agent**：**判断执行单元**（「agent 是可以判断的」）——会话/独立 agent 内做判断与产出（Agent 判断、Doc Apply 规划、总结归档）。**agent 节点点进即配**（前端节点表点击该行展开配置面）：该 agent 默认 LLM（`provider`/`model`/`modelTier`）、ref 的文档 `refDocs`、ref 的规则 `refRules`（工作流级缺省仍是 `globalRuleRefs`）、默认 ref 的 tag `refTags` 与 tag 规则 `tagRules`、随身工具 `tools`；
   - **service**：**调用目标系统**（developer_system / deploy_system…）——执行节点是 service，**service 内部用 service 自己的 agent 来执行**。**service 内部 agent 的执行载体=session**（2026-11-27 用户裁决「builtin 的 service 的 agent 可以用 session 来解决。突破下限制」）：run 推进落到 unit=service 节点时，引擎为 service 的 agent（`ServiceDesc.instances.agentRefs`）**开一个 session**（同 wake 桥/task-spawn 桥族的 session 拉起通路），`contextPassing` 上一轮详细上下文（run 历史逐字段汇聚——判断结论/方案与 diff/验收 findings/审批记录）作为**首轮输入注入该 session**；session 是完整执行形态（多轮/工具/三段式机制层，session.md），run **挂起在该节点**等 session 完成（session 心跳终结 → run 沿表续行，`history.sessionId` 回填真实会话锚）——**突破两条既有限制**：①service 节点执行从 declared-deferred 变真实通路；②「workflow 直挂 agent 必须 headless」只约束 workflow **直接挂载**的 agent 节点，service 内部 agent 挂在 `ServiceDesc.instances.agentRefs` 下、由 service 以 session 驱动，不受该条限制（agent.md 两类形态边界注记同账）。**builtin developer_system 的权限随文档授予**（P7 权限随文档走——`systemBindings.*.permissionRole` 绑 Role 文档，`Role.permissions` 以 `{scope, actions}` 条目声明，developer-system 系统文档同步标注）。
   - **gate**（控制节点，非执行单元）：审批闸门（`human` 人工批闸 / `agent` 自动判断审批 / `auto` 自动通过）——不计入执行单元三型。
+  - **workflow（子工作流节点，第四词形，2026-11-28 用户裁定「workflow 可以自己开多条……workflow 支持自动子 workflow 模式」）**：`unit: workflow` 的节点=**子工作流执行单元**——父 run 在该节点按 judge 产物计划**自动扇出 N 个子 run**（`fanout: {from: <计划键>, key: items}`——计划条目驱动，一条修复项一个子 run；`workflow:` 指定子 workflow 名，可指向自身形成修复链复用），子 run 载荷带 **`parentRun` 锚**（run 树可见）；父 run **挂起 join** 等全部子 run 落终态（converged/failed 均计入）后沿声明边续行；汇聚节点（后继 unit=agent，`op: merge-results`）经 contextPassing 汇总全部子 run 产物（diff/发版/验证证据/失败原因）。执行单元三型扩为**三型+workflow 词形**（gate 仍非执行单元）。
 - **验收节点 = developer-system 的 Agent 验收 session**（2026-11-27 用户裁决「验收也是 developer-system 的 Agent 的验收 session」）：verify 节点 unit=service 指向 developer-system（op=acceptance），service 内部 agent 开验收 session 逐条解释执行 `verification.conditions` 清单；**Report 节点也是 agent**（unit=agent）且随身工具（`tools`：读 findings / 写归档报告 / 打 tag）——记得提供相关工具。
 - **节点拓扑可加删**（2026-11-27 用户裁决「我要加节点或者我要去掉验收节点了？」）：`immutableNodes` 不再恒 true（内置主干缺省 false）——前端节点表支持加节点/删节点（如删验收节点）/改节点参数，改动一律 draft→apply 落账（会话没有命令，§1.2 同源）。
 - **默认绑定同名 ConnectorOps**：`core-system-developer-loop` 绑定 `ConnectorOps/global/core-system-developer-loop`，在 workflow apply 时自动物化节点接线骨架（`execution.state = bound`）。
@@ -285,6 +286,8 @@ spec:
 19. **回滚区分「要不要回滚 + 四类回滚方式 + 回滚文档描述」（2026-11-26 用户裁决）**：Execute 相位失败时的回滚绝非一刀切，严格按步骤/工具声明的 `rollback: {policy: never|auto|ask|optional, type: irreversible|code|agent|human, description, docRef?}` 执行：有些根本没办法回滚（`irreversible`，事前人审、事后补救不逆操作）、有些不需要回滚（`never` 或 `ask` 决定不回滚而直修）、有些由代码确定性回滚（`code`）、有些由 Agent 读回滚文档描述诊断后回滚（`agent`）、有些挂起交给人按 Runbook 回滚（`human`）。
 20. **并发任务冲突在 Apply 关口拦截并直接询问「暂停第一个还是放弃当前任务」（2026-11-26 用户裁决）**：两个同时冲突的任务在 `Apply` 这一关就会被乐观锁拦截（保障最终一致）。第一个任务 Apply 后，第二个任务到达 Apply 关口判断有没有实质冲突；若有冲突，直接挂起并询问上级 Agent 或人：**暂停第一个任务（`pause-first`）还是放弃当前任务（`abort-current`）**。
 21. **外部系统 `trustLevel` 与 Workflow 级可配置内容检验门（`trustGate`，2026-11-26 用户裁决）**：默认内部系统都是可信的（`trustLevel: trusted`）；对接外部系统的 `Provider` 与 `ConnectorOps` 声明 `trustLevel: external`。当 Workflow 节点消费 `trustLevel: external` 的外部内容时，由 Workflow 级可配置的 `spec.trustGate`（`mode: code | agent | both`）先让代码或 Agent 判断一遍外部内容是否 OK（无注入/越权/污染），通过后方可进入 Context 与下游相位。
+22. **批量合判与多 run 扇出（2026-11-28 用户裁定「一次把多个没有 close 的 issue 一起分析……下发任务的时候可以发布多个 workflow run」）**：批量入口（timer 全量扫描/多事件同拍）的 run 在 judge 节点**一次批量分析**全部待处理项，产出**执行计划**（条目=修复项 `{issues: [], scope, risk}`——合并判据：同模块/同根因/同文件合一项；噪声项合并直达 Reporting）；声明 `fanout` 的 workflow 由引擎按计划条目**扇出 N 个子 run**（规则 §1.3 第四词形），单条入口（单 GhIssueEvent）不声明 fanout=一事件一 run 不变。**join 语义**：父 run 扇出后挂起（status=`suspended`），全部子 run 落终态（converged/failed 均计入、部分失败不传染父 run）后 `fanout-complete` 迁移续行——合并节点汇总结果，逐项如实反馈（成功项带 release/commit 锚、失败项带原因原文）。判据=批量节流成本收益（一次 LLM 分析 N 条 < N 次单条拉起）。**执行面接线红线（2026-11-28 实证教训）**：相位流转 ≠ 执行完成——扇出/join/合并/反馈各节点必须产出真实载体（session/commit/回评），sessionId 空转推进=实现缺陷（runs 41-43 空转实证：release 先于 run 存在、回评系人账号代发、无 commit 产出）。
+23. **builtin workflow 自审批缺省（2026-11-28 用户裁定「内置的几个 workflow 的 llm agent 全自己审批」）**：builtin 四件（`core-system-developer-loop`/`default-task`/`gh-issue-trigger`/`agent-release`）的 approval-gate 缺省 `mode: agent`——LLM 按 `spec.approval.autoCriteria` 自主批准/驳回，判决经 ops_core_inner_agent 生成 **DocumentDiff 判决文档留痕**（§9c 审批判决文档机制，run/审批视图现读展示）；`maxRiskLevel` 超限自动回退人工（审批提升 §7 出路 3 通路不变）；声明 `mode: human` 仍是人工闸。**闸锚必须真判**：approval-gate 落闸锚后 agent 模式=引擎即刻拉判决（判决通过→自查自批 ApprovalGranted 续行/驳回→ApprovalRejected 终态），不得只挂不判（2026-11-28 实证缺口：mode=agent 已声明但引擎未接线，85 run 挂 AwaitingApproval 无人批）。
 
 - 终态制：本文档只展示最终结果，变更历史只在 git 历史（[rule.md](../rule/rule.md)）。
 
@@ -371,29 +374,28 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 
 **审批判决文档（2026-11-28 用户裁定 ops_core_inner_agent）**：审批裁定环节走**小内置 agent**（只调 LLM 即可——`ops_core_inner_agent`，Provider low 档）整理 **DocumentDiff**：人审挂起即读「现值 vs 待批稿」→生成 **Diff 文档**（改了什么/为什么/影响面/风险，≤300 字）→落库（kind DocumentDiff，workflow-engine writer，同名幂等）；**run/审批视图现读判决文档展示**——「我要能在这个 workflow 实际的 run 节点中看到这个判决报告」。声明面=scheme docTypes DocumentDiff+`spec.approval.approvalDiff{enabled,agent,provider}`（scheme 配置改行为，改 scheme 零代码）。
 
-### 9c.1 `gh-issue-trigger`（GitHub Issue 触发 → 判断 → 文档更新 → 发版 → issue 回评闭环；2026-11-27 用户指令加第 9 节点 issue-feedback=connectops issue-comment）
+### 9c.1 `gh-issue-trigger`（GitHub Issue 批量合判 → 多 run 扇出修复 → 合并回评闭环；2026-11-28 用户裁定改批量扇出形态）
 
 ```
-入口 1：定时（timer 每 1h 整理）｜入口 2：GhIssueEvent（connectops-gh watch 桥自产，新开/重开 Issue）
- ① gh-issue-fetch (Idle：connectops-gh issue-list 拉取未整理 Issue——cli 模式走 gh CLI)
+入口 1：timer 每 1h（批量全量）｜入口 2：GhIssueEvent（connectops-gh watch 桥自产，单条即时，fanout=1）
+ ① gh-issue-fetch (Idle：connectops-gh issue-list 拉取全部未 close/needs-triage Issue——cli 模式走 gh CLI)
   ↓
- ② agent-judge (Analyzing：Agent 按 globalRuleRefs 判断 Issue 类型——bug/文档缺口/需求/噪声；产修复方案)
+ ② batch-judge (Analyzing：unit=agent——一次批量分析全部待处理 Issue（分类 bug/文档/需求/噪声+根因+合并判据：同模块/同根因/同文件合一项）
+     → 产出执行计划 plan[N 条修复项={issues[], scope, risk}]；噪声项合并直达 ⑥)
   ↓
- ③ approval-gate (AwaitingApproval：默认 agent 自动判断审批，human 可切)
+ ③ approval-gate (AwaitingApproval：builtin 缺省 mode=agent 自审批——LLM 按 autoCriteria 判决+DocumentDiff 留痕；超 maxRiskLevel 回退人工)
   ↓
- ④ doc-apply (Planning：结论落临时 BugDoc/文档修订草稿)
+ ④ fanout-fixes (Planning：unit=workflow，fanout: {from: plan, key: items}——按计划扇出 N 个子 run（每条修复项一 run，从 doc-apply 切入走
+     doc-apply→developer-system→verify→gh-release 单条修复链）；parentRun 锚；父 run join 挂起等全部子 run 终态)
   ↓
- ⑤ developer-system (Executing：文档更新/代码修复走 developer-system；build 用 gh workflow-dispatch)
+ ⑤ merge-results (Reporting：unit=agent——fanout-complete 迁移抵达，汇聚全部子 run 产物（修复 diff/发版/验证证据/失败原因）)
   ↓
- ⑥ verify (Verifying：CI 绿 + 规则审核)
-  ↓
- ⑦ gh-release (Deploying：connectops-gh release-create 发 github release)
-  ↓
- ⑧ report-archive (Reporting：回评 Issue + 收尾 postActions——临时 BugDoc 默认 invalidate 可改 delete/keep)
+ ⑥ issue-feedback (Reporting：connectops-gh 逐 issue 回评（结论+release/commit 锚；失败项如实回评未修复原因）+关闭；噪声项回评「不予处理」归档)
 ```
 
 - 绑定 `ConnectorOps/global/connectops-gh`（`mode: cli`——core_agent 默认 cli；部署侧同名对象声明 `mode: http` 走 GitHub REST），代码与定义同仓 `connectops-gh`（connector.md 规则 12）。
 - 业务 agent 运行报错默认走 github 提 issue：其运行面把错误经 `connectops-gh` 提交 Issue（`issue-comment/issue-create` 语义），自动回流本 workflow 入口 2。
+- **执行面红线（规则 22）**：issue-feedback 节点必须以 `connectops-gh issue-comment` 真发回评（回评作者=系统侧凭据），converged 但 issue 零回评=实现缺陷（2026-11-28 实证：#1/#2 无回评、#3 回评系人账号代发）。
 
 ### 9c.2 `agent-release`（代码编译后更新 业务侧 agent）
 
@@ -420,7 +422,7 @@ Workflow 天生跨权限：一轮 core-workflow 要穿过五个权限域。逐�
 - 与 `gh-issue-trigger` 共用 `connectops-gh`；发布通道走 `connectops-deploy`（部署侧 k8s 侧默认 http 模式）——同一 workflow 文档在不同部署改 `systemBindings`/`mode` 配置即可换通道，零代码分支。
 
 **声明要点（解释器配置面）**：两条 workflow 的 YAML 权威形态存 `core_system_instance/examples/workflows/`（`gh-issue-trigger.yaml`、`agent-release.yaml`），实例化=apply 到 docsRoot；全部为文档配置，不含任何 builtin 代码。
-**现状勘误（2026-11-27 提交文档更新）**：①运行时 BugDoc 对象当前借 `kind: Agent`+`docType: BugDoc` 落库（如 `Agent/global/bug-workflow-agent-502-20261127`）——scheme 未注册 `BugDoc` kind，属过渡载体，待 scheme 注册 BugDoc kind 后迁正；②`gh-issue-trigger` 权威 YAML 的 doc-apply/report-archive 节点已随执行单元三型把旧 `unit: session` 词形退役为 `agent`（2026-11-27 用户指令顺手修正）。
+**现状勘误（2026-11-28 全链复盘补条）**：①运行时 BugDoc 对象当前借 `kind: Agent`+`docType: BugDoc` 落库（如 `Agent/global/bug-workflow-agent-502-20261127`）——scheme 未注册 `BugDoc` kind，属过渡载体，待 scheme 注册 BugDoc kind 后迁正；②`gh-issue-trigger` 权威 YAML 的 doc-apply/report-archive 节点已随执行单元三型把旧 `unit: session` 词形退役为 `agent`（2026-11-27 用户指令顺手修正）；③**自审批未接线**：`approval.mode: agent` 声明面已有，引擎闸锚只挂不判（2026-11-28 实证：85 run 挂 AwaitingApproval 无人批，含 09:54 一批 8 个）——规则 23 判决通路待接线；④**执行面空转实证**：runs 41-43（九相位 converged）sessionId 全空、30s 定时机械推进、无 commit 产出、release v0.1.0（15:25:48）早于 run 受理（15:30:30）、#3 回评系人账号（friddle）代发——**相位机流转=真通路，节点真实执行通路（session 拉起/LLM 判决/代码修复/回评）=缺口**，本批（规则 22/23+子 workflow 词形）接线收口。
 
 ## 10. 审阅标注区
 
